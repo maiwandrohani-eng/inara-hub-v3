@@ -1,8 +1,19 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
+// Get API base URL from environment or use relative path
+const getApiBaseUrl = () => {
+  // In production, use VITE_API_URL if set, otherwise use relative path
+  const envUrl = (import.meta as any).env?.VITE_API_URL;
+  if (envUrl) {
+    return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+  }
+  // Use relative path (will be proxied by vercel.json or nginx)
+  return '/api';
+};
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
