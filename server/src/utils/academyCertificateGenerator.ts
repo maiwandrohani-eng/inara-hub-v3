@@ -29,7 +29,12 @@ export async function generateAcademyCertificate(
       // Ensure output directory exists
       const outputDir = path.dirname(outputPath);
       if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
+        // Only create directories in development (not in Vercel/serverless)
+        if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+          if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+          }
+        }
       }
 
       // Create PDF document

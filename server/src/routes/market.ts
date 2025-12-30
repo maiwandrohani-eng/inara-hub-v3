@@ -11,16 +11,22 @@ const prisma = new PrismaClient();
 
 // Configure multer for file uploads
 const uploadsDir = path.join(process.cwd(), 'server', 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Only create directories in development (not in Vercel/serverless)
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
 }
 
 const marketStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const marketDir = path.join(uploadsDir, 'market');
-    if (!fs.existsSync(marketDir)) {
-      fs.mkdirSync(marketDir, { recursive: true });
-    }
+      const marketDir = path.join(uploadsDir, 'market');
+      // Only create directories in development (not in Vercel/serverless)
+      if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+        if (!fs.existsSync(marketDir)) {
+          fs.mkdirSync(marketDir, { recursive: true });
+        }
+      }
     cb(null, marketDir);
   },
   filename: (req, file, cb) => {

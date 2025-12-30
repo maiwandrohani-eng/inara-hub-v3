@@ -225,7 +225,12 @@ router.post('/courses/:id/complete', authenticate, async (req: AuthRequest, res)
 
     const certificatesDir = path.join(process.cwd(), 'server', 'public', 'uploads', 'certificates');
     if (!fs.existsSync(certificatesDir)) {
-      fs.mkdirSync(certificatesDir, { recursive: true });
+      // Only create directories in development (not in Vercel/serverless)
+      if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+        if (!fs.existsSync(certificatesDir)) {
+          fs.mkdirSync(certificatesDir, { recursive: true });
+        }
+      }
     }
 
     const certificatePath = path.join(certificatesDir, `${certificateNumber}.pdf`);

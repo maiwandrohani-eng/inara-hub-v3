@@ -15,8 +15,11 @@ const prisma = new PrismaClient();
 
 // Configure multer for file uploads
 const uploadsDir = path.join(process.cwd(), 'server', 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Only create directories in development (not in Vercel/serverless)
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
 }
 
 const storage = multer.diskStorage({
@@ -29,10 +32,13 @@ const storage = multer.diskStorage({
     } else if (req.path?.includes('orientation')) {
       type = 'orientation';
     }
-    const typeDir = path.join(uploadsDir, type);
-    if (!fs.existsSync(typeDir)) {
-      fs.mkdirSync(typeDir, { recursive: true });
-    }
+        const typeDir = path.join(uploadsDir, type);
+        // Only create directories in development (not in Vercel/serverless)
+        if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+          if (!fs.existsSync(typeDir)) {
+            fs.mkdirSync(typeDir, { recursive: true });
+          }
+        }
     cb(null, typeDir);
   },
   filename: (req, file, cb) => {
@@ -885,8 +891,11 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
         
         // Ensure the file is moved to the correct location
         const targetDir = path.join(uploadsDir, 'policy');
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
+        // Only create directories in development (not in Vercel/serverless)
+        if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+          if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+          }
         }
         const targetPath = path.join(targetDir, file.filename);
         if (file.path !== targetPath && fs.existsSync(file.path)) {
@@ -987,8 +996,11 @@ router.post('/templates/bulk-import', upload.array('files', 50), async (req: Aut
         
         // Ensure the file is moved to the correct location
         const targetDir = path.join(uploadsDir, 'template');
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
+        // Only create directories in development (not in Vercel/serverless)
+        if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+          if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+          }
         }
         const targetPath = path.join(targetDir, file.filename);
         if (file.path !== targetPath && fs.existsSync(file.path)) {
