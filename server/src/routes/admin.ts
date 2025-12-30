@@ -7,7 +7,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { detectCategory, detectCategoryFromPath, detectResourceType } from '../utils/categoryDetector.js';
-import { generateQuestionsFromPDF } from '../utils/aiQuestionGenerator.js';
+// Lazy import to avoid module loading issues - will import dynamically when needed
 import { buildCourseFromDocument, buildCourseFromText } from '../utils/academyCourseBuilder.js';
 
 const router = express.Router();
@@ -1287,6 +1287,8 @@ router.post('/surveys/upload-document', upload.single('file'), async (req: AuthR
         console.log('🤖 Generating AI-powered questions from PDF...');
         console.log('📁 PDF path:', pdfPath);
         
+        // Lazy import to avoid module loading issues
+        const { generateQuestionsFromPDF } = await import('../utils/aiQuestionGenerator.js');
         const result = await generateQuestionsFromPDF(pdfPath); // Auto-calculate question count
         questions = result.questions;
         extractedText = result.extractedText;
