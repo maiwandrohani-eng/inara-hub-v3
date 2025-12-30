@@ -16,6 +16,14 @@ async function getApp() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const expressApp = await getApp();
-  return expressApp(req, res);
+  try {
+    const expressApp = await getApp();
+    return expressApp(req, res);
+  } catch (error: any) {
+    console.error('Vercel handler error:', error);
+    res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 }

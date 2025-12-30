@@ -8,7 +8,7 @@
     "dev:client": "cd client && npm run dev",
     "build": "npm run build:client && npm run build:server",
     "build:client": "cd client && (test -d node_modules || npm install) && npm run build",
-    "build:server": "cd server && npm run build && npm run db:generate",
+    "build:server": "cd server && npm run db:generate && npm run build",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
     "start": "cd server && npm start",
     "docker:build": "docker-compose build",

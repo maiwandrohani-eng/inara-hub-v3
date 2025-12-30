@@ -130,19 +130,32 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    console.log('Login attempt for:', email);
+
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.isActive) {
+      console.log('Login failed: User not found or inactive');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
+      console.log('Login failed: Invalid password');
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not set');
+      return res.status(500).json({ message: 'Server configuration error' });
     }
 
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
@@ -151,15 +164,21 @@ router.post('/login', async (req, res) => {
       data: { lastLogin: new Date() },
     });
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: user.id,
-        action: 'login',
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-      },
-    });
+    // Log activity (don't fail if this fails)
+    try {
+      await prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          action: 'login',
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+        },
+      });
+    } catch (logError) {
+      console.warn('Failed to log activity:', logError);
+    }
+
+    console.log('Login successful for:', email);
 
     res.json({
       token,
@@ -174,7 +193,12 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    console.error('Login error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: error.message || 'Login failed',
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

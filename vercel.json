@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run install:all && npm run build:client",
+  "buildCommand": "npm run install:all && cd server && npm run db:generate && cd .. && npm run build:client",
   "outputDirectory": "client/dist",
   "installCommand": "npm run install:all",
   "framework": null,
