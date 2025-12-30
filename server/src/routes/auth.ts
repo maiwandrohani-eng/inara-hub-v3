@@ -141,6 +141,47 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// Test endpoint to verify Prisma works in auth route
+router.get('/test', async (req, res) => {
+  try {
+    let prismaAvailable = false;
+    let dbConnected = false;
+    let errorMessage = null;
+    let userCount = 0;
+
+    try {
+      prismaAvailable = !!prisma;
+      console.log('Prisma available:', prismaAvailable);
+      console.log('Prisma type:', typeof prisma);
+      
+      // Test database connection
+      await prisma.$queryRaw`SELECT 1`;
+      dbConnected = true;
+      
+      // Try to query users
+      userCount = await prisma.user.count();
+    } catch (error: any) {
+      errorMessage = error.message;
+      console.error('Prisma test error:', error);
+    }
+
+    res.json({
+      status: 'ok',
+      prismaAvailable,
+      dbConnected,
+      userCount,
+      error: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      stack: error.stack,
+    });
+  }
+});
+
 // Login
 router.post('/login', async (req, res) => {
   try {
@@ -151,6 +192,7 @@ router.post('/login', async (req, res) => {
     }
 
     console.log('Login attempt for:', email);
+    console.log('Prisma Client available:', !!prisma);
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !user.isActive) {
