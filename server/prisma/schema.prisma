@@ -26,6 +26,7 @@ enum Department {
   MEAL
   IT
   OPERATIONS
+  P_AND_D
 }
 
 enum TrainingStatus {

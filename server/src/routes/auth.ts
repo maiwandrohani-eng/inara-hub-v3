@@ -46,6 +46,18 @@ router.post('/signup', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // Map department values to enum (handle variations like "P&D" -> "P_AND_D")
+    let departmentEnum = department;
+    if (department) {
+      const departmentMap: Record<string, string> = {
+        'P&D': 'P_AND_D',
+        'P_AND_D': 'P_AND_D',
+        'Partnership and Development': 'P_AND_D',
+        'Partnership & Development': 'P_AND_D',
+      };
+      departmentEnum = departmentMap[department] || department;
+    }
+
     // Create user with isActive: false (pending approval)
     const user = await getPrisma().user.create({
       data: {
@@ -56,7 +68,7 @@ router.post('/signup', async (req, res) => {
         phone,
         whatsapp,
         role: role || 'STAFF',
-        department,
+        department: departmentEnum as any,
         country,
         city,
         address,
@@ -105,6 +117,18 @@ router.post('/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // Map department values to enum (handle variations like "P&D" -> "P_AND_D")
+    let departmentEnum = department;
+    if (department) {
+      const departmentMap: Record<string, string> = {
+        'P&D': 'P_AND_D',
+        'P_AND_D': 'P_AND_D',
+        'Partnership and Development': 'P_AND_D',
+        'Partnership & Development': 'P_AND_D',
+      };
+      departmentEnum = departmentMap[department] || department;
+    }
+
     const user = await getPrisma().user.create({
       data: {
         email,
@@ -114,7 +138,7 @@ router.post('/register', async (req, res) => {
         phone,
         whatsapp,
         role: role || 'STAFF',
-        department,
+        department: departmentEnum as any,
         country,
         city,
         address,

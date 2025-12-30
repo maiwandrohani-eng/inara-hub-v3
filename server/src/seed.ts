@@ -194,6 +194,7 @@ async function main() {
     { type: 'department', key: 'MEAL', value: 'MEAL', order: 5 },
     { type: 'department', key: 'IT', value: 'Information Technology', order: 6 },
     { type: 'department', key: 'OPERATIONS', value: 'Operations', order: 7 },
+    { type: 'department', key: 'P_AND_D', value: 'Partnership and Development', order: 8 },
     
     // Countries
     { type: 'country', key: 'AFG', value: 'Afghanistan', order: 1 },
