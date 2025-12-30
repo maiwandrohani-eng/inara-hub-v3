@@ -6,21 +6,27 @@ import { authenticate, AuthRequest } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Create Prisma Client instance with error handling
-let prisma: PrismaClient;
-try {
-  prisma = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  });
-  console.log('✅ Prisma Client created in auth routes');
-} catch (error: any) {
-  console.error('❌ Failed to create Prisma Client in auth routes:', error);
-  console.error('Error details:', {
-    message: error.message,
-    stack: error.stack,
-    name: error.name,
-  });
-  throw error;
+// Lazy-load Prisma Client to avoid initialization errors
+let prisma: PrismaClient | null = null;
+
+function getPrisma(): PrismaClient {
+  if (!prisma) {
+    try {
+      prisma = new PrismaClient({
+        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      });
+      console.log('✅ Prisma Client created in auth routes');
+    } catch (error: any) {
+      console.error('❌ Failed to create Prisma Client in auth routes:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+      throw error;
+    }
+  }
+  return prisma;
 }
 
 // Public Sign-up (creates pending user, requires admin approval)
@@ -28,7 +34,7 @@ router.post('/signup', async (req, res) => {
   try {
     const { email, password, firstName, lastName, phone, whatsapp, role, department, country, city, address } = req.body;
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await getPrisma().user.findUnique({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'An account with this email already exists' });
     }
@@ -41,7 +47,7 @@ router.post('/signup', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // Create user with isActive: false (pending approval)
-    const user = await prisma.user.create({
+    const user = await getPrisma().user.create({
       data: {
         email,
         passwordHash,
@@ -70,7 +76,7 @@ router.post('/signup', async (req, res) => {
     });
 
     // Log activity
-    await prisma.activityLog.create({
+    await getPrisma().activityLog.create({
       data: {
         userId: user.id,
         action: 'signup',
@@ -92,14 +98,14 @@ router.post('/register', async (req, res) => {
   try {
     const { email, password, firstName, lastName, phone, whatsapp, role, department, country, city, address } = req.body;
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await getPrisma().user.findUnique({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
+    const user = await getPrisma().user.create({
       data: {
         email,
         passwordHash,
@@ -127,7 +133,7 @@ router.post('/register', async (req, res) => {
     });
 
     // Log activity
-    await prisma.activityLog.create({
+    await getPrisma().activityLog.create({
       data: {
         userId: user.id,
         action: 'register',
@@ -150,16 +156,17 @@ router.get('/test', async (req, res) => {
     let userCount = 0;
 
     try {
-      prismaAvailable = !!prisma;
+      const prismaInstance = getPrisma();
+      prismaAvailable = !!prismaInstance;
       console.log('Prisma available:', prismaAvailable);
-      console.log('Prisma type:', typeof prisma);
+      console.log('Prisma type:', typeof prismaInstance);
       
       // Test database connection
-      await prisma.$queryRaw`SELECT 1`;
+      await prismaInstance.$queryRaw`SELECT 1`;
       dbConnected = true;
       
       // Try to query users
-      userCount = await prisma.user.count();
+      userCount = await prismaInstance.user.count();
     } catch (error: any) {
       errorMessage = error.message;
       console.error('Prisma test error:', error);
@@ -192,9 +199,12 @@ router.post('/login', async (req, res) => {
     }
 
     console.log('Login attempt for:', email);
-    console.log('Prisma Client available:', !!prisma);
+    
+    // Get Prisma Client instance (lazy-loaded)
+    const prismaInstance = getPrisma();
+    console.log('Prisma Client available:', !!prismaInstance);
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prismaInstance.user.findUnique({ where: { email } });
     if (!user || !user.isActive) {
       console.log('Login failed: User not found or inactive');
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -217,14 +227,14 @@ router.post('/login', async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
-    await prisma.user.update({
+    await prismaInstance.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() },
     });
 
     // Log activity (don't fail if this fails)
     try {
-      await prisma.activityLog.create({
+      await prismaInstance.activityLog.create({
         data: {
           userId: user.id,
           action: 'login',
@@ -271,7 +281,7 @@ router.post('/login', async (req, res) => {
 // Get current user
 router.get('/me', authenticate, async (req: AuthRequest, res) => {
   try {
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { id: req.userId! },
       select: {
         id: true,
