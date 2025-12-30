@@ -9,7 +9,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let errorMessage = null;
 
     try {
-      const { PrismaClient } = await import('@prisma/client');
+      // Try to import from root node_modules first, then server
+      let PrismaClient;
+      try {
+        const module = await import('@prisma/client');
+        PrismaClient = module.PrismaClient;
+      } catch (e) {
+        // Fallback: try to import from server
+        const serverModule = await import('../server/node_modules/@prisma/client');
+        PrismaClient = serverModule.PrismaClient;
+      }
+      
       const prisma = new PrismaClient();
       prismaAvailable = true;
       
@@ -21,6 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (error: any) {
       errorMessage = error.message;
       console.error('Health check error:', error);
+      console.error('Error stack:', error.stack);
     }
 
     res.json({

@@ -19,8 +19,12 @@
   "keywords": ["inara", "staff-platform", "lms", "compliance"],
   "author": "INARA",
   "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.7.1"
+  },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "prisma": "^5.7.1"
   }
 }
 
