@@ -5,7 +5,23 @@ import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Create Prisma Client instance with error handling
+let prisma: PrismaClient;
+try {
+  prisma = new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+  console.log('✅ Prisma Client created in auth routes');
+} catch (error: any) {
+  console.error('❌ Failed to create Prisma Client in auth routes:', error);
+  console.error('Error details:', {
+    message: error.message,
+    stack: error.stack,
+    name: error.name,
+  });
+  throw error;
+}
 
 // Public Sign-up (creates pending user, requires admin approval)
 router.post('/signup', async (req, res) => {
