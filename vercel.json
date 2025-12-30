@@ -5,14 +5,15 @@
   "installCommand": "npm run install:all",
   "framework": null,
   "functions": {
-    "server/src/index.ts": {
-      "runtime": "@vercel/node"
+    "api/**/*.ts": {
+      "runtime": "@vercel/node",
+      "maxDuration": 30
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/server/src/index.ts"
+      "destination": "/api/index"
     },
     {
       "source": "/uploads/(.*)",
