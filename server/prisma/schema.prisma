@@ -27,6 +27,7 @@ enum Department {
   IT
   OPERATIONS
   P_AND_D
+  SSD
 }
 
 enum TrainingStatus {
