@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/inara-logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="description" content="Unified digital workplace for INARA staff worldwide" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>INARA Global Staff Platform</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        background-color: #111827;
+        color: #f9fafb;
+        min-height: 100vh;
+      }
+      #root {
+        min-height: 100vh;
+      }
+      /* Hide Google Translate if it appears */
+      .goog-te-banner-frame,
+      .skiptranslate,
+      iframe[title*="Translate"],
+      iframe[src*="translate.googleapis.com"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+      }
+    </style>
+    <script>
+      // Clear all Google Translate cookies
+      (function() {
+        try {
+          document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          document.cookie = 'googtrans=; path=/; domain=' + window.location.hostname + '; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        } catch(e) {}
+      })();
+      
+      // Initialize dark theme
+      (function() {
+        try {
+          var savedTheme = localStorage.getItem('theme');
+          if (savedTheme === 'dark' || !savedTheme) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.add('light');
+          }
+        } catch(e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+      
+      // Debug: Log when page loads
+      console.log('HTML loaded, root element:', document.getElementById('root'));
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; color: #9ca3af; text-align: center; padding: 20px;">
+        <div>
+          <div style="font-size: 24px; margin-bottom: 16px; color: #60a5fa;">Loading INARA Platform...</div>
+          <div style="font-size: 14px; margin-bottom: 8px;">If this message persists, React may not be mounting.</div>
+          <div style="font-size: 12px; color: #6b7280;">Check browser console (F12) for errors.</div>
+        </div>
+      </div>
+    </div>
+    
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Force cache clear on load
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          names.forEach(function(name) {
+            caches.delete(name);
+          });
+        });
+      }
+    </script>
+    
+    <script>
+      // Debug: Check if React mounted
+      window.addEventListener('load', function() {
+        console.log('Window loaded');
+        setTimeout(function() {
+          var root = document.getElementById('root');
+          console.log('Root element:', root);
+          console.log('Root children count:', root ? root.children.length : 0);
+          console.log('Root innerHTML length:', root ? root.innerHTML.length : 0);
+          
+          if (root && root.children.length === 0) {
+            console.error('❌ React did not mount! Root is empty.');
+            console.error('This usually means:');
+            console.error('1. JavaScript error preventing React from loading');
+            console.error('2. Module import error');
+            console.error('3. Build/dev server issue');
+            console.error('Check the console above for specific errors.');
+          } else if (root && root.children.length > 0) {
+            console.log('✅ React appears to have mounted!');
+            // Remove loading message
+            var loadingMsg = root.querySelector('div[style*="Loading INARA"]');
+            if (loadingMsg) {
+              var parent = loadingMsg.closest('div[style*="display: flex"]');
+              if (parent && parent.parentElement === root) {
+                parent.remove();
+              }
+            }
+          }
+        }, 3000);
+      });
+      
+      // Also check immediately after a short delay
+      setTimeout(function() {
+        var root = document.getElementById('root');
+        if (root) {
+          console.log('Initial check - Root exists:', !!root);
+          console.log('Initial check - Root has children:', root.children.length > 0);
+        }
+      }, 500);
+    </script>
+    
+    <!-- Disable service worker temporarily to rule it out -->
+    <script>
+      // Unregister service workers to fix Chrome caching issues
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister().then(function(boolean) {
+              console.log('Service worker unregistered:', boolean);
+            });
+          }
+        });
+        
+        // Clear all caches
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (let name of names) {
+              caches.delete(name);
+              console.log('Cache deleted:', name);
+            }
+          });
+        }
+      }
+    </script>
+  </body>
+</html>

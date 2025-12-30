@@ -1,0 +1,209 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #ffffff; /* white */
+  color: #111827; /* gray-900 */
+  transition: background-color 0.2s, color 0.2s;
+}
+
+html.dark body {
+  background-color: #111827; /* gray-900 */
+  color: #f9fafb; /* gray-50 */
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  header,
+  nav,
+  footer,
+  button,
+  .bg-gray-800,
+  .bg-gray-900 {
+    display: none !important;
+  }
+  
+  .bg-gray-800,
+  .bg-gray-900 {
+    background: white !important;
+    color: black !important;
+  }
+  
+  a {
+    color: black !important;
+    text-decoration: underline !important;
+  }
+  
+  .text-white,
+  .text-gray-200,
+  .text-gray-300 {
+    color: black !important;
+  }
+  
+  .text-gray-400,
+  .text-gray-500 {
+    color: #666 !important;
+  }
+  
+  .border-gray-700,
+  .border-gray-600 {
+    border-color: #ccc !important;
+  }
+  
+  .shadow,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+  
+  .rounded-lg,
+  .rounded {
+    border-radius: 0 !important;
+  }
+  
+  @page {
+    margin: 1in;
+  }
+}
+
+/* Keyboard shortcut hint */
+kbd {
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.75rem;
+  font-family: monospace;
+  background-color: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  color: #d1d5db;
+}
+
+/* Google Translate Styles - Hide everything aggressively */
+#google_translate_element {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  z-index: -9999 !important;
+}
+
+/* Hide Google Translate banner completely - ALL variations */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+#google_translate_element + div,
+body > div[style*="position"]:first-child {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  z-index: -9999 !important;
+  overflow: hidden !important;
+}
+
+/* Hide the Google Translate top bar - more specific */
+body > .goog-te-banner-frame,
+html > body > .goog-te-banner-frame {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+}
+
+/* Remove the space that Google Translate banner creates */
+body {
+  top: 0 !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  position: relative !important;
+}
+
+html {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Hide Google Translate iframe - ALL iframes from Google */
+iframe.goog-te-banner-frame,
+iframe[title="Language Translate Widget"],
+iframe[title*="Translate"],
+iframe[src*="translate.googleapis.com"],
+iframe[src*="translate.google.com"] {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  border: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  z-index: -9999 !important;
+}
+
+/* Hide Google Translate menu */
+.goog-te-menu-frame {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide any Google Translate UI elements */
+.goog-te-gadget,
+.goog-te-gadget-simple,
+.goog-te-gadget-icon,
+.goog-te-spinner-pos,
+.goog-te-balloon-frame {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Hide the translate bar that appears at top */
+.skiptranslate,
+.goog-te-banner,
+div[id*="google_translate"] {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Style Google Translate dropdown if it appears (hidden) */
+.goog-te-combo {
+  display: none !important;
+  visibility: hidden !important;
+}

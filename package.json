@@ -1,0 +1,19 @@
+{
+  "name": "inara-global-staff-platform",
+  "version": "1.0.0",
+  "description": "Unified Digital Workplace for All INARA Staff Worldwide",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": ["inara", "staff-platform", "lms", "compliance"],
+  "author": "INARA",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

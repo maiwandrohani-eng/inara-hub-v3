@@ -1,0 +1,43 @@
+{
+  "name": "INARA Global Staff Platform",
+  "short_name": "INARA Hub",
+  "description": "Unified digital workplace for INARA staff worldwide",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/inara-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/inara-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your dashboard",
+      "url": "/",
+      "icons": [{ "src": "/inara-logo.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Training",
+      "short_name": "Training",
+      "description": "Access training modules",
+      "url": "/training",
+      "icons": [{ "src": "/inara-logo.png", "sizes": "96x96" }]
+    }
+  ]
+}
+
