@@ -1,0 +1,48 @@
+# Vercel Environment Variables
+# Copy and paste these into Vercel Project Settings → Environment Variables
+
+# ============================================
+# DATABASE (Neon PostgreSQL)
+# ============================================
+# Get this from: https://console.neon.tech
+DATABASE_URL=postgresql://user:password@ep-xxx-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+
+# ============================================
+# AUTHENTICATION
+# ============================================
+# Generate with: openssl rand -base64 32
+JWT_SECRET=your-super-secret-jwt-key-min-32-characters-here
+JWT_EXPIRES_IN=7d
+
+# ============================================
+# CORS & FRONTEND
+# ============================================
+# Replace with your actual Vercel deployment URL
+# Example: https://inara-hub-v3.vercel.app
+CORS_ORIGIN=https://your-app.vercel.app
+VITE_API_URL=https://your-app.vercel.app
+
+# ============================================
+# CLOUDFLARE R2 (Already Configured)
+# ============================================
+R2_ACCOUNT_ID=f672838a09e9e6a09d08ce61b5866002
+R2_ACCESS_KEY_ID=f2232270caa9e6bf962cc60ee8d3c5e3
+R2_SECRET_ACCESS_KEY=e10c35df6da6306b5bb207161aa6b36668b20f429c9c00279d915fc7630cb8d5
+R2_BUCKET_NAME=inara-data
+R2_ENDPOINT=https://f672838a09e9e6a09d08ce61b5866002.r2.cloudflarestorage.com
+R2_PUBLIC_URL=https://hub.inara.ngo
+
+# ============================================
+# SERVER CONFIGURATION
+# ============================================
+NODE_ENV=production
+PORT=5000
+
+# ============================================
+# OPTIONAL: AI INTEGRATION
+# ============================================
+# Only add if you want AI features (course generation, bot)
+AI_API_KEY=your-ai-api-key-here
+AI_API_URL=https://router.huggingface.co/v1/chat/completions
+AI_MODEL=mistralai/Mistral-7B-Instruct-v0.2
+

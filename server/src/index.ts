@@ -30,6 +30,7 @@ import newsRoutes from './routes/news.js';
 import suggestionRoutes from './routes/suggestions.js';
 import surveyRoutes from './routes/surveys.js';
 import academyRoutes from './routes/academy.js';
+import setupRoutes from './routes/setup.js';
 
 dotenv.config();
 
@@ -100,6 +101,7 @@ app.use('/api/news', newsRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/surveys', surveyRoutes);
 app.use('/api/academy', academyRoutes);
+app.use('/api/setup', setupRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

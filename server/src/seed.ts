@@ -242,12 +242,21 @@ async function main() {
   console.log('🎉 Seeding completed!');
 }
 
-main()
-  .catch((e) => {
-    console.error('❌ Seeding failed:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// Export for use in setup route
+export async function seedDatabase() {
+  await main();
+  await prisma.$disconnect();
+}
+
+// Run if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main()
+    .catch((e) => {
+      console.error('❌ Seeding failed:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
 
