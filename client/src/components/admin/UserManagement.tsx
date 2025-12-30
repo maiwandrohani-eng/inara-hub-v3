@@ -91,6 +91,7 @@ export default function UserManagement() {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('admin-users');
+        queryClient.invalidateQueries('admin-analytics');
         queryClient.invalidateQueries('analytics-overview');
         queryClient.invalidateQueries('analytics-users');
         setShowForm(false);
@@ -111,6 +112,7 @@ export default function UserManagement() {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('admin-users');
+        queryClient.invalidateQueries('admin-analytics');
         queryClient.invalidateQueries('analytics-overview');
         queryClient.invalidateQueries('analytics-users');
         setEditingUser(null);
@@ -132,6 +134,7 @@ export default function UserManagement() {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('admin-users');
+        queryClient.invalidateQueries('admin-analytics');
         queryClient.invalidateQueries('analytics-overview');
         queryClient.invalidateQueries('analytics-users');
         alert('User deleted successfully!');
@@ -151,6 +154,7 @@ export default function UserManagement() {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('admin-users');
+        queryClient.invalidateQueries('admin-analytics');
         queryClient.invalidateQueries('analytics-overview');
         queryClient.invalidateQueries('analytics-users');
         alert('User deactivated successfully!');

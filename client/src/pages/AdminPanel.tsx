@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import api from '../api/client';
 import TrainingManagement from '../components/admin/TrainingManagement';
 import PolicyManagement from '../components/admin/PolicyManagement';
@@ -18,18 +18,24 @@ import OrientationManagement from '../components/admin/OrientationManagement';
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('overview');
+  const queryClient = useQueryClient();
 
-  const { data: analytics } = useQuery('admin-analytics', async () => {
-    const [people, compliance, systemUsage] = await Promise.all([
+  const { data: analytics, refetch: refetchAnalytics } = useQuery('admin-analytics', async () => {
+    const [people, compliance, systemUsage, overview] = await Promise.all([
       api.get('/analytics/people'),
       api.get('/analytics/compliance'),
       api.get('/analytics/system-usage'),
+      api.get('/analytics/overview?range=all'),
     ]);
     return {
       people: people.data,
       compliance: compliance.data,
       systemUsage: systemUsage.data,
+      overview: overview.data,
     };
+  }, {
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const menuItems = [
@@ -81,25 +87,55 @@ export default function AdminPanel() {
         <div className="bg-gray-800 rounded-lg shadow p-6">
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Overview</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-primary-50 rounded-lg p-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-white">Overview</h2>
+              <button
+                onClick={() => {
+                  queryClient.invalidateQueries('admin-analytics');
+                  refetchAnalytics();
+                }}
+                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
                 <p className="text-sm text-gray-400">Total Users</p>
-                <p className="text-2xl font-bold text-primary-700">
-                  {analytics?.people?.topVisitors?.length || 0}
+                <p className="text-3xl font-bold text-white mt-2">
+                  {analytics?.overview?.metrics?.totalUsers || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {analytics?.overview?.metrics?.activeUsers || 0} active
                 </p>
               </div>
-              <div className="bg-green-50 rounded-lg p-4">
-                <p className="text-sm text-gray-400">Training Completion Rate</p>
-                <p className="text-2xl font-bold text-green-700">
-                  {analytics?.compliance?.trainingStats?.[0]?.completionRate?.toFixed(1) || 0}%
+              <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                <p className="text-sm text-gray-400">Training Completions</p>
+                <p className="text-3xl font-bold text-white mt-2">
+                  {analytics?.overview?.metrics?.trainingCompletions || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {analytics?.overview?.metrics?.trainingCompletionRate?.toFixed(1) || 0}% rate
                 </p>
               </div>
-              <div className="bg-blue-50 rounded-lg p-4">
-                <p className="text-sm text-gray-400">Policy Certification Rate</p>
-                <p className="text-2xl font-bold text-blue-700">
-                  {analytics?.compliance?.policyStats?.[0]?.certificationRate?.toFixed(1) || 0}%
+              <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                <p className="text-sm text-gray-400">Policy Certifications</p>
+                <p className="text-3xl font-bold text-white mt-2">
+                  {analytics?.overview?.metrics?.policyCertifications || 0}
                 </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {analytics?.overview?.metrics?.policyCertificationRate?.toFixed(1) || 0}% rate
+                </p>
+              </div>
+              <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
+                <p className="text-sm text-gray-400">Platform Engagement</p>
+                <p className="text-3xl font-bold text-white mt-2">
+                  {analytics?.overview?.metrics?.engagementScore?.toFixed(1) || 0}%
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Average score</p>
               </div>
             </div>
           </div>
