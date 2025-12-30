@@ -95,7 +95,24 @@ export default function Login() {
       setAuth(response.data.user, response.data.token);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+      console.error('Login error:', err);
+      console.error('Error response:', err.response?.data);
+      console.error('Error details:', {
+        message: err.response?.data?.message,
+        error: err.response?.data?.error,
+        code: err.response?.data?.code,
+        name: err.response?.data?.name,
+        stack: err.response?.data?.stack,
+      });
+      
+      // Show detailed error for debugging
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Login failed';
+      setError(errorMessage);
+      
+      // Also log to console for debugging
+      if (err.response?.data?.stack) {
+        console.error('Error stack:', err.response?.data?.stack);
+      }
     } finally {
       setLoading(false);
     }
