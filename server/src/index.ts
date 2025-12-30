@@ -63,8 +63,11 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' })); // 10MB for JSON (text paste)
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // 10MB for URL-encoded
 
-// Serve static files (PDFs, uploads)
-app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'public', 'uploads')));
+// Serve static files from R2 (via proxy) or local uploads (development)
+// In production on Vercel, files are served from R2 via /api/uploads route
+if (process.env.NODE_ENV === 'development') {
+  app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'public', 'uploads')));
+}
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -107,17 +110,19 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-const PORT = process.env.PORT || 5000;
+// Vercel serverless function handler
+export default app;
 
-app.listen(PORT, () => {
-  console.log(`🚀 INARA Platform Server running on port ${PORT}`);
-});
+// For local development
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 INARA Platform Server running on port ${PORT}`);
+  });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   await prisma.$disconnect();
   process.exit(0);
 });
-
-export default app;
-
