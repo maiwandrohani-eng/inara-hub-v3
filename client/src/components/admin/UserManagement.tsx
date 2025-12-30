@@ -121,7 +121,24 @@ export default function UserManagement() {
 
   const deleteMutation = useMutation(
     async (id: string) => {
-      // Deactivate instead of delete
+      // Delete user permanently
+      const res = await api.delete(`/admin/users/${id}`);
+      return res.data;
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('admin-users');
+        alert('User deleted successfully!');
+      },
+      onError: (error: any) => {
+        alert(error.response?.data?.message || 'Failed to delete user');
+      },
+    }
+  );
+
+  const deactivateMutation = useMutation(
+    async (id: string) => {
+      // Deactivate user (set isActive to false)
       const res = await api.put(`/admin/users/${id}`, { isActive: false });
       return res.data;
     },
