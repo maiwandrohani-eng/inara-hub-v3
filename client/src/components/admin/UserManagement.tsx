@@ -193,8 +193,14 @@ export default function UserManagement() {
   };
 
   const handleDelete = (user: any) => {
-    if (window.confirm(`Are you sure you want to deactivate ${user.firstName} ${user.lastName}?`)) {
+    if (window.confirm(`⚠️ WARNING: Are you sure you want to PERMANENTLY DELETE ${user.firstName} ${user.lastName}? This action cannot be undone and will remove all their data.`)) {
       deleteMutation.mutate(user.id);
+    }
+  };
+
+  const handleDeactivate = (user: any) => {
+    if (window.confirm(`Are you sure you want to deactivate ${user.firstName} ${user.lastName}? They will not be able to access the platform.`)) {
+      deactivateMutation.mutate(user.id);
     }
   };
 
@@ -565,17 +571,37 @@ export default function UserManagement() {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleEdit(user)}
-                          className="text-primary-500 hover:text-primary-700"
+                          className="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1"
+                          title="Edit user"
                         >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
                           Edit
                         </button>
                         {user.isActive ? (
-                          <button
-                            onClick={() => handleDelete(user)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            Deactivate
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleDeactivate(user)}
+                              className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1"
+                              title="Deactivate user"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
+                              Deactivate
+                            </button>
+                            <button
+                              onClick={() => handleDelete(user)}
+                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1"
+                              title="Permanently delete user"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
+                            </button>
+                          </>
                         ) : (
                           <button
                             onClick={() => {
@@ -583,8 +609,12 @@ export default function UserManagement() {
                                 updateMutation.mutate({ id: user.id, data: { isActive: true } });
                               }
                             }}
-                            className="text-green-500 hover:text-green-700 font-medium"
+                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1"
+                            title="Approve user"
                           >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                             Approve
                           </button>
                         )}

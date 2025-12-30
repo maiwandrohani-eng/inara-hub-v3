@@ -1077,7 +1077,7 @@ router.get('/users', async (req: AuthRequest, res) => {
   }
 });
 
-router.put('/users/:id', async (req: AuthRequest, res) => {
+router.put('/users/:id', authenticate, authorize(UserRole.ADMIN), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const { firstName, lastName, phone, whatsapp, role, department, country, city, address, clearance, isActive, password } = req.body;
@@ -1116,6 +1116,37 @@ router.put('/users/:id', async (req: AuthRequest, res) => {
     });
 
     res.json({ user });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Delete user (admin only)
+router.delete('/users/:id', authenticate, authorize(UserRole.ADMIN), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    // Prevent deleting yourself
+    if (id === req.userId) {
+      return res.status(400).json({ message: 'You cannot delete your own account' });
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true, role: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Delete user (cascade will handle related records)
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    res.json({ message: 'User deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
