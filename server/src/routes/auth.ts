@@ -51,6 +51,7 @@ router.post('/signup', async (req, res) => {
     if (department) {
       const departmentMap: Record<string, string> = {
         'P&D': 'P_AND_D',
+        'PD': 'P_AND_D',
         'P_AND_D': 'P_AND_D',
         'Partnership and Development': 'P_AND_D',
         'Partnership & Development': 'P_AND_D',
@@ -122,6 +123,7 @@ router.post('/register', async (req, res) => {
     if (department) {
       const departmentMap: Record<string, string> = {
         'P&D': 'P_AND_D',
+        'PD': 'P_AND_D',
         'P_AND_D': 'P_AND_D',
         'Partnership and Development': 'P_AND_D',
         'Partnership & Development': 'P_AND_D',
