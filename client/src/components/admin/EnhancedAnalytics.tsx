@@ -1,57 +1,96 @@
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { useState } from 'react';
 import api from '../../api/client';
 
 export default function EnhancedAnalytics() {
   const [selectedTab, setSelectedTab] = useState<'overview' | 'users' | 'content' | 'engagement'>('overview');
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+  const queryClient = useQueryClient();
 
-  const { data: overviewData, isLoading: overviewLoading } = useQuery(
+  const { data: overviewData, isLoading: overviewLoading, refetch: refetchOverview } = useQuery(
     ['analytics-overview', dateRange],
     async () => {
       const res = await api.get(`/analytics/overview?range=${dateRange}`);
       return res.data;
+    },
+    {
+      refetchOnWindowFocus: true,
+      refetchInterval: 30000, // Refetch every 30 seconds
     }
   );
 
-  const { data: userData, isLoading: userLoading } = useQuery(
+  const { data: userData, isLoading: userLoading, refetch: refetchUsers } = useQuery(
     ['analytics-users', dateRange],
     async () => {
       const res = await api.get(`/analytics/users?range=${dateRange}`);
       return res.data;
+    },
+    {
+      refetchOnWindowFocus: true,
+      refetchInterval: 30000,
     }
   );
 
-  const { data: contentData, isLoading: contentLoading } = useQuery(
+  const { data: contentData, isLoading: contentLoading, refetch: refetchContent } = useQuery(
     ['analytics-content', dateRange],
     async () => {
       const res = await api.get(`/analytics/content?range=${dateRange}`);
       return res.data;
+    },
+    {
+      refetchOnWindowFocus: true,
+      refetchInterval: 30000,
     }
   );
 
-  const { data: engagementData, isLoading: engagementLoading } = useQuery(
+  const { data: engagementData, isLoading: engagementLoading, refetch: refetchEngagement } = useQuery(
     ['analytics-engagement', dateRange],
     async () => {
       const res = await api.get(`/analytics/engagement?range=${dateRange}`);
       return res.data;
+    },
+    {
+      refetchOnWindowFocus: true,
+      refetchInterval: 30000,
     }
   );
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries('analytics-overview');
+    queryClient.invalidateQueries('analytics-users');
+    queryClient.invalidateQueries('analytics-content');
+    queryClient.invalidateQueries('analytics-engagement');
+    refetchOverview();
+    refetchUsers();
+    refetchContent();
+    refetchEngagement();
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Enhanced Analytics</h2>
-        <select
-          value={dateRange}
-          onChange={(e) => setDateRange(e.target.value as any)}
-          className="px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-        >
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
-          <option value="90d">Last 90 days</option>
-          <option value="all">All time</option>
-        </select>
+        <div className="flex gap-2">
+          <button
+            onClick={handleRefresh}
+            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value as any)}
+            className="px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+          >
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="90d">Last 90 days</option>
+            <option value="all">All time</option>
+          </select>
+        </div>
       </div>
 
       {/* Tabs */}
