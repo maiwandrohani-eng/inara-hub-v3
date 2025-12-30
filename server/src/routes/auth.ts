@@ -46,17 +46,48 @@ router.post('/signup', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Map department values to enum (handle variations like "P&D" -> "P_AND_D")
+    // Map department values to enum (handle variations and admin-configured departments)
     let departmentEnum = department;
     if (department) {
+      // Normalize department key to uppercase and handle variations
+      const normalizedDept = department.toUpperCase().trim();
+      
       const departmentMap: Record<string, string> = {
+        // P&D variations
         'P&D': 'P_AND_D',
         'PD': 'P_AND_D',
         'P_AND_D': 'P_AND_D',
-        'Partnership and Development': 'P_AND_D',
-        'Partnership & Development': 'P_AND_D',
+        'PARTNERSHIP AND DEVELOPMENT': 'P_AND_D',
+        'PARTNERSHIP & DEVELOPMENT': 'P_AND_D',
+        // HR variations
+        'HR-01': 'HR',
+        'HR_01': 'HR',
+        // Direct mappings for admin-configured departments
+        'COMMS': 'COMMS',
+        'PRM': 'PRM',
+        'PR': 'PR',
+        'MHPSS': 'MHPSS',
+        'BOD': 'BOD',
+        'SMT': 'SMT',
+        'EDU': 'EDU',
+        'RRP': 'RRP',
+        'SSD': 'SSD',
       };
-      departmentEnum = departmentMap[department] || department;
+      
+      // Try exact match first, then normalized match, then mapping
+      departmentEnum = departmentMap[department] || departmentMap[normalizedDept] || normalizedDept;
+      
+      // Validate that the department is a valid enum value
+      const validDepartments = [
+        'HR', 'FINANCE', 'PROCUREMENT', 'PROGRAMS', 'MEAL', 'IT', 'OPERATIONS',
+        'P_AND_D', 'SSD', 'COMMS', 'PRM', 'PR', 'MHPSS', 'BOD', 'SMT', 'EDU', 'RRP'
+      ];
+      
+      // If not a valid enum, set to null (optional field) to prevent errors
+      if (!validDepartments.includes(departmentEnum)) {
+        console.warn(`Invalid department value "${department}", setting to null`);
+        departmentEnum = null as any;
+      }
     }
 
     // Create user with isActive: false (pending approval)
@@ -118,17 +149,48 @@ router.post('/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Map department values to enum (handle variations like "P&D" -> "P_AND_D")
+    // Map department values to enum (handle variations and admin-configured departments)
     let departmentEnum = department;
     if (department) {
+      // Normalize department key to uppercase and handle variations
+      const normalizedDept = department.toUpperCase().trim();
+      
       const departmentMap: Record<string, string> = {
+        // P&D variations
         'P&D': 'P_AND_D',
         'PD': 'P_AND_D',
         'P_AND_D': 'P_AND_D',
-        'Partnership and Development': 'P_AND_D',
-        'Partnership & Development': 'P_AND_D',
+        'PARTNERSHIP AND DEVELOPMENT': 'P_AND_D',
+        'PARTNERSHIP & DEVELOPMENT': 'P_AND_D',
+        // HR variations
+        'HR-01': 'HR',
+        'HR_01': 'HR',
+        // Direct mappings for admin-configured departments
+        'COMMS': 'COMMS',
+        'PRM': 'PRM',
+        'PR': 'PR',
+        'MHPSS': 'MHPSS',
+        'BOD': 'BOD',
+        'SMT': 'SMT',
+        'EDU': 'EDU',
+        'RRP': 'RRP',
+        'SSD': 'SSD',
       };
-      departmentEnum = departmentMap[department] || department;
+      
+      // Try exact match first, then normalized match, then mapping
+      departmentEnum = departmentMap[department] || departmentMap[normalizedDept] || normalizedDept;
+      
+      // Validate that the department is a valid enum value
+      const validDepartments = [
+        'HR', 'FINANCE', 'PROCUREMENT', 'PROGRAMS', 'MEAL', 'IT', 'OPERATIONS',
+        'P_AND_D', 'SSD', 'COMMS', 'PRM', 'PR', 'MHPSS', 'BOD', 'SMT', 'EDU', 'RRP'
+      ];
+      
+      // If not a valid enum, set to null (optional field) to prevent errors
+      if (!validDepartments.includes(departmentEnum)) {
+        console.warn(`Invalid department value "${department}", setting to null`);
+        departmentEnum = null as any;
+      }
     }
 
     const user = await getPrisma().user.create({

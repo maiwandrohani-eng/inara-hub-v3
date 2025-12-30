@@ -28,6 +28,14 @@ enum Department {
   OPERATIONS
   P_AND_D
   SSD
+  COMMS
+  PRM
+  PR
+  MHPSS
+  BOD
+  SMT
+  EDU
+  RRP
 }
 
 enum TrainingStatus {

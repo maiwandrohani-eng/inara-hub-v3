@@ -196,6 +196,14 @@ async function main() {
     { type: 'department', key: 'OPERATIONS', value: 'Operations', order: 7 },
     { type: 'department', key: 'P_AND_D', value: 'Partnership and Development', order: 8 },
     { type: 'department', key: 'SSD', value: 'Support Services Department', order: 9 },
+    { type: 'department', key: 'COMMS', value: 'Communication and Advocacy', order: 10 },
+    { type: 'department', key: 'PRM', value: 'Medical Program', order: 11 },
+    { type: 'department', key: 'PR', value: 'Program', order: 12 },
+    { type: 'department', key: 'MHPSS', value: 'Mental Health Program', order: 13 },
+    { type: 'department', key: 'BOD', value: 'Board Of Directors', order: 14 },
+    { type: 'department', key: 'SMT', value: 'Senior Management', order: 15 },
+    { type: 'department', key: 'EDU', value: 'Education', order: 16 },
+    { type: 'department', key: 'RRP', value: 'Rapid Response Program', order: 17 },
     
     // Countries
     { type: 'country', key: 'AFG', value: 'Afghanistan', order: 1 },
