@@ -37,6 +37,22 @@ router.post('/', authenticate, authorize(UserRole.ADMIN), async (req: AuthReques
   try {
     const { type, key, value, description, order, metadata } = req.body;
 
+    // Check if configuration already exists
+    const existing = await prisma.systemConfig.findUnique({
+      where: {
+        type_key: {
+          type,
+          key,
+        },
+      },
+    });
+
+    if (existing) {
+      return res.status(400).json({ 
+        message: `Configuration with type "${type}" and key "${key}" already exists. Use update instead.` 
+      });
+    }
+
     const config = await prisma.systemConfig.create({
       data: {
         type,
@@ -50,6 +66,12 @@ router.post('/', authenticate, authorize(UserRole.ADMIN), async (req: AuthReques
 
     res.status(201).json({ config });
   } catch (error: any) {
+    // Handle unique constraint error more gracefully
+    if (error.code === 'P2002' && error.meta?.target?.includes('type') && error.meta?.target?.includes('key')) {
+      return res.status(400).json({ 
+        message: `Configuration with type "${req.body.type}" and key "${req.body.key}" already exists. Use update instead.` 
+      });
+    }
     res.status(500).json({ message: error.message });
   }
 });
