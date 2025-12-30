@@ -81,6 +81,50 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Test Prisma in Express context
+app.get('/api/test-prisma-express', async (req, res) => {
+  try {
+    let prismaAvailable = false;
+    let dbConnected = false;
+    let errorMessage = null;
+    let userCount = 0;
+
+    try {
+      // Try to use Prisma from the Express app context
+      const { PrismaClient } = await import('@prisma/client');
+      const testPrisma = new PrismaClient();
+      prismaAvailable = true;
+      
+      // Try to connect to database
+      await testPrisma.$queryRaw`SELECT 1`;
+      dbConnected = true;
+      
+      // Try to query users
+      userCount = await testPrisma.user.count();
+      
+      await testPrisma.$disconnect();
+    } catch (error: any) {
+      errorMessage = error.message;
+      console.error('Prisma test error:', error);
+    }
+
+    res.json({
+      status: 'ok',
+      prismaAvailable,
+      dbConnected,
+      userCount,
+      error: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      stack: error.stack,
+    });
+  }
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
