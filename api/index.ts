@@ -1,8 +1,21 @@
 // Vercel serverless function entry point
-// This proxies to the Express app in server/src/index.ts
+// This wraps the Express app for Vercel serverless functions
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import app from '../server/src/index.js';
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
-  return app(req, res);
+// Import the Express app
+// Note: We need to import the built version or use a dynamic import
+let app: any;
+
+async function getApp() {
+  if (!app) {
+    // Dynamic import to handle ES modules
+    const module = await import('../server/src/index.js');
+    app = module.default;
+  }
+  return app;
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const expressApp = await getApp();
+  return expressApp(req, res);
 }
