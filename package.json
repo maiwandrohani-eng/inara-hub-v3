@@ -22,6 +22,9 @@
   "dependencies": {
     "@prisma/client": "^5.7.1"
   },
+  "prisma": {
+    "schema": "server/prisma/schema.prisma"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "prisma": "^5.7.1"

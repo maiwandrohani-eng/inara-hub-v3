@@ -9,15 +9,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let errorMessage = null;
 
     try {
-      // Try to import from root node_modules first, then server
+      // Import Prisma Client from server node_modules (where it's generated)
       let PrismaClient;
       try {
-        const module = await import('@prisma/client');
-        PrismaClient = module.PrismaClient;
-      } catch (e) {
-        // Fallback: try to import from server
+        // Try server node_modules first (where Prisma generates it)
         const serverModule = await import('../server/node_modules/@prisma/client');
         PrismaClient = serverModule.PrismaClient;
+      } catch (e) {
+        // Fallback: try root node_modules
+        const module = await import('@prisma/client');
+        PrismaClient = module.PrismaClient;
       }
       
       const prisma = new PrismaClient();
