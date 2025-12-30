@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "dotenv -e .env -- tsx watch src/index.ts",
+    "dev": "npx dotenv-cli -e .env -- tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "db:generate": "dotenv -e .env -- prisma generate",
-    "db:push": "dotenv -e .env -- prisma db push",
-    "db:migrate": "dotenv -e .env -- prisma migrate dev",
-    "db:studio": "dotenv -e .env -- prisma studio",
-    "db:seed": "dotenv -e .env -- tsx src/seed.ts"
+    "db:generate": "npx dotenv-cli -e .env -- prisma generate",
+    "db:push": "npx dotenv-cli -e .env -- prisma db push",
+    "db:migrate": "npx dotenv-cli -e .env -- prisma migrate dev",
+    "db:studio": "npx dotenv-cli -e .env -- prisma studio",
+    "db:seed": "npx dotenv-cli -e .env -- tsx src/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",
