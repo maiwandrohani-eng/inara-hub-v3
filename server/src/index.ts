@@ -32,7 +32,10 @@ import surveyRoutes from './routes/surveys.js';
 import academyRoutes from './routes/academy.js';
 import setupRoutes from './routes/setup.js';
 
-dotenv.config();
+// Load environment variables (Vercel provides these automatically)
+if (!process.env.VERCEL) {
+  dotenv.config();
+}
 
 const app = express();
 const prisma = new PrismaClient();
