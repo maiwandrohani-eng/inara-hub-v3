@@ -211,9 +211,17 @@ router.post('/login', async (req, res) => {
   } catch (error: any) {
     console.error('Login error:', error);
     console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error code:', error.code);
+    
+    // Return error details in production for debugging (remove sensitive info later)
     res.status(500).json({ 
       message: error.message || 'Login failed',
-      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: error.message,
+      code: error.code,
+      name: error.name,
+      // Only include stack in development
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

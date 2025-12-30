@@ -40,7 +40,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ 
       message: 'Internal server error',
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      code: error.code,
+      name: error.name,
+      // Include stack for debugging (can remove later)
+      stack: error.stack
     });
   }
 }
