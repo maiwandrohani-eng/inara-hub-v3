@@ -123,14 +123,14 @@ CORS_ORIGIN=https://your-app.vercel.app
 
 #### Cloudflare R2
 ```
-R2_ACCOUNT_ID=your-r2-account-id
-R2_ACCESS_KEY_ID=your-r2-access-key-id
-R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
-R2_BUCKET_NAME=inara-uploads
-R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
-R2_PUBLIC_URL=https://your-custom-domain.com
+R2_ACCOUNT_ID=f672838a09e9e6a09d08ce61b5866002
+R2_ACCESS_KEY_ID=f2232270caa9e6bf962cc60ee8d3c5e3
+R2_SECRET_ACCESS_KEY=e10c35df6da6306b5bb207161aa6b36668b20f429c9c00279d915fc7630cb8d5
+R2_BUCKET_NAME=inara-data
+R2_ENDPOINT=https://f672838a09e9e6a09d08ce61b5866002.r2.cloudflarestorage.com
+R2_PUBLIC_URL=https://hub.inara.ngo
 ```
-*(R2_PUBLIC_URL is optional - only if you set up a custom domain)*
+*(R2_PUBLIC_URL is your custom domain for public file access)*
 
 #### Frontend
 ```

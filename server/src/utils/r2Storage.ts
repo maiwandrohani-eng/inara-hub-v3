@@ -5,9 +5,19 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } fro
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Initialize S3 client for R2 (R2 is S3-compatible)
+const getR2Endpoint = () => {
+  if (process.env.R2_ENDPOINT) {
+    return process.env.R2_ENDPOINT;
+  }
+  if (process.env.R2_ACCOUNT_ID) {
+    return `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+  }
+  throw new Error('R2_ENDPOINT or R2_ACCOUNT_ID must be set');
+};
+
 const r2Client = new S3Client({
   region: 'auto',
-  endpoint: process.env.R2_ENDPOINT || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  endpoint: getR2Endpoint(),
   credentials: {
     accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
