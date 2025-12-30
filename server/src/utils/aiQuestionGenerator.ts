@@ -2,13 +2,32 @@
 import * as fs from 'fs';
 import * as path from 'path';
 // Dynamic import for pdf-parse (CommonJS module in ES module context)
-let pdfParse: any;
-try {
-  // @ts-ignore - pdf-parse is CommonJS module
-  pdfParse = require('pdf-parse');
-} catch (error) {
-  console.error('⚠️ Failed to load pdf-parse:', error);
-  pdfParse = null;
+let pdfParse: any = null;
+let pdfParseLoaded = false;
+
+// Lazy load pdf-parse using dynamic import or createRequire
+async function loadPdfParse() {
+  if (pdfParseLoaded && pdfParse) return pdfParse;
+  try {
+    // Try dynamic import first
+    const pdfParseModule = await import('pdf-parse');
+    pdfParse = pdfParseModule.default || pdfParseModule;
+    pdfParseLoaded = true;
+    return pdfParse;
+  } catch (error: any) {
+    console.error('⚠️ Failed to load pdf-parse:', error);
+    // Try require as fallback (for CommonJS compatibility)
+    try {
+      const { createRequire } = await import('module');
+      const require = createRequire(import.meta.url);
+      pdfParse = require('pdf-parse');
+      pdfParseLoaded = true;
+      return pdfParse;
+    } catch (requireError) {
+      console.error('⚠️ Failed to load pdf-parse with require:', requireError);
+      return null;
+    }
+  }
 }
 
 /**
@@ -22,14 +41,16 @@ export async function extractTextFromPDF(pdfPath: string): Promise<string> {
       throw new Error(`PDF file not found: ${pdfPath}`);
     }
 
-    if (!pdfParse) {
+    // Load pdf-parse if not already loaded
+    const pdfParser = await loadPdfParse();
+    if (!pdfParser) {
       throw new Error('pdf-parse library is not available. Please ensure it is installed: npm install pdf-parse');
     }
     
     const dataBuffer = fs.readFileSync(pdfPath);
     console.log('📦 PDF file size:', dataBuffer.length, 'bytes');
     
-    const data = await pdfParse(dataBuffer);
+    const data = await pdfParser(dataBuffer);
     const extractedText = data.text || '';
     
     console.log('✅ Text extracted, length:', extractedText.length, 'characters');
