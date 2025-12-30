@@ -220,7 +220,9 @@ export default function OrientationTab() {
             if (token && user?.id) {
               let certUrl = result.certificateUrl;
               if (!certUrl.startsWith('http')) {
-                certUrl = `http://localhost:5000${certUrl}`;
+                // Use environment variable or fallback to relative path
+                const apiBase = (import.meta as any).env?.VITE_API_URL || window.location.origin;
+                certUrl = `${apiBase}${certUrl}`;
               }
               
               const response = await fetch(certUrl, {

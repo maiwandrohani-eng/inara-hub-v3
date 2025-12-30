@@ -22,16 +22,16 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
     // If URL already starts with /uploads, use it directly with API base
     if (pdfUrl.startsWith('/uploads')) {
       // For development, use localhost:5000, for production use window.location.origin
-      const apiBase = import.meta.env.DEV 
+      const apiBase = (import.meta as any).env?.DEV 
         ? 'http://localhost:5000' 
-        : (import.meta.env.VITE_API_URL || window.location.origin);
+        : ((import.meta as any).env?.VITE_API_URL || window.location.origin);
       return `${apiBase}${pdfUrl}`;
     }
     
     // Otherwise, prepend /uploads
-    const apiBase = import.meta.env.DEV 
+    const apiBase = (import.meta as any).env?.DEV 
       ? 'http://localhost:5000' 
-      : (import.meta.env.VITE_API_URL || window.location.origin);
+      : ((import.meta as any).env?.VITE_API_URL || window.location.origin);
     return `${apiBase}/uploads/${pdfUrl}`;
   };
 

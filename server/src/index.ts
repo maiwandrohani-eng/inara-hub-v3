@@ -36,8 +36,29 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
+// Validate required environment variables
+const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingEnvVars.join(', '));
+  console.error('Please check your .env file and ensure all required variables are set.');
+  process.exit(1);
+}
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+    : process.env.NODE_ENV === 'production' 
+      ? false // Deny all in production if not configured
+      : true, // Allow all in development
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 // Increase body size limits for large text content (up to 100,000 words)
 app.use(express.json({ limit: '10mb' })); // 10MB for JSON (text paste)
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // 10MB for URL-encoded

@@ -6,8 +6,15 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
-    "build": "cd client && npm run build",
-    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build && npm run db:generate",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "start": "cd server && npm start",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
   },
   "keywords": ["inara", "staff-platform", "lms", "compliance"],
   "author": "INARA",
