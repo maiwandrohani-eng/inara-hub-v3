@@ -167,6 +167,7 @@ app.get('/api/test-prisma-express', async (req, res) => {
     let dbConnected = false;
     let errorMessage = null;
     let userCount = 0;
+    let dbErrorCode = null;
 
     try {
       // Try to use Prisma from the Express app context
@@ -184,6 +185,7 @@ app.get('/api/test-prisma-express', async (req, res) => {
       await testPrisma.$disconnect();
     } catch (error: any) {
       errorMessage = error.message;
+      dbErrorCode = error.code;
       console.error('Prisma test error:', error);
     }
 
@@ -193,6 +195,12 @@ app.get('/api/test-prisma-express', async (req, res) => {
       dbConnected,
       userCount,
       error: errorMessage,
+      errorCode: dbErrorCode,
+      env: {
+        hasDatabaseUrl: !!process.env.DATABASE_URL,
+        hasJwtSecret: !!process.env.JWT_SECRET,
+        databaseUrlPrefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 20) + '...' : 'not set',
+      },
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
@@ -200,6 +208,70 @@ app.get('/api/test-prisma-express', async (req, res) => {
       status: 'error',
       error: error.message,
       stack: error.stack,
+    });
+  }
+});
+
+// Login diagnostic endpoint (public for debugging)
+app.get('/api/auth/diagnostic', async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    const diagnostics: any = {
+      environment: {
+        hasDatabaseUrl: !!process.env.DATABASE_URL,
+        hasJwtSecret: !!process.env.JWT_SECRET,
+        nodeEnv: process.env.NODE_ENV,
+        vercel: !!process.env.VERCEL,
+        databaseUrlPrefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 30) + '...' : 'not set',
+      },
+      database: {
+        connected: false,
+        error: null,
+        errorCode: null,
+      },
+      user: null,
+    };
+
+    // Test database connection
+    try {
+      const { PrismaClient } = await import('@prisma/client');
+      const testPrisma = new PrismaClient();
+      
+      await testPrisma.$queryRaw`SELECT 1`;
+      diagnostics.database.connected = true;
+      
+      // If email provided, check user
+      if (email && typeof email === 'string') {
+        try {
+          const user = await testPrisma.user.findUnique({
+            where: { email },
+            select: {
+              id: true,
+              email: true,
+              isActive: true,
+              role: true,
+              firstName: true,
+              lastName: true,
+            },
+          });
+          diagnostics.user = user;
+        } catch (userError: any) {
+          diagnostics.user = { error: userError.message };
+        }
+      }
+      
+      await testPrisma.$disconnect();
+    } catch (dbError: any) {
+      diagnostics.database.error = dbError.message;
+      diagnostics.database.errorCode = dbError.code;
+    }
+
+    res.json(diagnostics);
+  } catch (error: any) {
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
     });
   }
 });

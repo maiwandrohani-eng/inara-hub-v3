@@ -286,27 +286,63 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    console.log('Login attempt for:', email);
+    console.log('[Login] Attempt for:', email);
+    console.log('[Login] Environment check:', {
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      nodeEnv: process.env.NODE_ENV,
+    });
     
     // Get Prisma Client instance (lazy-loaded)
-    const prismaInstance = getPrisma();
-    console.log('Prisma Client available:', !!prismaInstance);
+    let prismaInstance;
+    try {
+      prismaInstance = getPrisma();
+      console.log('[Login] Prisma Client available:', !!prismaInstance);
+    } catch (prismaError: any) {
+      console.error('[Login] Failed to get Prisma Client:', prismaError.message);
+      return res.status(500).json({ 
+        message: 'Database connection error',
+        error: prismaError.message 
+      });
+    }
 
-    const user = await prismaInstance.user.findUnique({ where: { email } });
-    if (!user || !user.isActive) {
-      console.log('Login failed: User not found or inactive');
+    let user;
+    try {
+      user = await prismaInstance.user.findUnique({ where: { email } });
+      console.log('[Login] User lookup result:', {
+        found: !!user,
+        isActive: user?.isActive,
+        email: user?.email,
+      });
+    } catch (dbError: any) {
+      console.error('[Login] Database query error:', dbError.message);
+      console.error('[Login] Database error code:', dbError.code);
+      return res.status(500).json({ 
+        message: 'Database query error',
+        error: dbError.message,
+        code: dbError.code,
+      });
+    }
+
+    if (!user) {
+      console.log('[Login] User not found for email:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (!user.isActive) {
+      console.log('[Login] User is inactive:', email);
+      return res.status(401).json({ message: 'Account is pending approval. Please contact an administrator.' });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
-      console.log('Login failed: Invalid password');
+      console.log('[Login] Invalid password for:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      console.error('JWT_SECRET is not set');
+      console.error('[Login] JWT_SECRET is not set');
       return res.status(500).json({ message: 'Server configuration error' });
     }
 
