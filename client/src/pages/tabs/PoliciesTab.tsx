@@ -363,12 +363,12 @@ export default function PoliciesTab() {
                 >
                   Download as Text
                 </button>
-                <Link
-                  to={`/policies/${selectedPolicy.id}`}
+                <button
+                  onClick={() => setSelectedPolicy(null)}
                   className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
                 >
-                  View Full Policy
-                </Link>
+                  Close
+                </button>
               </div>
             </div>
           </div>
