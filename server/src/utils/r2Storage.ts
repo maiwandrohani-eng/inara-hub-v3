@@ -7,7 +7,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 // Initialize S3 client for R2 (R2 is S3-compatible)
 const getR2Endpoint = () => {
   if (process.env.R2_ENDPOINT) {
-    return process.env.R2_ENDPOINT;
+    // Ensure endpoint doesn't have trailing slash
+    return process.env.R2_ENDPOINT.replace(/\/$/, '');
   }
   if (process.env.R2_ACCOUNT_ID) {
     return `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
@@ -15,14 +16,45 @@ const getR2Endpoint = () => {
   throw new Error('R2_ENDPOINT or R2_ACCOUNT_ID must be set');
 };
 
-const r2Client = new S3Client({
-  region: 'auto',
-  endpoint: getR2Endpoint(),
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
-  },
-});
+// Validate R2 configuration
+const validateR2Config = () => {
+  const required = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME'];
+  const missing = required.filter(key => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(`Missing R2 configuration: ${missing.join(', ')}`);
+  }
+};
+
+// Initialize R2 client with validation
+let r2Client: S3Client | null = null;
+
+const getR2Client = (): S3Client => {
+  if (!r2Client) {
+    validateR2Config();
+    const endpoint = getR2Endpoint();
+    const accessKeyId = process.env.R2_ACCESS_KEY_ID!;
+    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY!;
+    
+    console.log('🔧 Initializing R2 client:', {
+      endpoint,
+      bucket: process.env.R2_BUCKET_NAME,
+      hasAccessKey: !!accessKeyId,
+      hasSecretKey: !!secretAccessKey,
+      accessKeyPrefix: accessKeyId?.substring(0, 8) + '...',
+    });
+
+    r2Client = new S3Client({
+      region: 'auto',
+      endpoint: endpoint,
+      credentials: {
+        accessKeyId: accessKeyId,
+        secretAccessKey: secretAccessKey,
+      },
+      forcePathStyle: false, // R2 uses virtual-hosted-style URLs
+    });
+  }
+  return r2Client;
+};
 
 const BUCKET_NAME = process.env.R2_BUCKET_NAME || 'inara-uploads';
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL; // Optional: public R2 URL
@@ -42,14 +74,26 @@ export async function uploadToR2(
   contentType: string
 ): Promise<UploadResult> {
   try {
+    const client = getR2Client();
+    const bucketName = process.env.R2_BUCKET_NAME!;
+    
+    console.log('📤 Uploading to R2:', {
+      bucket: bucketName,
+      key,
+      size: file.length,
+      contentType,
+    });
+
     const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
+      Bucket: bucketName,
       Key: key,
       Body: file,
       ContentType: contentType,
     });
 
-    await r2Client.send(command);
+    await client.send(command);
+
+    console.log('✅ Successfully uploaded to R2:', key);
 
     // Generate URLs
     const url = R2_PUBLIC_URL 
@@ -62,8 +106,22 @@ export async function uploadToR2(
       publicUrl: R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/${key}` : undefined,
     };
   } catch (error: any) {
-    console.error('Error uploading to R2:', error);
-    throw new Error(`Failed to upload to R2: ${error.message}`);
+    console.error('❌ Error uploading to R2:', {
+      message: error.message,
+      code: error.Code || error.code,
+      name: error.name,
+      requestId: error.$metadata?.requestId,
+      bucket: process.env.R2_BUCKET_NAME,
+      endpoint: getR2Endpoint(),
+      hasCredentials: !!(process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY),
+    });
+    
+    // Provide more helpful error messages
+    if (error.name === 'AccessDenied' || error.Code === 'AccessDenied' || error.message?.includes('Access Denied')) {
+      throw new Error(`R2 Access Denied: Check that your R2 credentials have write permissions for bucket "${process.env.R2_BUCKET_NAME}". Verify R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY are correct.`);
+    }
+    
+    throw new Error(`Failed to upload to R2: ${error.message || error.Code || 'Unknown error'}`);
   }
 }
 
@@ -72,12 +130,15 @@ export async function uploadToR2(
  */
 export async function deleteFromR2(key: string): Promise<void> {
   try {
+    const client = getR2Client();
+    const bucketName = process.env.R2_BUCKET_NAME!;
+    
     const command = new DeleteObjectCommand({
-      Bucket: BUCKET_NAME,
+      Bucket: bucketName,
       Key: key,
     });
 
-    await r2Client.send(command);
+    await client.send(command);
   } catch (error: any) {
     console.error('Error deleting from R2:', error);
     throw new Error(`Failed to delete from R2: ${error.message}`);
@@ -89,12 +150,15 @@ export async function deleteFromR2(key: string): Promise<void> {
  */
 export async function getPresignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
   try {
+    const client = getR2Client();
+    const bucketName = process.env.R2_BUCKET_NAME!;
+    
     const command = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
+      Bucket: bucketName,
       Key: key,
     });
 
-    return await getSignedUrl(r2Client, command, { expiresIn });
+    return await getSignedUrl(client, command, { expiresIn });
   } catch (error: any) {
     console.error('Error generating presigned URL:', error);
     throw new Error(`Failed to generate presigned URL: ${error.message}`);
