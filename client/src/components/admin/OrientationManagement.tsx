@@ -184,7 +184,13 @@ export default function OrientationManagement() {
           stack: error.stack,
         });
         const errorMessage = error.response?.data?.message || error.message || 'Failed to create step';
-        alert(`Error: ${errorMessage}\n\nCheck the browser console for more details.`);
+        
+        // Check if it's an R2 upload error - if so, provide helpful message
+        if (errorMessage.includes('R2') || errorMessage.includes('upload')) {
+          alert(`PDF upload failed, but step was created without PDF.\n\nTo fix PDF uploads:\n1. Go to Cloudflare Dashboard → R2 → Manage R2 API Tokens\n2. Create a new token with "Object Read & Write" permissions\n3. Update R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY in Vercel\n\nError: ${errorMessage}`);
+        } else {
+          alert(`Error: ${errorMessage}\n\nCheck the browser console for more details.`);
+        }
       },
     }
   );
