@@ -462,6 +462,8 @@ export default function OrientationManagement() {
                   <h4 className="text-lg font-semibold text-white">Steps</h4>
                   <button
                     onClick={() => {
+                      console.log('➕ Add Step clicked for orientation:', orientation.id);
+                      setSelectedOrientation(orientation.id); // Ensure orientation is selected
                       setEditingStep(null);
                       setStepFormData({
                         stepNumber: (orientation.steps?.length || 0) + 1,
@@ -476,6 +478,7 @@ export default function OrientationManagement() {
                       });
                       setStepPdfFile(null);
                       setShowStepForm(true);
+                      console.log('✅ Step form should now be visible');
                     }}
                     className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm"
                   >
