@@ -1849,18 +1849,22 @@ router.post('/orientations/:id/resources', upload.array('files', 10), async (req
       return res.status(404).json({ message: 'Orientation not found' });
     }
 
-    // Prepare file metadata
-    const uploadedFiles = files.map((file) => ({
-      url: `/uploads/orientation/${file.filename}`,
-      filename: file.originalname,
-      size: file.size,
-      type: file.mimetype,
+    // Upload files to R2 and get proper URLs
+    const uploadedFiles = await uploadFilesToR2(files, 'orientation');
+
+    // Prepare file metadata with R2 URLs
+    const fileMetadata = uploadedFiles.map((uploaded, index) => ({
+      url: uploaded.url,
+      key: uploaded.key,
+      filename: files[index].originalname,
+      size: files[index].size,
+      type: files[index].mimetype,
       uploadedAt: new Date().toISOString(),
     }));
 
     // Merge with existing pdfFiles
     const existingFiles = orientation.pdfFiles ? (orientation.pdfFiles as any[]) : [];
-    const updatedFiles = [...existingFiles, ...uploadedFiles];
+    const updatedFiles = [...existingFiles, ...fileMetadata];
 
     // Update orientation with new files
     await prisma.orientation.update({
@@ -1870,7 +1874,7 @@ router.post('/orientations/:id/resources', upload.array('files', 10), async (req
       },
     });
 
-    res.json({ files: uploadedFiles, message: 'Files uploaded successfully' });
+    res.json({ files: fileMetadata, message: 'Files uploaded successfully' });
   } catch (error: any) {
     console.error('Upload orientation resources error:', error);
     res.status(500).json({ message: error.message });
@@ -1881,7 +1885,7 @@ router.post('/orientations/:id/resources', upload.array('files', 10), async (req
 router.delete('/orientations/:id/resources', async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const { filename } = req.body;
+    const { filename, key } = req.body;
 
     const orientation = await prisma.orientation.findUnique({
       where: { id },
@@ -1891,16 +1895,20 @@ router.delete('/orientations/:id/resources', async (req: AuthRequest, res) => {
       return res.status(404).json({ message: 'Orientation not found' });
     }
 
-    // Remove file from pdfFiles array
+    // Remove file from pdfFiles array (match by filename or key)
     const existingFiles = orientation.pdfFiles ? (orientation.pdfFiles as any[]) : [];
-    const updatedFiles = existingFiles.filter((file: any) => file.filename !== filename);
+    const updatedFiles = existingFiles.filter((file: any) => {
+      if (key && file.key) {
+        return file.key !== key;
+      }
+      return file.filename !== filename;
+    });
 
-    // Also delete from R2
-    if (filename) {
+    // Also delete from R2 using the key if available
+    const r2Key = key || (existingFiles.find((f: any) => f.filename === filename || f.key)?.key);
+    if (r2Key) {
       try {
-        // Extract key from URL if it's a full URL, otherwise construct it
-        const key = filename.startsWith('orientation/') ? filename : `orientation/${filename}`;
-        await deleteFromR2(key);
+        await deleteFromR2(r2Key);
       } catch (error: any) {
         console.warn('Failed to delete file from R2:', error.message);
         // Continue even if R2 deletion fails

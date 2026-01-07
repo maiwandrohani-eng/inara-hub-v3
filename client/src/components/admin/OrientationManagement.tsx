@@ -216,9 +216,9 @@ export default function OrientationManagement() {
   );
 
   const deleteResourceMutation = useMutation(
-    async ({ orientationId, filename }: { orientationId: string; filename: string }) => {
+    async ({ orientationId, filename, key }: { orientationId: string; filename: string; key?: string }) => {
       const res = await api.delete(`/admin/orientations/${orientationId}/resources`, {
-        data: { filename },
+        data: { filename, key },
       });
       return res.data;
     },
@@ -521,6 +521,26 @@ export default function OrientationManagement() {
                           )}
                         </div>
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-200 mb-1">Questions/Assessment (JSON)</label>
+                        <textarea
+                          value={stepFormData.questions ? JSON.stringify(stepFormData.questions, null, 2) : ''}
+                          onChange={(e) => {
+                            try {
+                              const parsed = e.target.value ? JSON.parse(e.target.value) : null;
+                              setStepFormData({ ...stepFormData, questions: parsed });
+                            } catch {
+                              // Invalid JSON, keep as string for now
+                            }
+                          }}
+                          rows={6}
+                          className="w-full px-4 py-2 bg-gray-600 border border-gray-500 text-white rounded-lg font-mono text-xs"
+                          placeholder='[{"id": "q1", "question": "What is...?", "type": "multiple_choice", "options": ["Option 1", "Option 2"], "correctAnswer": "Option 1", "required": true}]'
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Format: Array of question objects with id, question, type (multiple_choice/text/checkbox), options (for multiple_choice), correctAnswer, required
+                        </p>
+                      </div>
                       <div className="flex items-center">
                         <input
                           type="checkbox"
@@ -575,6 +595,9 @@ export default function OrientationManagement() {
                           )}
                           {step.policyId && (
                             <p className="text-xs text-gray-500 mt-1">📋 Linked to Policy</p>
+                          )}
+                          {step.questions && Array.isArray(step.questions) && step.questions.length > 0 && (
+                            <p className="text-xs text-green-400 mt-1">✅ {step.questions.length} question(s) configured</p>
                           )}
                         </div>
                         <div className="flex gap-2">
@@ -646,7 +669,11 @@ export default function OrientationManagement() {
                             <button
                               onClick={() => {
                                 if (confirm('Are you sure you want to delete this resource?')) {
-                                  deleteResourceMutation.mutate({ orientationId: orientation.id, filename: file.filename });
+                                  deleteResourceMutation.mutate({ 
+                                    orientationId: orientation.id, 
+                                    filename: file.filename,
+                                    key: file.key 
+                                  });
                                 }
                               }}
                               className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
