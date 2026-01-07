@@ -113,14 +113,35 @@ export default function LibraryManagement() {
         const errorMessage = errorData.message || 'Bulk import failed';
         const errorDetail = errorData.detail;
         const userRole = errorData.userRole;
+        const userRoleType = errorData.userRoleType;
         const requiredRoles = errorData.requiredRoles;
+        const userId = errorData.userId;
+        const userEmail = errorData.userEmail;
+        
+        // Log detailed information
+        console.error('=== 403 Error Details ===');
+        console.error('Server sees role:', userRole);
+        console.error('Role type:', userRoleType);
+        console.error('Required roles:', requiredRoles);
+        console.error('User ID:', userId);
+        console.error('User email:', userEmail);
+        
+        // Get client-side role for comparison
+        const authData = JSON.parse(localStorage.getItem('inara-auth') || '{}');
+        const clientRole = authData?.state?.user?.role;
+        console.error('Client-side role:', clientRole);
+        console.error('Role mismatch:', clientRole !== userRole);
         
         let fullMessage = errorMessage;
         if (errorDetail) {
           fullMessage += `\n\n${errorDetail}`;
         }
         if (userRole && requiredRoles) {
-          fullMessage += `\n\nYour role: ${userRole}\nRequired: ${requiredRoles.join(' or ')}`;
+          fullMessage += `\n\nServer sees your role as: ${userRole} (${userRoleType})\nRequired: ${requiredRoles.join(' or ')}`;
+          if (clientRole && clientRole !== userRole) {
+            fullMessage += `\n\n⚠️ Mismatch: Client shows "${clientRole}" but server sees "${userRole}"`;
+            fullMessage += `\n\n💡 Solution: Log out and log back in to refresh your token.`;
+          }
         }
         
         alert(fullMessage);
