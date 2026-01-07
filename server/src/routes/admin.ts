@@ -1333,6 +1333,46 @@ router.post('/surveys/upload-document', upload.single('file'), async (req: AuthR
   }
 });
 
+// Generate questions from PDF (for orientation steps)
+router.post('/surveys/generate-questions-from-pdf', upload.single('file'), async (req: AuthRequest, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: 'PDF file is required' });
+    }
+
+    // Only process PDF files
+    const isPDF = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+    if (!isPDF) {
+      return res.status(400).json({ message: 'Only PDF files are supported for question generation' });
+    }
+
+    console.log('🤖 Generating AI-powered questions from PDF for orientation step...');
+
+    // Lazy import to avoid module loading issues
+    const { generateQuestionsFromPDF } = await import('../utils/aiQuestionGenerator.js');
+    // Pass buffer directly - question count will be auto-calculated
+    const result = await generateQuestionsFromPDF(file.buffer);
+
+    console.log('✅ AI questions generated:', {
+      count: result.questions.length,
+      firstQuestion: result.questions[0]?.question?.substring(0, 100),
+    });
+
+    res.json({
+      questions: result.questions,
+      extractedText: result.extractedText,
+      message: `Successfully generated ${result.questions.length} questions from PDF.`,
+    });
+  } catch (error: any) {
+    console.error('❌ Error generating questions from PDF:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to generate questions from PDF',
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
+  }
+});
+
 // Generate questions from pasted text
 router.post('/surveys/generate-from-text', async (req: AuthRequest, res) => {
   try {
