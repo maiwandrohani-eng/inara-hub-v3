@@ -105,11 +105,25 @@ export default function LibraryManagement() {
         alert(`Bulk import completed! ${data.imported} imported, ${data.failed} failed.`);
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.message || 'Bulk import failed';
-        const errorDetail = error.response?.data?.detail;
-        const fullMessage = errorDetail ? `${errorMessage}\n\n${errorDetail}` : errorMessage;
+        console.error('❌ Bulk import error:', error);
+        console.error('Error response:', error.response);
+        console.error('Error response data:', error.response?.data);
+        
+        const errorData = error.response?.data || {};
+        const errorMessage = errorData.message || 'Bulk import failed';
+        const errorDetail = errorData.detail;
+        const userRole = errorData.userRole;
+        const requiredRoles = errorData.requiredRoles;
+        
+        let fullMessage = errorMessage;
+        if (errorDetail) {
+          fullMessage += `\n\n${errorDetail}`;
+        }
+        if (userRole && requiredRoles) {
+          fullMessage += `\n\nYour role: ${userRole}\nRequired: ${requiredRoles.join(' or ')}`;
+        }
+        
         alert(fullMessage);
-        console.error('Bulk import error:', error.response?.data);
       },
       onSettled: () => {
         setBulkImporting(false);
