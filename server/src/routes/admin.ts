@@ -1264,7 +1264,8 @@ router.post('/surveys/upload-document', upload.single('file'), async (req: AuthR
         // For non-PDF files, generate template questions
         console.log('⚠️ Non-PDF file, generating template questions...');
         const baseId = Date.now();
-        for (let i = 0; i < numQuestions; i++) {
+        const defaultQuestionCount = 10; // Default number of questions for non-PDF files
+        for (let i = 0; i < defaultQuestionCount; i++) {
           questions.push({
             id: `q-${baseId}-${i}`,
             type: 'multiple_choice',
@@ -1289,7 +1290,8 @@ router.post('/surveys/upload-document', upload.single('file'), async (req: AuthR
       // Fallback to template questions if AI generation fails
       console.log('🔄 Falling back to template questions...');
       const baseId = Date.now();
-      for (let i = 0; i < numQuestions; i++) {
+      const defaultQuestionCount = 10; // Default number of questions for fallback
+      for (let i = 0; i < defaultQuestionCount; i++) {
         questions.push({
           id: `q-${baseId}-${i}`,
           type: 'multiple_choice',

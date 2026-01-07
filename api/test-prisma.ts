@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Check 2: Try to import Prisma Client
     let importResult = 'not attempted';
     try {
-      const { PrismaClient } = await import('../server/node_modules/@prisma/client');
+      const { PrismaClient } = await import('../server/node_modules/@prisma/client/index.js');
       importResult = PrismaClient ? 'success' : 'failed';
       results.checks.importFromServer = importResult;
     } catch (e: any) {

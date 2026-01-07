@@ -230,7 +230,7 @@ router.get('/tab/:tabName', authenticate, authorize(UserRole.ADMIN, UserRole.COU
             });
             const submissions = await prisma.marketSubmission.findMany({
               where: { userId: c.userId },
-              select: { bonusAwarded: true, bonusAmount: true },
+              select: { bonusAmount: true },
             });
             const totalBonus = submissions.reduce((sum, s) => sum + (s.bonusAmount || 0), 0);
             return { ...user, submissionCount: c._count.id, totalBonus };

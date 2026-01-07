@@ -13,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let PrismaClient;
       try {
         // Try server node_modules first (where Prisma generates it)
-        const serverModule = await import('../server/node_modules/@prisma/client');
+        const serverModule = await import('../server/node_modules/@prisma/client/index.js');
         PrismaClient = serverModule.PrismaClient;
       } catch (e) {
         // Fallback: try root node_modules

@@ -20,7 +20,8 @@
   "author": "INARA",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^5.7.1"
+    "@prisma/client": "^5.7.1",
+    "@vercel/node": "^3.0.7"
   },
   "prisma": {
     "schema": "server/prisma/schema.prisma"

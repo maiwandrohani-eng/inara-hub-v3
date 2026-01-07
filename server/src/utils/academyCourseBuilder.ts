@@ -14,7 +14,8 @@ async function loadPdfParse() {
   try {
     // Use dynamic import for ES modules
     const pdfParseModule = await import('pdf-parse');
-    pdfParse = pdfParseModule.default || pdfParseModule;
+    // Handle both ESM and CommonJS exports
+    pdfParse = (pdfParseModule as any).default || pdfParseModule;
     pdfParseLoaded = true;
     return pdfParse;
   } catch (error: any) {

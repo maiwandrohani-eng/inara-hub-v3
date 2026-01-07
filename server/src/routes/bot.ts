@@ -96,24 +96,15 @@ async function smartPlatformSearch(question: string, userId: string) {
   try {
     // Search trainings
     const trainings = await prisma.training.findMany({
-    where: { isActive: true },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      category: true,
-      tags: true,
-      isMandatory: true,
-      courseType: true,
-    },
-    include: {
-      completions: {
-        where: { userId },
-        take: 1,
-        select: { status: true, progress: true, score: true, expiresAt: true },
+      where: { isActive: true },
+      include: {
+        completions: {
+          where: { userId },
+          take: 1,
+          select: { status: true, progress: true, score: true, expiresAt: true },
+        },
       },
-    },
-  });
+    });
 
     for (const training of trainings) {
       let score = 0;
