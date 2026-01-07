@@ -105,52 +105,6 @@ router.get('/:id/download', authenticate, async (req: AuthRequest, res) => {
       const presignedUrl = await getPresignedUrl(key, 3600); // 1 hour expiry
       return res.redirect(302, presignedUrl);
     }
-    fileName = fileName.replace(/_+/g, '_');
-    console.log('📝 After removing consecutive underscores:', fileName);
-    
-    // Remove leading and trailing underscores (do this multiple times to be sure)
-    fileName = fileName.replace(/^_+/g, ''); // Remove leading
-    fileName = fileName.replace(/_+$/g, ''); // Remove trailing
-    fileName = fileName.replace(/^_+/g, ''); // Remove leading again (in case first pass missed some)
-    fileName = fileName.replace(/_+$/g, ''); // Remove trailing again
-    console.log('📝 After removing leading/trailing underscores:', fileName);
-    
-    // Ensure we have a valid filename (if empty after cleaning, use a default)
-    if (!fileName || fileName.length === 0) {
-      fileName = 'template';
-      console.log('📝 Using default filename');
-    }
-    
-    // CRITICAL: One final check - remove ANY trailing underscores before adding extension
-    fileName = fileName.replace(/_+$/, '');
-    console.log('📝 Final clean before adding extension:', fileName);
-    
-    // Add the correct extension (without any underscore)
-    fileName = fileName + ext;
-    console.log('📝 After adding extension:', fileName);
-    
-    // Final safety check: remove any underscores that might be between the name and extension
-    // This regex finds underscores immediately before the extension and removes them
-    fileName = fileName.replace(/_+(\.[^.]+)$/, '$1');
-    console.log('📝 Final filename after all cleaning:', fileName);
-
-    // Set headers for download
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
-    console.log('✅ Sending file:', fileName, 'Content-Type:', contentType);
-
-    // Send file with absolute path
-    res.sendFile(path.resolve(filePath), (err) => {
-      if (err) {
-        console.error('❌ Error sending file:', err);
-        if (!res.headersSent) {
-          res.status(500).json({ message: 'Failed to send file: ' + err.message });
-        }
-      } else {
-        console.log('✅ File sent successfully');
-      }
-    });
   } catch (error: any) {
     console.error('❌ Error downloading template:', error);
     console.error('Error stack:', error.stack);
