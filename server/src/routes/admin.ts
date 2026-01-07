@@ -1739,6 +1739,15 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
     const { id } = req.params;
     const { stepNumber, title, description, content, policyId, questions, isRequired, order } = req.body;
 
+    console.log('📝 Creating orientation step:', {
+      orientationId: id,
+      title,
+      stepNumber,
+      hasFile: !!req.file,
+      fileName: req.file?.originalname,
+      fileSize: req.file?.size,
+    });
+
     // Validate required fields
     if (!title || !title.trim()) {
       return res.status(400).json({ message: 'Title is required' });
@@ -1782,8 +1791,22 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
     // Handle PDF upload
     let pdfUrl = null;
     if (req.file) {
-      const uploadedFile = await uploadFileToR2(req.file, 'orientation');
-      pdfUrl = uploadedFile.url;
+      try {
+        console.log('📤 Uploading PDF to R2:', {
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+          hasBuffer: !!req.file.buffer,
+        });
+        const uploadedFile = await uploadFileToR2(req.file, 'orientation');
+        pdfUrl = uploadedFile.url;
+        console.log('✅ PDF uploaded successfully:', pdfUrl);
+      } catch (uploadError: any) {
+        console.error('❌ PDF upload failed:', uploadError);
+        return res.status(500).json({ 
+          message: `Failed to upload PDF: ${uploadError.message || 'Unknown error'}` 
+        });
+      }
     }
 
     // Parse questions if provided as string
@@ -1791,8 +1814,9 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
     if (questions) {
       try {
         parsedQuestions = typeof questions === 'string' ? JSON.parse(questions) : questions;
-      } catch (parseError) {
-        console.warn('Failed to parse questions JSON:', parseError);
+        console.log('✅ Questions parsed:', Array.isArray(parsedQuestions) ? parsedQuestions.length : 'not an array');
+      } catch (parseError: any) {
+        console.warn('⚠️ Failed to parse questions JSON:', parseError);
         // If it's not valid JSON, try to keep it as is or set to null
         parsedQuestions = null;
       }
@@ -1807,6 +1831,19 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
       ? (typeof order === 'string' ? parseInt(order) : parseInt(order))
       : finalStepNumber - 1;
 
+    // Ensure orderValue is a valid number
+    const finalOrderValue = isNaN(orderValue) ? finalStepNumber - 1 : orderValue;
+
+    console.log('💾 Creating step in database:', {
+      orientationId: id,
+      stepNumber: finalStepNumber,
+      title: title.trim(),
+      hasPdf: !!pdfUrl,
+      hasQuestions: !!parsedQuestions,
+      isRequired: isRequiredValue,
+      order: finalOrderValue,
+    });
+
     const step = await prisma.orientationStep.create({
       data: {
         orientationId: id,
@@ -1818,13 +1855,19 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
         policyId: policyId && policyId.trim() ? policyId : null,
         questions: parsedQuestions || null,
         isRequired: isRequiredValue,
-        order: orderValue,
+        order: finalOrderValue,
       },
     });
 
+    console.log('✅ Step created successfully:', step.id);
     res.status(201).json({ step });
   } catch (error: any) {
-    console.error('Create orientation step error:', error);
+    console.error('❌ Create orientation step error:', {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      stack: error.stack,
+    });
     
     // Handle unique constraint violation
     if (error.code === 'P2002') {
@@ -1833,7 +1876,10 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
       });
     }
     
-    res.status(500).json({ message: error.message || 'Failed to create step' });
+    res.status(500).json({ 
+      message: error.message || 'Failed to create step',
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
   }
 });
 
