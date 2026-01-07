@@ -1,11 +1,12 @@
 import { useQuery } from 'react-query';
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import QuickViewModal from '../../components/QuickViewModal';
 
 export default function PoliciesTab() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<'all' | 'mandatory' | 'acknowledged' | 'not-acknowledged'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'brief' | 'complete' | 'assessment'>('brief');
@@ -19,6 +20,21 @@ export default function PoliciesTab() {
     return res.data;
   });
 
+  const allPolicies = data?.policies || [];
+
+  // Handle query parameter to open specific policy
+  useEffect(() => {
+    const policyId = searchParams.get('policy');
+    if (policyId && allPolicies.length > 0) {
+      const policy = allPolicies.find((p: any) => p.id === policyId);
+      if (policy) {
+        setSelectedPolicy(policy);
+        // Remove query parameter from URL
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [searchParams, allPolicies, setSearchParams]);
+
   const { data: analytics } = useQuery(
     'policies-analytics',
     async () => {
@@ -27,8 +43,6 @@ export default function PoliciesTab() {
     },
     { enabled: isAdmin && showAnalytics }
   );
-
-  const allPolicies = data?.policies || [];
 
   // Extract unique categories from policies
   const { categories } = useMemo(() => {
