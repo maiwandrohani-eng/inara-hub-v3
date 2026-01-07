@@ -130,6 +130,14 @@ export default function OrientationManagement() {
       formData.append('order', stepData.order.toString());
       if (pdfFile) formData.append('pdf', pdfFile);
 
+      console.log('📤 Creating step:', {
+        orientationId,
+        title: stepData.title,
+        stepNumber: stepData.stepNumber,
+        hasPdf: !!pdfFile,
+        hasQuestions: !!stepData.questions,
+      });
+
       const res = await api.post(`/admin/orientations/${orientationId}/steps`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -153,6 +161,11 @@ export default function OrientationManagement() {
         });
         setStepPdfFile(null);
         alert('Step created successfully!');
+      },
+      onError: (error: any) => {
+        console.error('❌ Error creating step:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to create step';
+        alert(`Error: ${errorMessage}`);
       },
     }
   );
@@ -253,7 +266,24 @@ export default function OrientationManagement() {
 
   const handleStepSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrientation) return;
+    
+    if (!selectedOrientation) {
+      alert('Please select an orientation first');
+      return;
+    }
+
+    // Validate required fields
+    if (!stepFormData.title || !stepFormData.title.trim()) {
+      alert('Step title is required');
+      return;
+    }
+
+    console.log('📝 Submitting step form:', {
+      editing: !!editingStep?.id,
+      orientationId: selectedOrientation,
+      stepData: stepFormData,
+      hasPdf: !!stepPdfFile,
+    });
 
     if (editingStep?.id) {
       updateStepMutation.mutate({
