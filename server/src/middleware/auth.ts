@@ -65,12 +65,29 @@ export const authorize = (...roles: UserRole[]) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Debug: Log role comparison
+    const roleMatch = roles.includes(req.user.role);
+    console.log('[Authorization] Role check:', {
+      userId: req.user.id,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      userRoleType: typeof req.user.role,
+      requiredRoles: roles,
+      requiredRolesTypes: roles.map(r => typeof r),
+      roleMatch,
+      path: req.path,
+      method: req.method,
+    });
+
+    if (!roleMatch) {
       console.error('[Authorization] Access denied:', {
         userId: req.user.id,
         userEmail: req.user.email,
         userRole: req.user.role,
+        userRoleType: typeof req.user.role,
         requiredRoles: roles,
+        requiredRolesTypes: roles.map(r => typeof r),
+        roleMatch,
         path: req.path,
         method: req.method,
       });
@@ -78,9 +95,10 @@ export const authorize = (...roles: UserRole[]) => {
         message: 'Insufficient permissions',
         requiredRoles: roles,
         userRole: req.user.role,
+        userRoleType: typeof req.user.role,
         userId: req.user.id,
         userEmail: req.user.email,
-        detail: `This action requires one of the following roles: ${roles.join(', ')}. Your current role is: ${req.user.role}`
+        detail: `This action requires one of the following roles: ${roles.join(', ')}. Your current role is: ${req.user.role} (type: ${typeof req.user.role})`
       });
     }
 
