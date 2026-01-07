@@ -136,15 +136,28 @@ export default function OrientationManagement() {
         stepNumber: stepData.stepNumber,
         hasPdf: !!pdfFile,
         hasQuestions: !!stepData.questions,
+        pdfFileName: pdfFile?.name,
       });
 
-      const res = await api.post(`/admin/orientations/${orientationId}/steps`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      return res.data;
+      try {
+        const res = await api.post(`/admin/orientations/${orientationId}/steps`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        console.log('✅ Step creation response:', res.data);
+        return res.data;
+      } catch (error: any) {
+        console.error('❌ Step creation API error:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          url: error.config?.url,
+        });
+        throw error;
+      }
     },
     {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        console.log('✅ Step created successfully, data:', data);
         queryClient.invalidateQueries('admin-orientations');
         setShowStepForm(false);
         setEditingStep(null);
@@ -164,8 +177,14 @@ export default function OrientationManagement() {
       },
       onError: (error: any) => {
         console.error('❌ Error creating step:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          stack: error.stack,
+        });
         const errorMessage = error.response?.data?.message || error.message || 'Failed to create step';
-        alert(`Error: ${errorMessage}`);
+        alert(`Error: ${errorMessage}\n\nCheck the browser console for more details.`);
       },
     }
   );
