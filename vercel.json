@@ -4,11 +4,6 @@
   "installCommand": "npm install && cd server && npm install && cd ../client && npm install",
   "framework": null,
   "outputDirectory": "client/dist",
-  "functions": {
-    "api/index.ts": {
-      "runtime": "@vercel/node@3.0.7"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
