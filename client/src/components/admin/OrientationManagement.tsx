@@ -42,6 +42,7 @@ export default function OrientationManagement() {
   });
 
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [questionMode, setQuestionMode] = useState<'auto' | 'manual'>('manual');
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [stepPdfFile, setStepPdfFile] = useState<File | null>(null);
@@ -216,8 +217,16 @@ export default function OrientationManagement() {
       if (stepData.questions !== undefined) formData.append('questions', JSON.stringify(stepData.questions));
       formData.append('isRequired', stepData.isRequired.toString());
       formData.append('order', stepData.order.toString());
-      if (pdfFile) formData.append('pdf', pdfFile);
+      if (pdfFile) {
+        formData.append('pdf', pdfFile);
+        // Add question mode for auto-generation
+        formData.append('questionMode', questionMode);
+      }
       if (removePdf) formData.append('removePdf', 'true');
+      // Add question mode for auto-generation
+      if (pdfFile) {
+        formData.append('questionMode', questionMode);
+      }
 
       const res = await api.put(`/admin/orientations/${orientationId}/steps/${stepId}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -519,6 +528,7 @@ export default function OrientationManagement() {
                         order: orientation.steps?.length || 0,
                       });
                       setStepPdfFile(null);
+                      setQuestionMode('manual'); // Reset to manual mode
                       setShowStepForm(true);
                       console.log('✅ Step form should now be visible');
                     }}
@@ -673,29 +683,71 @@ export default function OrientationManagement() {
                                 {isGeneratingQuestions ? 'Generating...' : '🤖 Generate from PDF'}
                               </button>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const currentQuestions = Array.isArray(stepFormData.questions) ? stepFormData.questions : [];
-                                const newQuestion = {
-                                  id: `q-${Date.now()}`,
-                                  question: '',
-                                  type: 'multiple_choice',
-                                  options: ['Option 1', 'Option 2'],
-                                  correctAnswer: 'Option 1',
-                                  required: true,
-                                };
-                                setStepFormData({
-                                  ...stepFormData,
-                                  questions: [...currentQuestions, newQuestion],
-                                });
-                              }}
-                              className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
-                            >
-                              + Add Question
-                            </button>
+                            {questionMode === 'manual' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentQuestions = Array.isArray(stepFormData.questions) ? stepFormData.questions : [];
+                                  const newQuestion = {
+                                    id: `q-${Date.now()}`,
+                                    question: '',
+                                    type: 'multiple_choice',
+                                    options: ['Option 1', 'Option 2'],
+                                    correctAnswer: 'Option 1',
+                                    required: true,
+                                  };
+                                  setStepFormData({
+                                    ...stepFormData,
+                                    questions: [...currentQuestions, newQuestion],
+                                  });
+                                }}
+                                className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                              >
+                                + Add Question
+                              </button>
+                            )}
                           </div>
                         </div>
+                        
+                        {/* Question Generation Mode Selection */}
+                        {stepPdfFile && (
+                          <div className="mb-4 p-3 bg-gray-600 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-200 mb-2">Question Generation Mode</label>
+                            <div className="flex gap-4">
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="questionMode"
+                                  value="auto"
+                                  checked={questionMode === 'auto'}
+                                  onChange={(e) => setQuestionMode(e.target.value as 'auto' | 'manual')}
+                                  className="w-4 h-4 text-primary-500"
+                                />
+                                <span className="text-gray-300 text-sm">
+                                  🤖 Automatic (AI generates questions from PDF)
+                                </span>
+                              </label>
+                              <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="questionMode"
+                                  value="manual"
+                                  checked={questionMode === 'manual'}
+                                  onChange={(e) => setQuestionMode(e.target.value as 'auto' | 'manual')}
+                                  className="w-4 h-4 text-primary-500"
+                                />
+                                <span className="text-gray-300 text-sm">
+                                  ✏️ Manual (Create questions yourself)
+                                </span>
+                              </label>
+                            </div>
+                            {questionMode === 'auto' && (
+                              <p className="text-xs text-gray-400 mt-2">
+                                Questions will be automatically generated from the PDF when you create the step.
+                              </p>
+                            )}
+                          </div>
+                        )}
 
                         {Array.isArray(stepFormData.questions) && stepFormData.questions.length > 0 ? (
                           <div className="space-y-3 max-h-96 overflow-y-auto p-3 bg-gray-700 rounded-lg">

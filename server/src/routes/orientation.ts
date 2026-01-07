@@ -219,6 +219,22 @@ router.post('/steps/:stepId/confirm', authenticate, async (req: AuthRequest, res
           });
         }
       });
+      
+      // Check if all required questions are answered correctly
+      const requiredQuestions = (step.questions as any[]).filter((q: any) => q.required !== false);
+      const incorrectAnswers = answerValidation.filter(
+        (validation: any) => !validation.isCorrect && requiredQuestions.some((q: any) => q.id === validation.questionId)
+      );
+      
+      if (incorrectAnswers.length > 0) {
+        return res.status(400).json({ 
+          message: 'Please answer all questions correctly before proceeding to the next step.',
+          answerValidation,
+          allCorrect: false,
+          incorrectCount: incorrectAnswers.length,
+          totalQuestions: requiredQuestions.length
+        });
+      }
     }
 
     const confirmation = await prisma.orientationStepConfirmation.upsert({
@@ -256,7 +272,8 @@ router.post('/steps/:stepId/confirm', authenticate, async (req: AuthRequest, res
     res.json({ 
       confirmation, 
       message: 'Step confirmed successfully',
-      answerValidation: answerValidation.length > 0 ? answerValidation : undefined
+      answerValidation: answerValidation.length > 0 ? answerValidation : undefined,
+      allCorrect: answerValidation.length === 0 || answerValidation.every((v: any) => v.isCorrect),
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

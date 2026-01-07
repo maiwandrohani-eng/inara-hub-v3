@@ -1802,6 +1802,7 @@ router.post('/orientations/:id/steps', (req, res, next) => {
 
     // Handle PDF upload (optional - step can be created without PDF)
     let pdfUrl = null;
+    let pdfBuffer: Buffer | null = null;
     if (req.file) {
       try {
         console.log('📤 Uploading PDF to R2:', {
@@ -1812,6 +1813,7 @@ router.post('/orientations/:id/steps', (req, res, next) => {
         });
         const uploadedFile = await uploadFileToR2(req.file, 'orientation');
         pdfUrl = uploadedFile.url;
+        pdfBuffer = req.file.buffer; // Keep buffer for question generation
         console.log('✅ PDF uploaded successfully:', pdfUrl);
       } catch (uploadError: any) {
         console.error('❌ PDF upload failed:', uploadError);
@@ -1825,7 +1827,23 @@ router.post('/orientations/:id/steps', (req, res, next) => {
 
     // Parse questions if provided as string
     let parsedQuestions = null;
-    if (questions) {
+    const questionMode = req.body.questionMode || 'manual';
+    
+    // Auto-generate questions from PDF if auto mode is selected and PDF is uploaded
+    if (questionMode === 'auto' && pdfBuffer && req.file) {
+      try {
+        console.log('🤖 Auto-generating questions from PDF...');
+        const { generateQuestionsFromPDF } = await import('../utils/aiQuestionGenerator.js');
+        const result = await generateQuestionsFromPDF(pdfBuffer);
+        parsedQuestions = result.questions;
+        console.log(`✅ Auto-generated ${parsedQuestions.length} questions from PDF`);
+      } catch (genError: any) {
+        console.error('❌ Failed to auto-generate questions:', genError);
+        console.warn('⚠️ Continuing without auto-generated questions. Admin can add questions manually.');
+        // Don't fail step creation, just log the error
+      }
+    } else if (questions) {
+      // Manual questions provided
       try {
         parsedQuestions = typeof questions === 'string' ? JSON.parse(questions) : questions;
         console.log('✅ Questions parsed:', Array.isArray(parsedQuestions) ? parsedQuestions.length : 'not an array');

@@ -819,7 +819,28 @@ export default function OrientationTab() {
                       }
                     }
                   } catch (error: any) {
-                    alert(error.response?.data?.message || 'Failed to confirm step');
+                    const errorMessage = error.response?.data?.message || 'Failed to confirm step';
+                    const errorData = error.response?.data;
+                    
+                    // If there are validation errors, show feedback
+                    if (errorData?.answerValidation && errorData.answerValidation.length > 0) {
+                      const feedback: Record<string, { isCorrect: boolean; correctAnswer?: string | string[]; message?: string }> = {};
+                      errorData.answerValidation.forEach((validation: any) => {
+                        feedback[validation.questionId] = {
+                          isCorrect: validation.isCorrect,
+                          correctAnswer: validation.correctAnswer,
+                          message: validation.isCorrect 
+                            ? 'Correct!' 
+                            : `Incorrect. The correct answer is: ${Array.isArray(validation.correctAnswer) ? validation.correctAnswer.join(', ') : validation.correctAnswer}`,
+                        };
+                      });
+                      setAnswerFeedback(prev => ({
+                        ...prev,
+                        [currentStepData.id]: feedback,
+                      }));
+                    }
+                    
+                    alert(errorMessage);
                     return;
                   }
                 } else {
