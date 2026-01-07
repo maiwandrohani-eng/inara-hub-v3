@@ -66,10 +66,20 @@ export const authorize = (...roles: UserRole[]) => {
     }
 
     if (!roles.includes(req.user.role)) {
+      console.error('[Authorization] Access denied:', {
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        requiredRoles: roles,
+        path: req.path,
+        method: req.method,
+      });
       return res.status(403).json({ 
         message: 'Insufficient permissions',
         requiredRoles: roles,
         userRole: req.user.role,
+        userId: req.user.id,
+        userEmail: req.user.email,
         detail: `This action requires one of the following roles: ${roles.join(', ')}. Your current role is: ${req.user.role}`
       });
     }

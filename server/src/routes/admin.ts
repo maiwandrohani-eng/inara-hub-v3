@@ -21,6 +21,34 @@ const upload = multerR2;
 router.use(authenticate);
 router.use(authorize(UserRole.ADMIN));
 
+// Diagnostic endpoint to check user role (before authorization)
+router.get('/check-role', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId! },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+    res.json({
+      user: user ? {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+      } : null,
+      hasAdminAccess: user?.role === UserRole.ADMIN,
+      requiredRole: UserRole.ADMIN,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Work Systems Management
 router.get('/work-systems', async (req: AuthRequest, res) => {
   try {

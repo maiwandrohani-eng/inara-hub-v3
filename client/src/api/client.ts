@@ -46,13 +46,24 @@ api.interceptors.response.use(
     }
     // Log 403 errors with more details for debugging
     if (error.response?.status === 403) {
-      console.error('403 Forbidden Error:', {
-        message: error.response?.data?.message,
-        detail: error.response?.data?.detail,
-        requiredRoles: error.response?.data?.requiredRoles,
-        userRole: error.response?.data?.userRole,
+      const errorData = error.response?.data;
+      console.error('🚫 403 Forbidden Error:', {
+        message: errorData?.message,
+        detail: errorData?.detail,
+        requiredRoles: errorData?.requiredRoles,
+        userRole: errorData?.userRole,
+        userEmail: errorData?.userEmail,
+        userId: errorData?.userId,
         url: error.config?.url,
       });
+      
+      // Show user-friendly alert with details
+      const user = useAuthStore.getState().user;
+      if (user) {
+        console.warn(`⚠️ Your current role: ${user.role}`);
+        console.warn(`⚠️ Required role: ${errorData?.requiredRoles?.join(' or ')}`);
+        console.warn(`💡 To fix: Contact an admin to update your role to ADMIN`);
+      }
     }
     return Promise.reject(error);
   }
