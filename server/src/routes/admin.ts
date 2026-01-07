@@ -750,8 +750,12 @@ router.post('/library/bulk-import', upload.array('files', 50), async (req: AuthR
     const results = [];
     const errors = [];
 
+    // Upload all files to R2 first (more efficient)
+    const uploadedFiles = await uploadFilesToR2(files, 'library');
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      const uploadedFile = uploadedFiles[i];
       const folderPath = paths[i] || '';
       
       try {
@@ -774,9 +778,6 @@ router.post('/library/bulk-import', upload.array('files', 50), async (req: AuthR
         }
         
         const resourceType = detectResourceType(fileName);
-        
-        // Upload file to R2
-        const uploadedFile = await uploadFileToR2(file, 'library');
 
         const resource = await prisma.libraryResource.create({
           data: {
@@ -825,6 +826,9 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
       return res.status(400).json({ message: 'No files uploaded' });
     }
 
+    // Upload all files to R2 first (more efficient)
+    const uploadedFiles = await uploadFilesToR2(files, 'policy');
+
     // Get folder paths from request body
     const paths = Array.isArray(req.body.paths) ? req.body.paths : 
                   req.body.paths ? [req.body.paths] : [];
@@ -834,6 +838,7 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      const uploadedFile = uploadedFiles[i];
       const folderPath = paths[i] || '';
       
       try {
@@ -854,9 +859,6 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
         } else {
           categoryMatch = detectCategory(fileName, 'policy');
         }
-        
-        // Upload file to R2
-        const uploadedFile = await uploadFileToR2(file, 'policy');
 
         // Read file content if it's a text file (for brief/complete)
         let brief = `Policy: ${title}`;
@@ -918,6 +920,9 @@ router.post('/templates/bulk-import', upload.array('files', 50), async (req: Aut
       return res.status(400).json({ message: 'No files uploaded' });
     }
 
+    // Upload all files to R2 first (more efficient)
+    const uploadedFiles = await uploadFilesToR2(files, 'template');
+
     // Get folder paths from request body
     const paths = Array.isArray(req.body.paths) ? req.body.paths : 
                   req.body.paths ? [req.body.paths] : [];
@@ -927,6 +932,7 @@ router.post('/templates/bulk-import', upload.array('files', 50), async (req: Aut
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      const uploadedFile = uploadedFiles[i];
       const folderPath = paths[i] || '';
       
       try {
@@ -947,9 +953,6 @@ router.post('/templates/bulk-import', upload.array('files', 50), async (req: Aut
         } else {
           categoryMatch = detectCategory(fileName, 'template');
         }
-        
-        // Upload file to R2
-        const uploadedFile = await uploadFileToR2(file, 'template');
 
         const template = await prisma.template.create({
           data: {
