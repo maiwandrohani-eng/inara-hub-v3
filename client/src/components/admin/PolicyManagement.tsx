@@ -329,18 +329,266 @@ export default function PolicyManagement() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">Assessment Questions (JSON)</label>
-              <textarea
-                value={JSON.stringify(formData.assessment, null, 2)}
-                onChange={(e) => {
-                  try {
-                    setFormData({ ...formData, assessment: JSON.parse(e.target.value) });
-                  } catch {}
-                }}
-                rows={5}
-                placeholder='{"questions": [{"question": "...", "options": [...], "correctAnswer": "..."}], "passingScore": 70}'
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg font-mono text-sm"
-              />
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-200">Assessment Questions</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentQuestions = Array.isArray(formData.assessment.questions) ? formData.assessment.questions : [];
+                    const newQuestion = {
+                      id: `q-${Date.now()}`,
+                      question: '',
+                      type: 'multiple_choice',
+                      options: ['Option 1', 'Option 2'],
+                      correctAnswer: 'Option 1',
+                      required: true,
+                    };
+                    setFormData({
+                      ...formData,
+                      assessment: {
+                        ...formData.assessment,
+                        questions: [...currentQuestions, newQuestion],
+                      },
+                    });
+                  }}
+                  className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                >
+                  + Add Question
+                </button>
+              </div>
+
+              {Array.isArray(formData.assessment.questions) && formData.assessment.questions.length > 0 ? (
+                <div className="space-y-3 max-h-96 overflow-y-auto p-3 bg-gray-700 rounded-lg">
+                  {formData.assessment.questions.map((q: any, idx: number) => (
+                    <div key={q.id || idx} className="bg-gray-600 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <h4 className="text-white font-semibold">Question {idx + 1}</h4>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = formData.assessment.questions.filter((_: any, i: number) => i !== idx);
+                            setFormData({
+                              ...formData,
+                              assessment: {
+                                ...formData.assessment,
+                                questions: updated,
+                              },
+                            });
+                          }}
+                          className="text-red-400 hover:text-red-300 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs text-gray-300 mb-1">Question Text *</label>
+                        <input
+                          type="text"
+                          value={q.question || ''}
+                          onChange={(e) => {
+                            const updated = [...formData.assessment.questions];
+                            updated[idx] = { ...updated[idx], question: e.target.value };
+                            setFormData({
+                              ...formData,
+                              assessment: {
+                                ...formData.assessment,
+                                questions: updated,
+                              },
+                            });
+                          }}
+                          className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                          placeholder="Enter your question..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-gray-300 mb-1">Question Type *</label>
+                        <select
+                          value={q.type || 'multiple_choice'}
+                          onChange={(e) => {
+                            const updated = [...formData.assessment.questions];
+                            updated[idx] = {
+                              ...updated[idx],
+                              type: e.target.value,
+                              options: e.target.value === 'multiple_choice' || e.target.value === 'checkbox' 
+                                ? (updated[idx].options || ['Option 1', 'Option 2'])
+                                : undefined,
+                            };
+                            setFormData({
+                              ...formData,
+                              assessment: {
+                                ...formData.assessment,
+                                questions: updated,
+                              },
+                            });
+                          }}
+                          className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                        >
+                          <option value="multiple_choice">Multiple Choice</option>
+                          <option value="text">Text Answer</option>
+                          <option value="checkbox">Checkbox (Multiple Answers)</option>
+                        </select>
+                      </div>
+
+                      {(q.type === 'multiple_choice' || q.type === 'checkbox') && (
+                        <div>
+                          <label className="block text-xs text-gray-300 mb-1">Options *</label>
+                          {(q.options || []).map((opt: string, optIdx: number) => (
+                            <div key={optIdx} className="flex gap-2 mb-2">
+                              <input
+                                type="text"
+                                value={opt}
+                                onChange={(e) => {
+                                  const updated = [...formData.assessment.questions];
+                                  const newOptions = [...(updated[idx].options || [])];
+                                  newOptions[optIdx] = e.target.value;
+                                  updated[idx] = { ...updated[idx], options: newOptions };
+                                  setFormData({
+                                    ...formData,
+                                    assessment: {
+                                      ...formData.assessment,
+                                      questions: updated,
+                                    },
+                                  });
+                                }}
+                                className="flex-1 px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                                placeholder={`Option ${optIdx + 1}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...formData.assessment.questions];
+                                  const newOptions = (updated[idx].options || []).filter((_: any, i: number) => i !== optIdx);
+                                  updated[idx] = { ...updated[idx], options: newOptions };
+                                  setFormData({
+                                    ...formData,
+                                    assessment: {
+                                      ...formData.assessment,
+                                      questions: updated,
+                                    },
+                                  });
+                                }}
+                                className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...formData.assessment.questions];
+                              const newOptions = [...(updated[idx].options || []), `Option ${(updated[idx].options || []).length + 1}`];
+                              updated[idx] = { ...updated[idx], options: newOptions };
+                              setFormData({
+                                ...formData,
+                                assessment: {
+                                  ...formData.assessment,
+                                  questions: updated,
+                                },
+                              });
+                            }}
+                            className="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
+                          >
+                            + Add Option
+                          </button>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-xs text-gray-300 mb-1">
+                          {q.type === 'text' ? 'Expected Answer' : 'Correct Answer *'}
+                        </label>
+                        {q.type === 'text' ? (
+                          <input
+                            type="text"
+                            value={q.correctAnswer || ''}
+                            onChange={(e) => {
+                              const updated = [...formData.assessment.questions];
+                              updated[idx] = { ...updated[idx], correctAnswer: e.target.value };
+                              setFormData({
+                                ...formData,
+                                assessment: {
+                                  ...formData.assessment,
+                                  questions: updated,
+                                },
+                              });
+                            }}
+                            className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                            placeholder="Expected answer or key concepts..."
+                          />
+                        ) : (
+                          <select
+                            value={q.correctAnswer || ''}
+                            onChange={(e) => {
+                              const updated = [...formData.assessment.questions];
+                              updated[idx] = { ...updated[idx], correctAnswer: e.target.value };
+                              setFormData({
+                                ...formData,
+                                assessment: {
+                                  ...formData.assessment,
+                                  questions: updated,
+                                },
+                              });
+                            }}
+                            className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                          >
+                            <option value="">Select correct answer</option>
+                            {(q.options || []).map((opt: string, optIdx: number) => (
+                              <option key={optIdx} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={q.required !== false}
+                          onChange={(e) => {
+                            const updated = [...formData.assessment.questions];
+                            updated[idx] = { ...updated[idx], required: e.target.checked };
+                            setFormData({
+                              ...formData,
+                              assessment: {
+                                ...formData.assessment,
+                                questions: updated,
+                              },
+                            });
+                          }}
+                          className="mr-2"
+                        />
+                        <label className="text-xs text-gray-300">Required Question</label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-700 rounded-lg text-center text-gray-400 text-sm">
+                  No questions added yet. Click "Add Question" to create one.
+                </div>
+              )}
+
+              <div className="mt-3">
+                <label className="block text-xs text-gray-300 mb-1">Passing Score (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.assessment.passingScore || 70}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      assessment: {
+                        ...formData.assessment,
+                        passingScore: parseInt(e.target.value) || 70,
+                      },
+                    });
+                  }}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded text-sm"
+                />
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <input
