@@ -1697,14 +1697,44 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
     const { id } = req.params;
     const { stepNumber, title, description, content, policyId, questions, isRequired, order } = req.body;
 
+    // Validate required fields
+    if (!title || !title.trim()) {
+      return res.status(400).json({ message: 'Title is required' });
+    }
+
+    // Check if orientation exists
+    const orientation = await prisma.orientation.findUnique({
+      where: { id },
+    });
+
+    if (!orientation) {
+      return res.status(404).json({ message: 'Orientation not found' });
+    }
+
     // Get the next step number if not provided
-    let finalStepNumber = stepNumber;
-    if (!finalStepNumber) {
+    let finalStepNumber = stepNumber ? parseInt(stepNumber) : null;
+    if (!finalStepNumber || isNaN(finalStepNumber)) {
       const lastStep = await prisma.orientationStep.findFirst({
         where: { orientationId: id },
         orderBy: { stepNumber: 'desc' },
       });
       finalStepNumber = lastStep ? lastStep.stepNumber + 1 : 1;
+    }
+
+    // Check if step number already exists for this orientation
+    const existingStep = await prisma.orientationStep.findUnique({
+      where: {
+        orientationId_stepNumber: {
+          orientationId: id,
+          stepNumber: finalStepNumber,
+        },
+      },
+    });
+
+    if (existingStep) {
+      return res.status(400).json({ 
+        message: `Step number ${finalStepNumber} already exists for this orientation. Please use a different step number.` 
+      });
     }
 
     // Handle PDF upload
@@ -1719,30 +1749,49 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
     if (questions) {
       try {
         parsedQuestions = typeof questions === 'string' ? JSON.parse(questions) : questions;
-      } catch {
-        parsedQuestions = questions;
+      } catch (parseError) {
+        console.warn('Failed to parse questions JSON:', parseError);
+        // If it's not valid JSON, try to keep it as is or set to null
+        parsedQuestions = null;
       }
     }
+
+    // Parse boolean values
+    const isRequiredValue = isRequired !== undefined 
+      ? (typeof isRequired === 'string' ? isRequired === 'true' : isRequired)
+      : true;
+
+    const orderValue = order !== undefined 
+      ? (typeof order === 'string' ? parseInt(order) : parseInt(order))
+      : finalStepNumber - 1;
 
     const step = await prisma.orientationStep.create({
       data: {
         orientationId: id,
         stepNumber: finalStepNumber,
-        title,
-        description: description || null,
-        content: content || null,
+        title: title.trim(),
+        description: description ? description.trim() : null,
+        content: content ? content.trim() : null,
         pdfUrl: pdfUrl || null,
-        policyId: policyId || null,
+        policyId: policyId && policyId.trim() ? policyId : null,
         questions: parsedQuestions || null,
-        isRequired: isRequired !== undefined ? isRequired : true,
-        order: order !== undefined ? order : finalStepNumber - 1,
+        isRequired: isRequiredValue,
+        order: orderValue,
       },
     });
 
     res.status(201).json({ step });
   } catch (error: any) {
     console.error('Create orientation step error:', error);
-    res.status(500).json({ message: error.message });
+    
+    // Handle unique constraint violation
+    if (error.code === 'P2002') {
+      return res.status(400).json({ 
+        message: 'A step with this step number already exists for this orientation.' 
+      });
+    }
+    
+    res.status(500).json({ message: error.message || 'Failed to create step' });
   }
 });
 

@@ -86,8 +86,9 @@ export default function OrientationManagement() {
   );
 
   const deleteMutation = useMutation(
-    async (id: string) => {
-      const res = await api.delete(`/admin/orientations/${id}`);
+    async ({ id, force }: { id: string; force?: boolean }) => {
+      const url = force ? `/admin/orientations/${id}?force=true` : `/admin/orientations/${id}`;
+      const res = await api.delete(url);
       return res.data;
     },
     {
@@ -96,7 +97,17 @@ export default function OrientationManagement() {
         alert('Orientation deleted successfully!');
       },
       onError: (error: any) => {
-        alert(error.response?.data?.message || 'Failed to delete orientation');
+        const errorData = error.response?.data;
+        if (errorData?.completions > 0 && errorData?.canDeactivate) {
+          const shouldForce = confirm(
+            `This orientation has ${errorData.completions} completion(s). Deleting it will remove all completion records. Do you want to continue?`
+          );
+          if (shouldForce) {
+            deleteMutation.mutate({ id: error.response?.config?.url?.split('/').pop() || '', force: true });
+          }
+        } else {
+          alert(errorData?.message || 'Failed to delete orientation');
+        }
       },
     }
   );
@@ -289,10 +300,12 @@ export default function OrientationManagement() {
         </button>
       </div>
 
-      {/* Create Orientation Form */}
+      {/* Create/Edit Orientation Form */}
       {showForm && (
         <div className="bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-xl font-bold text-white mb-4">Create New Orientation</h3>
+          <h3 className="text-xl font-bold text-white mb-4">
+            {selectedOrientation && orientations.find((o: any) => o.id === selectedOrientation) ? 'Edit Orientation' : 'Create New Orientation'}
+          </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-200 mb-1">Title *</label>
@@ -375,12 +388,27 @@ export default function OrientationManagement() {
                 <button
                   onClick={() => {
                     if (confirm('Are you sure you want to delete this orientation?')) {
-                      deleteMutation.mutate(orientation.id);
+                      deleteMutation.mutate({ id: orientation.id });
                     }
                   }}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                 >
                   Delete
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedOrientation(orientation.id);
+                    setFormData({
+                      title: orientation.title,
+                      content: orientation.content || '',
+                      sections: orientation.sections || {},
+                      isActive: orientation.isActive,
+                    });
+                    setShowForm(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
+                  Edit
                 </button>
               </div>
             </div>
