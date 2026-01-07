@@ -498,16 +498,16 @@ export default function OrientationTab() {
       <div className="bg-gray-800 rounded-lg p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-gray-400">
-            Step {currentStep + 1} of {totalSteps}
+            Step {Math.min(currentStep + 1, totalSteps)} of {totalSteps}
           </span>
           <span className="text-sm text-gray-400">
-            {Math.round(((currentStep + 1) / totalSteps) * 100)}% Complete
+            {Math.min(Math.round(((currentStep + 1) / totalSteps) * 100), 100)}% Complete
           </span>
         </div>
         <div className="w-full bg-gray-700 rounded-full h-2">
           <div
             className="bg-primary-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+            style={{ width: `${Math.min(((currentStep + 1) / totalSteps) * 100, 100)}%` }}
           />
         </div>
       </div>
