@@ -1734,7 +1734,19 @@ router.delete('/orientations/:id', async (req: AuthRequest, res) => {
 });
 
 // Create orientation step
-router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthRequest, res) => {
+router.post('/orientations/:id/steps', (req, res, next) => {
+  // Handle multer errors
+  upload.single('pdf')(req, res, (err: any) => {
+    if (err) {
+      console.error('❌ Multer error:', err);
+      return res.status(400).json({ 
+        message: `File upload error: ${err.message}`,
+        error: err.message 
+      });
+    }
+    next();
+  });
+}, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const { stepNumber, title, description, content, policyId, questions, isRequired, order } = req.body;
@@ -1869,6 +1881,7 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
       code: error.code,
       name: error.name,
       stack: error.stack,
+      cause: error.cause,
     });
     
     // Handle unique constraint violation
@@ -1878,9 +1891,13 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
       });
     }
     
+    // Return detailed error for debugging
     res.status(500).json({ 
       message: error.message || 'Failed to create step',
-      error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      error: error.message,
+      code: error.code,
+      name: error.name,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 });
