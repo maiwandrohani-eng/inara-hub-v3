@@ -80,6 +80,9 @@ export default function OrientationManagement() {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('admin-orientations');
+        setShowForm(false);
+        setSelectedOrientation(null);
+        setFormData({ title: '', content: '', sections: {}, isActive: true });
         alert('Orientation updated successfully!');
       },
     }
@@ -293,7 +296,13 @@ export default function OrientationManagement() {
           <p className="text-gray-400 mt-1">Create and manage staff orientation content</p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setShowForm(!showForm);
+            if (showForm) {
+              setSelectedOrientation(null);
+              setFormData({ title: '', content: '', sections: {}, isActive: true });
+            }
+          }}
           className="bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors"
         >
           {showForm ? 'Cancel' : '+ Create Orientation'}
@@ -404,6 +413,7 @@ export default function OrientationManagement() {
                       sections: orientation.sections || {},
                       isActive: orientation.isActive,
                     });
+                    setShowStepForm(false);
                     setShowForm(true);
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
