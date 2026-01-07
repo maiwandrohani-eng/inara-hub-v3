@@ -1646,6 +1646,17 @@ router.delete('/orientations/:id', async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
+    // Check if orientation exists
+    const orientation = await prisma.orientation.findUnique({
+      where: { id },
+    });
+
+    if (!orientation) {
+      return res.status(404).json({
+        message: 'Orientation not found',
+      });
+    }
+
     // Check if there are completions
     const completions = await prisma.orientationCompletion.count({
       where: { orientationId: id },
@@ -1657,6 +1668,12 @@ router.delete('/orientations/:id', async (req: AuthRequest, res) => {
       });
     }
 
+    // Delete all steps first (they will cascade, but being explicit)
+    await prisma.orientationStep.deleteMany({
+      where: { orientationId: id },
+    });
+
+    // Delete the orientation
     await prisma.orientation.delete({
       where: { id },
     });
@@ -1664,6 +1681,12 @@ router.delete('/orientations/:id', async (req: AuthRequest, res) => {
     res.json({ message: 'Orientation deleted successfully' });
   } catch (error: any) {
     console.error('Delete orientation error:', error);
+    
+    // Handle Prisma "record not found" error
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Orientation not found' });
+    }
+    
     res.status(500).json({ message: error.message });
   }
 });
