@@ -51,8 +51,7 @@ const getR2Client = (): S3Client => {
         secretAccessKey: secretAccessKey,
       },
       forcePathStyle: false, // R2 uses virtual-hosted-style URLs
-      // R2 requires SigV4 signing
-      signatureVersion: 'v4',
+      // AWS SDK v3 uses SigV4 by default, which is required by R2
     });
   }
   return r2Client;
