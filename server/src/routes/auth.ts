@@ -304,15 +304,17 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    if (!process.env.JWT_SECRET) {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
       console.error('JWT_SECRET is not set');
       return res.status(500).json({ message: 'Server configuration error' });
     }
 
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET as string,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      jwtSecret,
+      { expiresIn }
     );
 
     await prismaInstance.user.update({

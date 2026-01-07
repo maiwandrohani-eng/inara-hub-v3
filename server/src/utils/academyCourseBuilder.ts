@@ -22,11 +22,16 @@ async function loadPdfParse() {
     console.error('⚠️ Failed to load pdf-parse:', error);
     // Try require as fallback (for CommonJS compatibility)
     try {
-      const { createRequire } = await import('module');
-      const require = createRequire(import.meta.url);
-      pdfParse = require('pdf-parse');
-      pdfParseLoaded = true;
-      return pdfParse;
+      // Use type assertion to handle module import
+      const module = await import('module');
+      const createRequire = (module as any).createRequire || (module.default as any)?.createRequire;
+      if (createRequire) {
+        const require = createRequire(import.meta.url);
+        pdfParse = require('pdf-parse');
+        pdfParseLoaded = true;
+        return pdfParse;
+      }
+      return null;
     } catch (requireError) {
       console.error('⚠️ Failed to load pdf-parse with require:', requireError);
       return null;

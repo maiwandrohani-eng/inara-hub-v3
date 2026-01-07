@@ -1,6 +1,5 @@
 // Vercel serverless function to proxy uploads from Cloudflare R2
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getPresignedUrl } from '../server/src/utils/r2Storage.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { path } = req.query;
@@ -26,7 +25,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Otherwise, generate a presigned URL and redirect to it
     // This provides temporary access without exposing credentials
-    const presignedUrl = await getPresignedUrl(filePath, 3600); // 1 hour expiry
+    // Use dynamic import to avoid TypeScript path resolution issues
+    const { getPresignedUrl } = await import('../server/src/utils/r2Storage.js');
+    const presignedUrl = await getPresignedUrl(filePath as string, 3600); // 1 hour expiry
     return res.redirect(302, presignedUrl);
   } catch (error: any) {
     console.error('Error fetching from R2:', error);
