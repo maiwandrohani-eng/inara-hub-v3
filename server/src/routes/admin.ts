@@ -988,7 +988,7 @@ router.post('/templates/bulk-import', upload.array('files', 50), async (req: Aut
           data: {
             title,
             description: `Template imported from ${fileName}`,
-            fileUrl: uploadedFile.url,
+            fileUrl: uploadResult.url!,
             category: categoryMatch.category || null,
             subcategory: categoryMatch.subcategory || null,
             tags: [],
