@@ -302,9 +302,11 @@ export default function OrientationManagement() {
       orientationId: selectedOrientation,
       stepData: stepFormData,
       hasPdf: !!stepPdfFile,
+      pdfFileName: stepPdfFile?.name,
     });
 
     if (editingStep?.id) {
+      console.log('🔄 Updating existing step:', editingStep.id);
       updateStepMutation.mutate({
         orientationId: selectedOrientation,
         stepId: editingStep.id,
@@ -312,10 +314,15 @@ export default function OrientationManagement() {
         pdfFile: stepPdfFile,
       });
     } else {
+      console.log('➕ Creating new step for orientation:', selectedOrientation);
       createStepMutation.mutate({
         orientationId: selectedOrientation,
         stepData: stepFormData,
         pdfFile: stepPdfFile,
+      }, {
+        onSettled: (data, error) => {
+          console.log('Step mutation settled:', { data, error, hasData: !!data, hasError: !!error });
+        },
       });
     }
   };
