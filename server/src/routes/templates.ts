@@ -61,18 +61,13 @@ router.get('/:id/download', authenticate, async (req: AuthRequest, res) => {
 
     console.log('📁 Template fileUrl:', template.fileUrl);
 
-    // Get file path (fileUrl is like /uploads/template/filename.pdf)
-    // Remove leading slash if present
-    const cleanUrl = template.fileUrl.startsWith('/') ? template.fileUrl.slice(1) : template.fileUrl;
-    const filePath = path.join(process.cwd(), 'server', 'public', cleanUrl);
+    // Get presigned URL from R2 or redirect to public URL
+    const { getPresignedUrl } = await import('../utils/r2Storage.js');
+    const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
     
-    console.log('📂 Resolved file path:', filePath);
+    // Extract key from template URL
+    const key = template.fileUrl.replace(/^\/uploads\//, '').replace(/^https?:\/\/[^\/]+\//, '');
     
-    if (!fs.existsSync(filePath)) {
-      console.error('❌ File not found at path:', filePath);
-      return res.status(404).json({ message: 'Template file not found on server' });
-    }
-
     // Track download
     try {
       await prisma.templateDownload.create({
@@ -101,44 +96,15 @@ router.get('/:id/download', authenticate, async (req: AuthRequest, res) => {
       console.warn('⚠️ Failed to log activity:', logError.message);
     }
 
-    // Get file extension for proper content type
-    const ext = path.extname(template.fileUrl).toLowerCase();
-    const contentTypes: Record<string, string> = {
-      '.pdf': 'application/pdf',
-      '.doc': 'application/msword',
-      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      '.xls': 'application/vnd.ms-excel',
-      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      '.txt': 'text/plain',
-    };
-
-    const contentType = contentTypes[ext] || 'application/octet-stream';
-    
-    // Clean filename: remove any existing extension from title, replace non-alphanumeric with underscore,
-    // remove trailing underscores, then add the correct extension
-    let cleanTitle = template.title.trim();
-    
-    console.log('📝 Original title:', cleanTitle);
-    console.log('📝 File extension from URL:', ext);
-    
-    // Remove any existing file extension from the title (case-insensitive)
-    // Check for extensions at the end of the string (with optional spaces before)
-    const commonExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.csv', '.ppt', '.pptx'];
-    for (const extension of commonExtensions) {
-      const lowerTitle = cleanTitle.toLowerCase();
-      const lowerExt = extension.toLowerCase();
-      if (lowerTitle.endsWith(lowerExt)) {
-        cleanTitle = cleanTitle.slice(0, -extension.length).trim();
-        console.log('📝 After removing extension:', cleanTitle);
-        break;
-      }
+    // Redirect to R2 file
+    if (R2_PUBLIC_URL) {
+      // Redirect to public URL
+      return res.redirect(302, `${R2_PUBLIC_URL}/${key}`);
+    } else {
+      // Generate presigned URL
+      const presignedUrl = await getPresignedUrl(key, 3600); // 1 hour expiry
+      return res.redirect(302, presignedUrl);
     }
-    
-    // Replace ALL non-alphanumeric characters (including parentheses, brackets, etc.) with underscore
-    let fileName = cleanTitle.replace(/[^a-z0-9]/gi, '_');
-    console.log('📝 After replacing non-alphanumeric:', fileName);
-    
-    // Remove multiple consecutive underscores
     fileName = fileName.replace(/_+/g, '_');
     console.log('📝 After removing consecutive underscores:', fileName);
     

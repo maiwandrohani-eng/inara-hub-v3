@@ -232,7 +232,10 @@ router.post('/complete', authenticate, async (req: AuthRequest, res) => {
     const completionDate = new Date();
     
     // Certificate URL - will be generated on-demand when requested
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+    // Use Vercel URL if available, otherwise fallback
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : process.env.API_BASE_URL || process.env.R2_PUBLIC_URL || 'http://localhost:5000';
     const certificateUrl = `${baseUrl}/api/orientation/certificate/${userId}`;
 
     const completion = await prisma.orientationCompletion.upsert({

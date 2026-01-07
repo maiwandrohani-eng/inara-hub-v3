@@ -19,33 +19,27 @@ interface CertificateData {
 
 /**
  * Generate a branded PDF certificate for course completion
+ * Returns a buffer instead of writing to file (for R2 upload)
  */
 export async function generateAcademyCertificate(
-  data: CertificateData,
-  outputPath: string
-): Promise<string> {
+  data: CertificateData
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
-      // Ensure output directory exists
-      const outputDir = path.dirname(outputPath);
-      if (!fs.existsSync(outputDir)) {
-        // Only create directories in development (not in Vercel/serverless)
-        if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
-          if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir, { recursive: true });
-          }
-        }
-      }
-
       // Create PDF document
       const doc = new PDFDocument({
         size: 'LETTER',
         margins: { top: 50, bottom: 50, left: 50, right: 50 },
       });
 
-      // Pipe to file
-      const stream = fs.createWriteStream(outputPath);
-      doc.pipe(stream);
+      // Collect PDF data in memory
+      const buffers: Buffer[] = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(buffers);
+        resolve(pdfBuffer);
+      });
+      doc.on('error', reject);
 
       // Background color
       doc.rect(0, 0, doc.page.width, doc.page.height).fill('#1a1a2e');
@@ -194,14 +188,6 @@ export async function generateAcademyCertificate(
 
       // Finalize PDF
       doc.end();
-
-      stream.on('finish', () => {
-        resolve(outputPath);
-      });
-
-      stream.on('error', (error) => {
-        reject(error);
-      });
     } catch (error) {
       reject(error);
     }

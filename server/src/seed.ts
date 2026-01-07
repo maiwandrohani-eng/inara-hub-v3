@@ -84,8 +84,9 @@ async function main() {
     where: { isActive: true },
   });
 
+  let orientation;
   if (!existingOrientation) {
-    const orientation = await prisma.orientation.create({
+    orientation = await prisma.orientation.create({
       data: {
         title: 'Welcome to INARA',
         content: `
@@ -128,7 +129,46 @@ async function main() {
     });
     console.log('✅ Created orientation');
   } else {
+    orientation = existingOrientation;
     console.log('✅ Orientation already exists');
+  }
+
+  // Create orientation steps if they don't exist
+  const existingSteps = await prisma.orientationStep.findMany({
+    where: { orientationId: orientation.id },
+  });
+
+  if (existingSteps.length === 0) {
+    // Create a basic welcome step
+    await prisma.orientationStep.create({
+      data: {
+        orientationId: orientation.id,
+        stepNumber: 1,
+        title: 'Welcome to INARA',
+        description: 'Get started with your orientation journey',
+        content: 'Welcome to INARA! This orientation will help you understand our platform and key policies.',
+        isRequired: true,
+        order: 0,
+        questions: [
+          {
+            id: 'q1',
+            question: 'What is the main purpose of the INARA Global Staff Platform?',
+            type: 'multiple_choice',
+            options: [
+              'To access all INARA systems',
+              'To complete trainings',
+              'To manage projects',
+              'All of the above',
+            ],
+            correctAnswer: 'All of the above',
+            required: true,
+          },
+        ],
+      },
+    });
+    console.log('✅ Created orientation step');
+  } else {
+    console.log('✅ Orientation steps already exist');
   }
 
   // Create sample training

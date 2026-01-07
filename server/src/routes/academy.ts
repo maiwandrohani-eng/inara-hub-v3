@@ -6,8 +6,6 @@ import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest, authorize } from '../middleware/auth.js';
 import { UserRole } from '@prisma/client';
 import { generateAcademyCertificate, generateCertificateNumber } from '../utils/academyCertificateGenerator.js';
-import * as path from 'path';
-import * as fs from 'fs';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -223,34 +221,24 @@ router.post('/courses/:id/complete', authenticate, async (req: AuthRequest, res)
       ? new Date(completionDate.getTime() + course.validityPeriod * 24 * 60 * 60 * 1000)
       : undefined;
 
-    const certificatesDir = path.join(process.cwd(), 'server', 'public', 'uploads', 'certificates');
-    if (!fs.existsSync(certificatesDir)) {
-      // Only create directories in development (not in Vercel/serverless)
-      if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
-        if (!fs.existsSync(certificatesDir)) {
-          fs.mkdirSync(certificatesDir, { recursive: true });
-        }
-      }
-    }
+    // Generate certificate as buffer
+    const certificateBuffer = await generateAcademyCertificate({
+      fullName: `${user.firstName} ${user.lastName}`,
+      courseTitle: course.title,
+      completionDate,
+      expiryDate,
+      score,
+      passingScore: course.passingScore,
+      passed: true,
+      certificateNumber,
+      signedBy: 'INARA Academy Director',
+    });
 
-    const certificatePath = path.join(certificatesDir, `${certificateNumber}.pdf`);
-
-    await generateAcademyCertificate(
-      {
-        fullName: `${user.firstName} ${user.lastName}`,
-        courseTitle: course.title,
-        completionDate,
-        expiryDate,
-        score,
-        passingScore: course.passingScore,
-        passed: true,
-        certificateNumber,
-        signedBy: 'INARA Academy Director',
-      },
-      certificatePath
-    );
-
-    const certificateUrl = `/uploads/certificates/${certificateNumber}.pdf`;
+    // Upload certificate to R2
+    const { uploadToR2 } = await import('../utils/r2Storage.js');
+    const certificateKey = `certificates/${certificateNumber}.pdf`;
+    const uploadResult = await uploadToR2(certificateBuffer, certificateKey, 'application/pdf');
+    const certificateUrl = uploadResult.url;
 
     // Create certificate record
     const certificate = await prisma.certificate.create({
@@ -353,23 +341,21 @@ router.get('/certificates/:id/download', authenticate, async (req: AuthRequest, 
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const filePath = path.join(
-      process.cwd(),
-      'server',
-      'public',
-      certificate.certificateUrl.replace('/uploads/', '')
-    );
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: 'Certificate file not found' });
+    // Get presigned URL from R2 or redirect to public URL
+    const { getPresignedUrl } = await import('../utils/r2Storage.js');
+    const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+    
+    // Extract key from certificate URL
+    const key = certificate.certificateUrl.replace(/^\/uploads\//, '').replace(/^https?:\/\/[^\/]+\//, '');
+    
+    if (R2_PUBLIC_URL) {
+      // Redirect to public URL
+      return res.redirect(302, `${R2_PUBLIC_URL}/${key}`);
+    } else {
+      // Generate presigned URL
+      const presignedUrl = await getPresignedUrl(key, 3600); // 1 hour expiry
+      return res.redirect(302, presignedUrl);
     }
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="INARA_Certificate_${certificate.certificateNumber}.pdf"`
-    );
-    res.sendFile(filePath);
   } catch (error: any) {
     console.error('Download certificate error:', error);
     res.status(500).json({ message: error.message });
@@ -591,23 +577,21 @@ router.get('/courses/:id/resources/:resourceId/download', authenticate, async (r
       return res.status(404).json({ message: 'Resource not found' });
     }
 
-    const filePath = path.join(
-      process.cwd(),
-      'server',
-      'public',
-      resource.fileUrl.replace('/uploads/', '')
-    );
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: 'Resource file not found' });
+    // Get presigned URL from R2 or redirect to public URL
+    const { getPresignedUrl } = await import('../utils/r2Storage.js');
+    const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+    
+    // Extract key from resource URL
+    const key = resource.fileUrl.replace(/^\/uploads\//, '').replace(/^https?:\/\/[^\/]+\//, '');
+    
+    if (R2_PUBLIC_URL) {
+      // Redirect to public URL
+      return res.redirect(302, `${R2_PUBLIC_URL}/${key}`);
+    } else {
+      // Generate presigned URL
+      const presignedUrl = await getPresignedUrl(key, 3600); // 1 hour expiry
+      return res.redirect(302, presignedUrl);
     }
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${resource.fileName}"`
-    );
-    res.sendFile(filePath);
   } catch (error: any) {
     console.error('Download resource error:', error);
     res.status(500).json({ message: error.message });

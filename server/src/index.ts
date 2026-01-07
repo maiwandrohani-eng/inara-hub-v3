@@ -53,6 +53,16 @@ if (missingEnvVars.length > 0) {
   }
 }
 
+// Warn about missing R2 configuration (not fatal, but important)
+if (process.env.VERCEL) {
+  const r2Vars = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME'];
+  const missingR2Vars = r2Vars.filter(varName => !process.env[varName]);
+  if (missingR2Vars.length > 0) {
+    console.warn('⚠️ Missing R2 configuration variables:', missingR2Vars.join(', '));
+    console.warn('File uploads and serving may not work correctly without R2 configuration.');
+  }
+}
+
 // CORS configuration
 const corsOptions = {
   origin: process.env.CORS_ORIGIN 

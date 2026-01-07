@@ -58,20 +58,22 @@ export async function generateOrientationCertificate(
       let logoFile = '';
       let logoExists = false;
       
-      // Check each possible path
-      for (const logoPath of possiblePaths) {
-        if (fs.existsSync(logoPath)) {
-          logoExists = true;
-          logoFile = logoPath;
-          console.log('✅ Found INARA logo at:', logoFile);
-          break;
+      // Check each possible path (only in non-Vercel environments)
+      if (!process.env.VERCEL) {
+        for (const logoPath of possiblePaths) {
+          if (fs.existsSync(logoPath)) {
+            logoExists = true;
+            logoFile = logoPath;
+            console.log('✅ Found INARA logo at:', logoFile);
+            break;
+          }
         }
       }
 
       // Header with logo - positioned with more space from top edge
       doc.y = margin + 40; // Increased from 20 to 40 for more space from top
       
-      if (logoExists && logoFile) {
+      if (logoExists && logoFile && !process.env.VERCEL) {
         try {
           // Add logo at the top center - make it more prominent
           const logoSize = 90; // Increased size for better visibility
@@ -91,19 +93,16 @@ export async function generateOrientationCertificate(
           doc.y += logoSize + 25; // Increased spacing after logo (from 20 to 25)
           console.log('✅ INARA logo added to certificate successfully at position:', logoX, doc.y - logoSize - 25);
         } catch (error: any) {
-          console.error('❌ Error adding logo to certificate:', error);
-          console.error('Logo file path attempted:', logoFile);
-          console.error('Current working directory:', process.cwd());
-          console.error('__dirname:', __dirname);
-          console.error('Error details:', error.message);
-          console.error('Error stack:', error.stack);
+          console.warn('⚠️ Error adding logo to certificate (continuing without logo):', error.message);
           // Continue without logo if there's an error
         }
       } else {
-        console.warn('⚠️ INARA logo not found. Checked paths:');
-        possiblePaths.forEach(p => console.warn('  -', p));
-        console.warn('Current working directory:', process.cwd());
-        console.warn('__dirname:', __dirname);
+        // In Vercel or if logo not found, continue without logo
+        if (process.env.VERCEL) {
+          console.log('ℹ️ Running in Vercel - logo will be skipped (filesystem not available)');
+        } else {
+          console.log('ℹ️ INARA logo not found - certificate will be generated without logo');
+        }
       }
 
       // Header text

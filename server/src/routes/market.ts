@@ -2,43 +2,13 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest, authorize } from '../middleware/auth.js';
 import { UserRole } from '@prisma/client';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { multerR2, uploadFilesToR2 } from '../utils/multerR2Storage.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Configure multer for file uploads
-const uploadsDir = path.join(process.cwd(), 'server', 'public', 'uploads');
-// Only create directories in development (not in Vercel/serverless)
-if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-}
-
-const marketStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-      const marketDir = path.join(uploadsDir, 'market');
-      // Only create directories in development (not in Vercel/serverless)
-      if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
-        if (!fs.existsSync(marketDir)) {
-          fs.mkdirSync(marketDir, { recursive: true });
-        }
-      }
-    cb(null, marketDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'market-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
-const marketUpload = multer({ 
-  storage: marketStorage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
-});
+// Use R2-based multer
+const marketUpload = multerR2;
 
 // Submit idea
 router.post('/submit', authenticate, marketUpload.array('attachments', 10), async (req: AuthRequest, res) => {
@@ -81,11 +51,12 @@ router.post('/submit', authenticate, marketUpload.array('attachments', 10), asyn
       }
     }
 
-    // Process uploaded files
+    // Process uploaded files - upload to R2
     const attachmentUrls: string[] = [];
     if (files && files.length > 0) {
-      files.forEach((file) => {
-        attachmentUrls.push(`/uploads/market/${file.filename}`);
+      const uploadedFiles = await uploadFilesToR2(files, 'market');
+      uploadedFiles.forEach((uploadedFile) => {
+        attachmentUrls.push(uploadedFile.url);
       });
     }
 

@@ -31,23 +31,28 @@ async function loadPdfParse() {
 }
 
 /**
- * Extract text from PDF file
+ * Extract text from PDF file (accepts buffer or file path)
  */
-export async function extractTextFromPDF(pdfPath: string): Promise<string> {
+export async function extractTextFromPDF(pdfPathOrBuffer: string | Buffer): Promise<string> {
   try {
-    console.log('📖 Extracting text from PDF:', pdfPath);
-    
-    if (!fs.existsSync(pdfPath)) {
-      throw new Error(`PDF file not found: ${pdfPath}`);
-    }
-
     // Load pdf-parse if not already loaded
     const pdfParser = await loadPdfParse();
     if (!pdfParser) {
       throw new Error('pdf-parse library is not available. Please ensure it is installed: npm install pdf-parse');
     }
     
-    const dataBuffer = fs.readFileSync(pdfPath);
+    let dataBuffer: Buffer;
+    if (Buffer.isBuffer(pdfPathOrBuffer)) {
+      dataBuffer = pdfPathOrBuffer;
+      console.log('📖 Extracting text from PDF buffer');
+    } else {
+      console.log('📖 Extracting text from PDF:', pdfPathOrBuffer);
+      if (!fs.existsSync(pdfPathOrBuffer)) {
+        throw new Error(`PDF file not found: ${pdfPathOrBuffer}`);
+      }
+      dataBuffer = fs.readFileSync(pdfPathOrBuffer);
+    }
+    
     console.log('📦 PDF file size:', dataBuffer.length, 'bytes');
     
     const data = await pdfParser(dataBuffer);
@@ -252,19 +257,22 @@ function extractThemes(text: string): string[] {
  * Generate questions from PDF document
  */
 export async function generateQuestionsFromPDF(
-  pdfPath: string,
-  numQuestions: number = 10
+  pdfPathOrBuffer: string | Buffer,
+  numQuestions?: number // Optional, will be auto-calculated if not provided
 ): Promise<{ questions: any[]; extractedText: string }> {
   try {
     // Extract text from PDF
-    const extractedText = await extractTextFromPDF(pdfPath);
+    const extractedText = await extractTextFromPDF(pdfPathOrBuffer);
     
     if (!extractedText || extractedText.trim().length < 100) {
       throw new Error('Could not extract sufficient text from PDF. The document may be image-based or corrupted.');
     }
 
+    // Auto-calculate question count if not provided
+    const questionCount = numQuestions || calculateQuestionCount(extractedText.length);
+
     // Generate questions using AI
-    const questions = await generateQuestionsWithAI(extractedText, numQuestions);
+    const questions = await generateQuestionsWithAI(extractedText, questionCount);
 
     return {
       questions,

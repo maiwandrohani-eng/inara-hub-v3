@@ -121,22 +121,28 @@ interface CourseStructure {
 }
 
 /**
- * Extract text from PDF file
+ * Extract text from PDF file (accepts buffer or file path)
  */
-export async function extractTextFromPDF(pdfPath: string): Promise<string> {
+export async function extractTextFromPDF(pdfPathOrBuffer: string | Buffer): Promise<string> {
   try {
-    if (!fs.existsSync(pdfPath)) {
-      throw new Error(`PDF file not found: ${pdfPath}`);
-    }
-
     // Load pdf-parse dynamically
     const pdfParser = await loadPdfParse();
     if (!pdfParser) {
       throw new Error('pdf-parse library is not available. Please ensure it is installed: npm install pdf-parse');
     }
 
-    console.log('📖 Extracting text from PDF:', pdfPath);
-    const dataBuffer = fs.readFileSync(pdfPath);
+    let dataBuffer: Buffer;
+    if (Buffer.isBuffer(pdfPathOrBuffer)) {
+      dataBuffer = pdfPathOrBuffer;
+      console.log('📖 Extracting text from PDF buffer');
+    } else {
+      if (!fs.existsSync(pdfPathOrBuffer)) {
+        throw new Error(`PDF file not found: ${pdfPathOrBuffer}`);
+      }
+      console.log('📖 Extracting text from PDF:', pdfPathOrBuffer);
+      dataBuffer = fs.readFileSync(pdfPathOrBuffer);
+    }
+    
     console.log('📦 PDF file size:', dataBuffer.length, 'bytes');
     
     const data = await pdfParser(dataBuffer);
@@ -157,14 +163,10 @@ export async function extractTextFromPDF(pdfPath: string): Promise<string> {
 }
 
 /**
- * Extract text from Word document (.docx) using mammoth
+ * Extract text from Word document (.docx) using mammoth (accepts buffer or file path)
  */
-export async function extractTextFromWord(docxPath: string): Promise<string> {
+export async function extractTextFromWord(docxPathOrBuffer: string | Buffer): Promise<string> {
   try {
-    if (!fs.existsSync(docxPath)) {
-      throw new Error(`Word document not found: ${docxPath}`);
-    }
-
     // Dynamic import for mammoth (ES module)
     let mammoth: any;
     try {
@@ -174,9 +176,18 @@ export async function extractTextFromWord(docxPath: string): Promise<string> {
       throw new Error('mammoth library is not available. Please install it: npm install mammoth');
     }
 
-    console.log('📄 Extracting text from Word document:', docxPath);
+    let dataBuffer: Buffer;
+    if (Buffer.isBuffer(docxPathOrBuffer)) {
+      dataBuffer = docxPathOrBuffer;
+      console.log('📄 Extracting text from Word document buffer');
+    } else {
+      if (!fs.existsSync(docxPathOrBuffer)) {
+        throw new Error(`Word document not found: ${docxPathOrBuffer}`);
+      }
+      console.log('📄 Extracting text from Word document:', docxPathOrBuffer);
+      dataBuffer = fs.readFileSync(docxPathOrBuffer);
+    }
     
-    const dataBuffer = fs.readFileSync(docxPath);
     console.log('📦 Word file size:', dataBuffer.length, 'bytes');
 
     // Convert .docx to text using mammoth
@@ -598,17 +609,25 @@ function createBasicCourseStructure(text: string, courseType: string): CourseStr
  * Main function: Convert document to course structure
  */
 export async function buildCourseFromDocument(
-  filePath: string,
-  courseType: string = 'PROFESSIONAL_COURSE'
+  filePathOrBuffer: string | Buffer,
+  courseType: string = 'PROFESSIONAL_COURSE',
+  filename?: string
 ): Promise<CourseStructure> {
   try {
-    const ext = path.extname(filePath).toLowerCase();
+    let ext: string;
+    if (Buffer.isBuffer(filePathOrBuffer)) {
+      // Get extension from filename or default to .pdf
+      ext = filename ? path.extname(filename).toLowerCase() : '.pdf';
+    } else {
+      ext = path.extname(filePathOrBuffer).toLowerCase();
+    }
+    
     let text = '';
 
     if (ext === '.pdf') {
-      text = await extractTextFromPDF(filePath);
+      text = await extractTextFromPDF(filePathOrBuffer);
     } else if (ext === '.docx' || ext === '.doc') {
-      text = await extractTextFromWord(filePath);
+      text = await extractTextFromWord(filePathOrBuffer);
     } else {
       throw new Error(`Unsupported file type: ${ext}`);
     }

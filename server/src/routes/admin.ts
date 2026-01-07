@@ -3,54 +3,19 @@ import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest, authorize } from '../middleware/auth.js';
 import { UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { detectCategory, detectCategoryFromPath, detectResourceType } from '../utils/categoryDetector.js';
+import { multerR2, uploadFilesToR2, uploadFileToR2 } from '../utils/multerR2Storage.js';
+import { deleteFromR2 } from '../utils/r2Storage.js';
 // Lazy import to avoid module loading issues - will import dynamically when needed
 import { buildCourseFromDocument, buildCourseFromText } from '../utils/academyCourseBuilder.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Configure multer for file uploads
-const uploadsDir = path.join(process.cwd(), 'server', 'public', 'uploads');
-// Only create directories in development (not in Vercel/serverless)
-if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    let type = 'library';
-    if (req.body.type) {
-      type = req.body.type;
-    } else if (req.path?.includes('academy')) {
-      type = 'academy';
-    } else if (req.path?.includes('orientation')) {
-      type = 'orientation';
-    }
-        const typeDir = path.join(uploadsDir, type);
-        // Only create directories in development (not in Vercel/serverless)
-        if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
-          if (!fs.existsSync(typeDir)) {
-            fs.mkdirSync(typeDir, { recursive: true });
-          }
-        }
-    cb(null, typeDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({ 
-  storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for large documents
-});
+// Use R2-based multer (memory storage, uploads to R2)
+const upload = multerR2;
 
 // All admin routes require ADMIN role
 router.use(authenticate);
@@ -194,21 +159,25 @@ router.post('/academy/courses/:id/resources', upload.array('files', 10), async (
       return res.status(400).json({ message: 'No files uploaded' });
     }
 
+    // Upload files to R2
+    const uploadedFiles = await uploadFilesToR2(files, 'academy/resources');
+
     const titlesArray = titles ? JSON.parse(titles) : [];
     const descriptionsArray = descriptions ? JSON.parse(descriptions || '[]') : [];
     const typesArray = resourceTypes ? JSON.parse(resourceTypes) : [];
 
     const resources = await Promise.all(
-      files.map(async (file, index) => {
+      uploadedFiles.map(async (uploadedFile, index) => {
+        const originalFile = files[index];
         const resource = await prisma.courseResource.create({
           data: {
             trainingId: id,
-            title: titlesArray[index] || file.originalname.replace(/\.[^/.]+$/, ''),
+            title: titlesArray[index] || originalFile.originalname.replace(/\.[^/.]+$/, ''),
             description: descriptionsArray[index] || null,
-            fileUrl: `/uploads/academy/resources/${file.filename}`,
-            fileName: file.originalname,
-            fileSize: file.size,
-            fileType: path.extname(file.originalname).substring(1).toLowerCase(),
+            fileUrl: uploadedFile.url,
+            fileName: originalFile.originalname,
+            fileSize: originalFile.size,
+            fileType: path.extname(originalFile.originalname).substring(1).toLowerCase(),
             resourceType: typesArray[index] || 'module',
             order: index,
           },
@@ -260,10 +229,17 @@ router.post('/academy/upload-course', upload.single('file'), async (req: AuthReq
       assignedCountries,
     } = req.body;
 
-    console.log('📚 Building course from document:', file.filename);
+    console.log('📚 Building course from document:', file.originalname);
 
-    // Build course structure from document
-    const courseStructure = await buildCourseFromDocument(file.path, courseType || 'PROFESSIONAL_COURSE');
+    // Upload source file to R2 first
+    const uploadedFile = await uploadFileToR2(file, 'academy');
+
+    // Build course structure from document buffer
+    const courseStructure = await buildCourseFromDocument(
+      file.buffer,
+      courseType || 'PROFESSIONAL_COURSE',
+      file.originalname
+    );
 
     // Create training record
     const training = await prisma.training.create({
@@ -282,7 +258,7 @@ router.post('/academy/upload-course', upload.single('file'), async (req: AuthReq
         assignedRoles: assignedRoles ? JSON.parse(assignedRoles) : [],
         assignedDepartments: assignedDepartments ? JSON.parse(assignedDepartments) : [],
         assignedCountries: assignedCountries ? JSON.parse(assignedCountries) : [],
-        sourceFileUrl: `/uploads/academy/${file.filename}`,
+        sourceFileUrl: uploadedFile.url,
         autoGenerated: true,
         passingScore: courseStructure.finalExam.passingScore,
         quiz: courseStructure.finalExam,
@@ -798,23 +774,15 @@ router.post('/library/bulk-import', upload.array('files', 50), async (req: AuthR
         }
         
         const resourceType = detectResourceType(fileName);
-        const fileUrl = `/uploads/library/${file.filename}`;
         
-        // Ensure the file is moved to the correct location
-        const targetDir = path.join(uploadsDir, 'library');
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
-        }
-        const targetPath = path.join(targetDir, file.filename);
-        if (file.path !== targetPath && fs.existsSync(file.path)) {
-          fs.renameSync(file.path, targetPath);
-        }
+        // Upload file to R2
+        const uploadedFile = await uploadFileToR2(file, 'library');
 
         const resource = await prisma.libraryResource.create({
           data: {
             title,
             description: `Imported from ${fileName}`,
-            fileUrl,
+            fileUrl: uploadedFile.url,
             resourceType,
             category: categoryMatch.category || null,
             subcategory: categoryMatch.subcategory || null,
@@ -887,20 +855,8 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
           categoryMatch = detectCategory(fileName, 'policy');
         }
         
-        const fileUrl = `/uploads/policy/${file.filename}`;
-        
-        // Ensure the file is moved to the correct location
-        const targetDir = path.join(uploadsDir, 'policy');
-        // Only create directories in development (not in Vercel/serverless)
-        if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
-          if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir, { recursive: true });
-          }
-        }
-        const targetPath = path.join(targetDir, file.filename);
-        if (file.path !== targetPath && fs.existsSync(file.path)) {
-          fs.renameSync(file.path, targetPath);
-        }
+        // Upload file to R2
+        const uploadedFile = await uploadFileToR2(file, 'policy');
 
         // Read file content if it's a text file (for brief/complete)
         let brief = `Policy: ${title}`;
@@ -992,26 +948,14 @@ router.post('/templates/bulk-import', upload.array('files', 50), async (req: Aut
           categoryMatch = detectCategory(fileName, 'template');
         }
         
-        const fileUrl = `/uploads/template/${file.filename}`;
-        
-        // Ensure the file is moved to the correct location
-        const targetDir = path.join(uploadsDir, 'template');
-        // Only create directories in development (not in Vercel/serverless)
-        if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
-          if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir, { recursive: true });
-          }
-        }
-        const targetPath = path.join(targetDir, file.filename);
-        if (file.path !== targetPath && fs.existsSync(file.path)) {
-          fs.renameSync(file.path, targetPath);
-        }
+        // Upload file to R2
+        const uploadedFile = await uploadFileToR2(file, 'template');
 
         const template = await prisma.template.create({
           data: {
             title,
             description: `Template imported from ${fileName}`,
-            fileUrl,
+            fileUrl: uploadedFile.url,
             category: categoryMatch.category || null,
             subcategory: categoryMatch.subcategory || null,
             tags: [],
@@ -1281,7 +1225,10 @@ router.post('/surveys/upload-document', upload.single('file'), async (req: AuthR
 
     const fileName = file.originalname;
     const title = fileName.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-    const fileUrl = `/uploads/surveys/${file.filename}`;
+    
+    // Upload file to R2 first
+    const uploadedFile = await uploadFileToR2(file, 'surveys');
+    const fileUrl = uploadedFile.url;
 
     // Detect category from filename
     const categoryMatch = detectCategory(fileName, 'policy');
@@ -1297,42 +1244,12 @@ router.post('/surveys/upload-document', upload.single('file'), async (req: AuthR
       const isPDF = file.mimetype === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
       
       if (isPDF) {
-        // The file is already saved by multer, so the path should be where multer saved it
-        // Multer saves to: uploadsDir/type/filename
-        // Since we set type='surveys' in the form, it should be in uploadsDir/surveys/filename
-        // But multer might save it differently, let's check the actual file location
-        const possiblePaths = [
-          path.join(uploadsDir, 'surveys', file.filename),
-          path.join(uploadsDir, file.filename),
-          file.path, // Use multer's saved path directly
-        ];
-        
-        let pdfPath = '';
-        for (const possiblePath of possiblePaths) {
-          if (fs.existsSync(possiblePath)) {
-            pdfPath = possiblePath;
-            break;
-          }
-        }
-        
-        if (!pdfPath) {
-          // Try to use multer's path property
-          pdfPath = file.path || path.join(uploadsDir, 'surveys', file.filename);
-          console.log('⚠️ File path not verified, using:', pdfPath);
-        }
-        
-        // Verify file exists
-        if (!fs.existsSync(pdfPath)) {
-          console.error('❌ File not found. Tried paths:', possiblePaths);
-          throw new Error(`PDF file not found. Please check server logs for details.`);
-        }
-
-        console.log('🤖 Generating AI-powered questions from PDF...');
-        console.log('📁 PDF path:', pdfPath);
+        console.log('🤖 Generating AI-powered questions from PDF buffer...');
         
         // Lazy import to avoid module loading issues
         const { generateQuestionsFromPDF } = await import('../utils/aiQuestionGenerator.js');
-        const result = await generateQuestionsFromPDF(pdfPath); // Auto-calculate question count
+        // Pass buffer directly - question count will be auto-calculated
+        const result = await generateQuestionsFromPDF(file.buffer);
         questions = result.questions;
         extractedText = result.extractedText;
         
@@ -1767,7 +1684,8 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
     // Handle PDF upload
     let pdfUrl = null;
     if (req.file) {
-      pdfUrl = `/uploads/orientation/${req.file.filename}`;
+      const uploadedFile = await uploadFileToR2(req.file, 'orientation');
+      pdfUrl = uploadedFile.url;
     }
 
     // Parse questions if provided as string
@@ -1811,7 +1729,8 @@ router.put('/orientations/:id/steps/:stepId', upload.single('pdf'), async (req: 
     // Handle PDF upload or removal
     let pdfUrl = undefined;
     if (req.file) {
-      pdfUrl = `/uploads/orientation/${req.file.filename}`;
+      const uploadedFile = await uploadFileToR2(req.file, 'orientation');
+      pdfUrl = uploadedFile.url;
     } else if (removePdf === 'true') {
       pdfUrl = null;
     }
@@ -1929,11 +1848,15 @@ router.delete('/orientations/:id/resources', async (req: AuthRequest, res) => {
     const existingFiles = orientation.pdfFiles ? (orientation.pdfFiles as any[]) : [];
     const updatedFiles = existingFiles.filter((file: any) => file.filename !== filename);
 
-    // Also delete from file system
+    // Also delete from R2
     if (filename) {
-      const filePath = path.join(uploadsDir, 'orientation', filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      try {
+        // Extract key from URL if it's a full URL, otherwise construct it
+        const key = filename.startsWith('orientation/') ? filename : `orientation/${filename}`;
+        await deleteFromR2(key);
+      } catch (error: any) {
+        console.warn('Failed to delete file from R2:', error.message);
+        // Continue even if R2 deletion fails
       }
     }
 
