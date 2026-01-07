@@ -101,7 +101,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// R2 connectivity test (admin only)
+// R2 connectivity test (public endpoint for debugging)
 app.get('/api/test-r2', async (req, res) => {
   try {
     const { uploadToR2 } = await import('./utils/r2Storage.js');
