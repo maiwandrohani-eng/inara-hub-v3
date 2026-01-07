@@ -526,7 +526,7 @@ Return ONLY JSON:
           });
 
           if (quizResponse.ok) {
-            const quizData = await quizResponse.json() as any;
+            const quizData: any = await quizResponse.json();
             let quizText = '';
             const typedQuizData = quizData;
             

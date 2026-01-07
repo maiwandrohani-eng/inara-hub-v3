@@ -50,7 +50,7 @@ export const authenticate = async (
       id: user.id,
       email: user.email,
       role: user.role,
-      department: user.department || undefined,
+      department: user.department ? String(user.department) : undefined,
       country: user.country || undefined,
     };
     next();

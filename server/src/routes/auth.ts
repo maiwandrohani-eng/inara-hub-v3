@@ -314,7 +314,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { userId: user.id },
       jwtSecret as string,
-      { expiresIn: expiresIn as string }
+      { expiresIn } as jwt.SignOptions
     );
 
     await prismaInstance.user.update({
