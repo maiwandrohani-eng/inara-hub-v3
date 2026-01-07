@@ -44,6 +44,16 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
+    // Log 403 errors with more details for debugging
+    if (error.response?.status === 403) {
+      console.error('403 Forbidden Error:', {
+        message: error.response?.data?.message,
+        detail: error.response?.data?.detail,
+        requiredRoles: error.response?.data?.requiredRoles,
+        userRole: error.response?.data?.userRole,
+        url: error.config?.url,
+      });
+    }
     return Promise.reject(error);
   }
 );

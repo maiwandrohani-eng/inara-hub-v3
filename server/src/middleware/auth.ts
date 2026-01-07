@@ -66,7 +66,12 @@ export const authorize = (...roles: UserRole[]) => {
     }
 
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Insufficient permissions' });
+      return res.status(403).json({ 
+        message: 'Insufficient permissions',
+        requiredRoles: roles,
+        userRole: req.user.role,
+        detail: `This action requires one of the following roles: ${roles.join(', ')}. Your current role is: ${req.user.role}`
+      });
     }
 
     next();

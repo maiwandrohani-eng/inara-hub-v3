@@ -88,7 +88,11 @@ export default function TemplateManagement() {
         alert(`Bulk import completed! ${data.imported} imported, ${data.failed} failed.`);
       },
       onError: (error: any) => {
-        alert(error.response?.data?.message || 'Bulk import failed');
+        const errorMessage = error.response?.data?.message || 'Bulk import failed';
+        const errorDetail = error.response?.data?.detail;
+        const fullMessage = errorDetail ? `${errorMessage}\n\n${errorDetail}` : errorMessage;
+        alert(fullMessage);
+        console.error('Bulk import error:', error.response?.data);
       },
       onSettled: () => {
         setBulkImporting(false);
