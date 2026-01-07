@@ -133,16 +133,34 @@ export default function OrientationTab() {
     );
   };
 
-  const handlePolicyConfirm = (policyId: string) => {
-    setPolicyConfirmations(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(policyId)) {
-        newSet.delete(policyId);
-      } else {
-        newSet.add(policyId);
-      }
-      return newSet;
-    });
+  const acknowledgePolicyMutation = useMutation(
+    async (policyId: string) => {
+      const res = await api.post(`/policies/${policyId}/acknowledge`);
+      return res.data;
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('orientation');
+        queryClient.invalidateQueries('policies');
+      },
+    }
+  );
+
+  const handlePolicyConfirm = async (policyId: string) => {
+    try {
+      await acknowledgePolicyMutation.mutateAsync(policyId);
+      setPolicyConfirmations(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(policyId)) {
+          newSet.delete(policyId);
+        } else {
+          newSet.add(policyId);
+        }
+        return newSet;
+      });
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to acknowledge policy');
+    }
   };
 
   const handleComplete = async () => {
@@ -272,6 +290,23 @@ export default function OrientationTab() {
   const certificateUrl = data?.certificateUrl;
   const checklistData = data?.checklistData;
   const stepConfirmations = data?.stepConfirmations || new Set();
+
+  // Initialize policy confirmations from policies data (check if they're already acknowledged)
+  useEffect(() => {
+    if (policies && policies.length > 0) {
+      const acknowledgedPolicies = new Set<string>();
+      policies.forEach((policy: any) => {
+        // Check if policy has a certification with ACKNOWLEDGED status
+        if (policy.certifications && policy.certifications.length > 0) {
+          const cert = policy.certifications[0];
+          if (cert.status === 'ACKNOWLEDGED') {
+            acknowledgedPolicies.add(policy.id);
+          }
+        }
+      });
+      setPolicyConfirmations(acknowledgedPolicies);
+    }
+  }, [policies]);
 
   console.log('OrientationTab: Data loaded', {
     hasSteps: orientationSteps.length > 0,
@@ -859,17 +894,25 @@ export default function OrientationTab() {
                     <span>📄</span>
                     <span>Read Full Policy</span>
                   </button>
-                  <label className="flex items-center space-x-2 cursor-pointer bg-gray-600/50 px-3 py-2 rounded hover:bg-gray-600 transition-colors">
+                  <button
+                    onClick={() => handlePolicyConfirm(policy.id)}
+                    disabled={acknowledgePolicyMutation.isLoading}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded transition-colors text-sm font-medium ${
+                      policyConfirmations.has(policy.id)
+                        ? 'bg-green-600/50 text-green-300 hover:bg-green-600/70'
+                        : 'bg-gray-600/50 text-gray-300 hover:bg-gray-600'
+                    } disabled:opacity-50`}
+                  >
                     <input
                       type="checkbox"
                       checked={policyConfirmations.has(policy.id)}
-                      onChange={() => handlePolicyConfirm(policy.id)}
-                      className="w-5 h-5 text-primary-500 rounded focus:ring-primary-500"
+                      readOnly
+                      className="w-5 h-5 text-primary-500 rounded focus:ring-primary-500 pointer-events-none"
                     />
-                    <span className="text-gray-300 text-sm font-medium">
-                      ✓ I have read and understood
+                    <span>
+                      {acknowledgePolicyMutation.isLoading ? 'Processing...' : '✓ I have read and understood'}
                     </span>
-                  </label>
+                  </button>
                 </div>
               </div>
             ))}

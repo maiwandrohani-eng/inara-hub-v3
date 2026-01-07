@@ -21,7 +21,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
       },
     });
 
-    // Get all active policies with their briefs for orientation
+    // Get all active policies with their briefs and certifications for orientation
     const policies = await prisma.policy.findMany({
       where: { isActive: true },
       select: {
@@ -33,6 +33,13 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
         isMandatory: true,
         effectiveDate: true,
         createdAt: true,
+        certifications: {
+          where: { userId },
+          select: {
+            status: true,
+            acknowledgedAt: true,
+          },
+        },
       },
       orderBy: [
         { isMandatory: 'desc' },
