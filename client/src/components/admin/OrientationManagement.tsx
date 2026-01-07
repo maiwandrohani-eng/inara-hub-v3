@@ -41,6 +41,8 @@ export default function OrientationManagement() {
     order: 0,
   });
 
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [stepPdfFile, setStepPdfFile] = useState<File | null>(null);
 
@@ -560,24 +562,224 @@ export default function OrientationManagement() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-200 mb-1">Questions/Assessment (JSON)</label>
-                        <textarea
-                          value={stepFormData.questions ? JSON.stringify(stepFormData.questions, null, 2) : ''}
-                          onChange={(e) => {
-                            try {
-                              const parsed = e.target.value ? JSON.parse(e.target.value) : null;
-                              setStepFormData({ ...stepFormData, questions: parsed });
-                            } catch {
-                              // Invalid JSON, keep as string for now
-                            }
-                          }}
-                          rows={6}
-                          className="w-full px-4 py-2 bg-gray-600 border border-gray-500 text-white rounded-lg font-mono text-xs"
-                          placeholder='[{"id": "q1", "question": "What is...?", "type": "multiple_choice", "options": ["Option 1", "Option 2"], "correctAnswer": "Option 1", "required": true}]'
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                          Format: Array of question objects with id, question, type (multiple_choice/text/checkbox), options (for multiple_choice), correctAnswer, required
-                        </p>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="block text-sm font-medium text-gray-200">Assessment Questions</label>
+                          <div className="flex gap-2">
+                            {stepPdfFile && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!stepPdfFile) return;
+                                  setIsGeneratingQuestions(true);
+                                  try {
+                                    const formData = new FormData();
+                                    formData.append('file', stepPdfFile);
+                                    const res = await api.post('/admin/surveys/generate-questions-from-pdf', formData, {
+                                      headers: { 'Content-Type': 'multipart/form-data' },
+                                    });
+                                    if (res.data.questions && res.data.questions.length > 0) {
+                                      setStepFormData({
+                                        ...stepFormData,
+                                        questions: res.data.questions,
+                                      });
+                                      alert(`✅ Generated ${res.data.questions.length} questions from PDF!`);
+                                    } else {
+                                      alert('No questions were generated. Please add questions manually.');
+                                    }
+                                  } catch (error: any) {
+                                    alert(error.response?.data?.message || 'Failed to generate questions from PDF');
+                                  } finally {
+                                    setIsGeneratingQuestions(false);
+                                  }
+                                }}
+                                disabled={isGeneratingQuestions}
+                                className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                {isGeneratingQuestions ? 'Generating...' : '🤖 Generate from PDF'}
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentQuestions = Array.isArray(stepFormData.questions) ? stepFormData.questions : [];
+                                const newQuestion = {
+                                  id: `q-${Date.now()}`,
+                                  question: '',
+                                  type: 'multiple_choice',
+                                  options: ['Option 1', 'Option 2'],
+                                  correctAnswer: 'Option 1',
+                                  required: true,
+                                };
+                                setStepFormData({
+                                  ...stepFormData,
+                                  questions: [...currentQuestions, newQuestion],
+                                });
+                              }}
+                              className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                            >
+                              + Add Question
+                            </button>
+                          </div>
+                        </div>
+
+                        {Array.isArray(stepFormData.questions) && stepFormData.questions.length > 0 ? (
+                          <div className="space-y-3 max-h-96 overflow-y-auto p-3 bg-gray-700 rounded-lg">
+                            {stepFormData.questions.map((q: any, idx: number) => (
+                              <div key={q.id || idx} className="bg-gray-600 rounded-lg p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                  <h4 className="text-white font-semibold">Question {idx + 1}</h4>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = stepFormData.questions.filter((_: any, i: number) => i !== idx);
+                                      setStepFormData({ ...stepFormData, questions: updated.length > 0 ? updated : null });
+                                    }}
+                                    className="text-red-400 hover:text-red-300 text-sm"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-xs text-gray-300 mb-1">Question Text *</label>
+                                  <input
+                                    type="text"
+                                    value={q.question || ''}
+                                    onChange={(e) => {
+                                      const updated = [...(stepFormData.questions as any[])];
+                                      updated[idx] = { ...updated[idx], question: e.target.value };
+                                      setStepFormData({ ...stepFormData, questions: updated });
+                                    }}
+                                    className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                                    placeholder="Enter your question..."
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs text-gray-300 mb-1">Question Type *</label>
+                                  <select
+                                    value={q.type || 'multiple_choice'}
+                                    onChange={(e) => {
+                                      const updated = [...(stepFormData.questions as any[])];
+                                      updated[idx] = {
+                                        ...updated[idx],
+                                        type: e.target.value,
+                                        options: e.target.value === 'multiple_choice' || e.target.value === 'checkbox' 
+                                          ? (updated[idx].options || ['Option 1', 'Option 2'])
+                                          : undefined,
+                                      };
+                                      setStepFormData({ ...stepFormData, questions: updated });
+                                    }}
+                                    className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                                  >
+                                    <option value="multiple_choice">Multiple Choice</option>
+                                    <option value="text">Text Answer</option>
+                                    <option value="checkbox">Checkbox (Multiple Answers)</option>
+                                  </select>
+                                </div>
+
+                                {(q.type === 'multiple_choice' || q.type === 'checkbox') && (
+                                  <div>
+                                    <label className="block text-xs text-gray-300 mb-1">Options *</label>
+                                    {(q.options || []).map((opt: string, optIdx: number) => (
+                                      <div key={optIdx} className="flex gap-2 mb-2">
+                                        <input
+                                          type="text"
+                                          value={opt}
+                                          onChange={(e) => {
+                                            const updated = [...(stepFormData.questions as any[])];
+                                            const newOptions = [...(updated[idx].options || [])];
+                                            newOptions[optIdx] = e.target.value;
+                                            updated[idx] = { ...updated[idx], options: newOptions };
+                                            setStepFormData({ ...stepFormData, questions: updated });
+                                          }}
+                                          className="flex-1 px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                                          placeholder={`Option ${optIdx + 1}`}
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = [...(stepFormData.questions as any[])];
+                                            const newOptions = (updated[idx].options || []).filter((_: any, i: number) => i !== optIdx);
+                                            updated[idx] = { ...updated[idx], options: newOptions };
+                                            setStepFormData({ ...stepFormData, questions: updated });
+                                          }}
+                                          className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    ))}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = [...(stepFormData.questions as any[])];
+                                        const newOptions = [...(updated[idx].options || []), `Option ${(updated[idx].options || []).length + 1}`];
+                                        updated[idx] = { ...updated[idx], options: newOptions };
+                                        setStepFormData({ ...stepFormData, questions: updated });
+                                      }}
+                                      className="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
+                                    >
+                                      + Add Option
+                                    </button>
+                                  </div>
+                                )}
+
+                                <div>
+                                  <label className="block text-xs text-gray-300 mb-1">
+                                    {q.type === 'text' ? 'Expected Answer' : 'Correct Answer *'}
+                                  </label>
+                                  {q.type === 'text' ? (
+                                    <input
+                                      type="text"
+                                      value={q.correctAnswer || ''}
+                                      onChange={(e) => {
+                                        const updated = [...(stepFormData.questions as any[])];
+                                        updated[idx] = { ...updated[idx], correctAnswer: e.target.value };
+                                        setStepFormData({ ...stepFormData, questions: updated });
+                                      }}
+                                      className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                                      placeholder="Expected answer or key concepts..."
+                                    />
+                                  ) : (
+                                    <select
+                                      value={q.correctAnswer || ''}
+                                      onChange={(e) => {
+                                        const updated = [...(stepFormData.questions as any[])];
+                                        updated[idx] = { ...updated[idx], correctAnswer: e.target.value };
+                                        setStepFormData({ ...stepFormData, questions: updated });
+                                      }}
+                                      className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                                    >
+                                      <option value="">Select correct answer</option>
+                                      {(q.options || []).map((opt: string, optIdx: number) => (
+                                        <option key={optIdx} value={opt}>{opt}</option>
+                                      ))}
+                                    </select>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={q.required !== false}
+                                    onChange={(e) => {
+                                      const updated = [...(stepFormData.questions as any[])];
+                                      updated[idx] = { ...updated[idx], required: e.target.checked };
+                                      setStepFormData({ ...stepFormData, questions: updated });
+                                    }}
+                                    className="mr-2"
+                                  />
+                                  <label className="text-xs text-gray-300">Required Question</label>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-gray-700 rounded-lg text-center text-gray-400 text-sm">
+                            No questions added yet. Click "Add Question" to create one, or upload a PDF and click "Generate from PDF" to auto-generate questions.
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center">
                         <input
