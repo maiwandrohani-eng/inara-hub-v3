@@ -33,46 +33,56 @@ import academyRoutes from './routes/academy.js';
 import setupRoutes from './routes/setup.js';
 
 // Load environment variables (Vercel provides these automatically)
-if (!process.env.VERCEL) {
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   dotenv.config();
 }
 
 const app = express();
 const prisma = new PrismaClient();
 
-// Validate required environment variables (only exit in non-Vercel environments)
+// Validate required environment variables
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
-  console.error('❌ Missing required environment variables:', missingEnvVars.join(', '));
-  console.error('Please check your .env file and ensure all required variables are set.');
-  // Don't exit in Vercel - let the request fail gracefully
-  if (!process.env.VERCEL) {
+  const errorMsg = `❌ Missing required environment variables: ${missingEnvVars.join(', ')}`;
+  console.error(errorMsg);
+  console.error('Please set these variables in your .env file or environment.');
+  
+  // In Vercel, log but don't exit - let requests reveal the error
+  if (process.env.VERCEL) {
+    console.error('⚠️ Running on Vercel without required env vars - requests will fail');
+  } else {
     process.exit(1);
   }
 }
 
-// Warn about missing R2 configuration (not fatal, but important)
-if (process.env.VERCEL) {
-  const r2Vars = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME'];
-  const missingR2Vars = r2Vars.filter(varName => !process.env[varName]);
-  if (missingR2Vars.length > 0) {
-    console.warn('⚠️ Missing R2 configuration variables:', missingR2Vars.join(', '));
-    console.warn('File uploads and serving may not work correctly without R2 configuration.');
-  }
+// Validate R2 configuration (required for file uploads)
+const r2Vars = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME'];
+const missingR2Vars = r2Vars.filter(varName => !process.env[varName]);
+if (missingR2Vars.length > 0) {
+  console.warn('⚠️ Missing R2 storage variables:', missingR2Vars.join(', '));
+  console.warn('File uploads will be disabled. To enable file uploads, set all R2 variables.');
 }
 
 // CORS configuration
+const corsOrigin = process.env.CORS_ORIGIN || '';
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN 
-    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-    : process.env.NODE_ENV === 'production' 
-      ? false // Deny all in production if not configured
+  origin: corsOrigin
+    ? corsOrigin.split(',').map(origin => origin.trim())
+    : process.env.NODE_ENV === 'production'
+      ? false // Deny all in production if CORS_ORIGIN not set
       : true, // Allow all in development
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
+
+if (process.env.NODE_ENV === 'production' && !corsOrigin) {
+  console.warn('⚠️ CORS_ORIGIN not set in production. CORS requests from browsers will be blocked.');
+  console.warn('Set CORS_ORIGIN to your frontend domain (e.g., https://your-app.vercel.app)');
+}
 
 // Middleware
 app.use(cors(corsOptions));

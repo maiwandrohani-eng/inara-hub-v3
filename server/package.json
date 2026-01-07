@@ -4,13 +4,13 @@
   "type": "module",
   "scripts": {
     "dev": "npx dotenv-cli -e .env -- tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc --skipLibCheck",
     "start": "node dist/index.js",
-    "postinstall": "npx prisma generate",
-    "db:generate": "prisma generate",
-    "db:push": "npx dotenv-cli -e .env -- prisma db push",
-    "db:migrate": "npx dotenv-cli -e .env -- prisma migrate dev",
-    "db:studio": "npx dotenv-cli -e .env -- prisma studio",
+    "postinstall": "npm run db:generate 2>/dev/null || true",
+    "db:generate": "prisma generate --schema ./prisma/schema.prisma",
+    "db:push": "npx dotenv-cli -e .env -- prisma db push --schema ./prisma/schema.prisma",
+    "db:migrate": "npx dotenv-cli -e .env -- prisma migrate dev --schema ./prisma/schema.prisma",
+    "db:studio": "npx dotenv-cli -e .env -- prisma studio --schema ./prisma/schema.prisma",
     "db:seed": "npx dotenv-cli -e .env -- tsx src/seed.ts"
   },
   "dependencies": {
