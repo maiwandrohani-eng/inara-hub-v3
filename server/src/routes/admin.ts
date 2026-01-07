@@ -17,12 +17,11 @@ const prisma = new PrismaClient();
 // Use R2-based multer (memory storage, uploads to R2)
 const upload = multerR2;
 
-// All admin routes require ADMIN role
+// All admin routes require authentication
 router.use(authenticate);
-router.use(authorize(UserRole.ADMIN));
 
-// Diagnostic endpoint to check user role (before authorization)
-router.get('/check-role', authenticate, async (req: AuthRequest, res) => {
+// Diagnostic endpoint to check user role (accessible to all authenticated users, before authorization)
+router.get('/check-role', async (req: AuthRequest, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId! },
@@ -43,11 +42,21 @@ router.get('/check-role', authenticate, async (req: AuthRequest, res) => {
       } : null,
       hasAdminAccess: user?.role === UserRole.ADMIN,
       requiredRole: UserRole.ADMIN,
+      roleComparison: {
+        userRole: user?.role,
+        userRoleType: typeof user?.role,
+        requiredRole: UserRole.ADMIN,
+        requiredRoleType: typeof UserRole.ADMIN,
+        matches: user?.role === UserRole.ADMIN,
+      },
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
 });
+
+// All other admin routes require ADMIN role
+router.use(authorize(UserRole.ADMIN));
 
 // Work Systems Management
 router.get('/work-systems', async (req: AuthRequest, res) => {
