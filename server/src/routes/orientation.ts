@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { generateOrientationCertificate } from '../utils/certificateGenerator.js';
+import { getPresignedUrl } from '../utils/r2Storage.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -20,6 +21,84 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
         },
       },
     });
+
+    // Process steps to convert PDF URLs to accessible URLs and ensure questions are parsed
+    if (orientation?.steps) {
+      const processedSteps = await Promise.all(
+        orientation.steps.map(async (step: any) => {
+          let pdfUrl = step.pdfUrl;
+          
+          // Convert PDF URL to accessible URL
+          if (pdfUrl) {
+            // If it's already a full URL, use it as-is
+            if (pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://')) {
+              // Already a full URL, keep it
+            } 
+            // If it's a relative path starting with /uploads/, convert to API endpoint or get presigned URL
+            else if (pdfUrl.startsWith('/uploads/')) {
+              // Extract the key (remove /uploads/ prefix)
+              const key = pdfUrl.replace(/^\/uploads\//, '');
+              try {
+                // Try to get presigned URL for R2
+                pdfUrl = await getPresignedUrl(key, 3600); // 1 hour expiry
+              } catch (error: any) {
+                console.error('Error generating presigned URL for step PDF:', error);
+                // Fallback to API endpoint
+                pdfUrl = `/api/uploads/${key}`;
+              }
+            }
+            // If it's just a key (like orientation/...), get presigned URL
+            else if (pdfUrl.includes('/') && !pdfUrl.startsWith('/')) {
+              try {
+                pdfUrl = await getPresignedUrl(pdfUrl, 3600);
+              } catch (error: any) {
+                console.error('Error generating presigned URL for step PDF:', error);
+                // Fallback: try API endpoint
+                pdfUrl = `/api/uploads/${pdfUrl}`;
+              }
+            }
+            // Otherwise, assume it's a relative path and convert to API endpoint
+            else {
+              pdfUrl = `/api${pdfUrl.startsWith('/') ? pdfUrl : '/' + pdfUrl}`;
+            }
+          }
+          
+          // Ensure questions are parsed (Prisma should handle this, but ensure it's an array)
+          let questions = step.questions;
+          if (questions) {
+            // If it's a string, parse it
+            if (typeof questions === 'string') {
+              try {
+                questions = JSON.parse(questions);
+              } catch (e) {
+                console.error('Error parsing questions for step:', step.id, e);
+                questions = null;
+              }
+            }
+            // If it's an object with a questions property, extract it
+            if (questions && typeof questions === 'object' && !Array.isArray(questions)) {
+              if (questions.questions && Array.isArray(questions.questions)) {
+                questions = questions.questions;
+              } else if (questions.questions === null || questions.questions === undefined) {
+                questions = null;
+              }
+            }
+            // Ensure it's an array or null
+            if (questions && !Array.isArray(questions)) {
+              questions = null;
+            }
+          }
+          
+          return {
+            ...step,
+            pdfUrl,
+            questions: questions || null,
+          };
+        })
+      );
+      
+      orientation.steps = processedSteps;
+    }
 
     // Get all active policies with their briefs and certifications for orientation
     const policies = await prisma.policy.findMany({
