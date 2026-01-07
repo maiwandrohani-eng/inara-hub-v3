@@ -51,6 +51,8 @@ const getR2Client = (): S3Client => {
         secretAccessKey: secretAccessKey,
       },
       forcePathStyle: false, // R2 uses virtual-hosted-style URLs
+      // R2 requires SigV4 signing
+      signatureVersion: 'v4',
     });
   }
   return r2Client;

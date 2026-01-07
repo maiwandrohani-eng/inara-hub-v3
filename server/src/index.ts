@@ -91,6 +91,65 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// R2 connectivity test (admin only)
+app.get('/api/test-r2', async (req, res) => {
+  try {
+    const { uploadToR2 } = await import('./utils/r2Storage.js');
+    
+    // Test upload with a small test file
+    const testContent = Buffer.from('R2 connectivity test');
+    const testKey = `test/${Date.now()}-test.txt`;
+    
+    try {
+      const result = await uploadToR2(testContent, testKey, 'text/plain');
+      
+      // Try to delete the test file
+      try {
+        const { deleteFromR2 } = await import('./utils/r2Storage.js');
+        await deleteFromR2(testKey);
+      } catch (deleteError: any) {
+        console.warn('Failed to delete test file:', deleteError.message);
+      }
+      
+      res.json({
+        status: 'success',
+        message: 'R2 connection successful',
+        testKey,
+        uploadedUrl: result.url,
+        config: {
+          hasAccountId: !!process.env.R2_ACCOUNT_ID,
+          hasAccessKey: !!process.env.R2_ACCESS_KEY_ID,
+          hasSecretKey: !!process.env.R2_SECRET_ACCESS_KEY,
+          hasBucket: !!process.env.R2_BUCKET_NAME,
+          bucketName: process.env.R2_BUCKET_NAME,
+          endpoint: process.env.R2_ENDPOINT || (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : 'not set'),
+        },
+      });
+    } catch (uploadError: any) {
+      res.status(500).json({
+        status: 'error',
+        message: 'R2 upload failed',
+        error: uploadError.message,
+        errorCode: uploadError.Code || uploadError.code,
+        config: {
+          hasAccountId: !!process.env.R2_ACCOUNT_ID,
+          hasAccessKey: !!process.env.R2_ACCESS_KEY_ID,
+          hasSecretKey: !!process.env.R2_SECRET_ACCESS_KEY,
+          hasBucket: !!process.env.R2_BUCKET_NAME,
+          bucketName: process.env.R2_BUCKET_NAME,
+          endpoint: process.env.R2_ENDPOINT || (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : 'not set'),
+        },
+      });
+    }
+  } catch (error: any) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to test R2',
+      error: error.message,
+    });
+  }
+});
+
 // Test Prisma in Express context
 app.get('/api/test-prisma-express', async (req, res) => {
   try {
