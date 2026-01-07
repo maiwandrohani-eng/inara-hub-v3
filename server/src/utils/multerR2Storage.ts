@@ -30,30 +30,59 @@ export async function uploadFileToR2(
 }
 
 // Helper function to upload multiple files to R2
+// Returns results with success/error status for each file (doesn't fail fast)
 export async function uploadFilesToR2(
   files: Express.Multer.File[],
   type: string
-): Promise<Array<{ url: string; key: string; originalName: string }>> {
+): Promise<Array<{ url?: string; key?: string; originalName: string; success: boolean; error?: string }>> {
   try {
     if (!files || files.length === 0) {
       return [];
     }
+    
+    // Use Promise.allSettled instead of Promise.all to handle individual failures gracefully
     const uploadPromises = files.map(async (file) => {
       try {
         const result = await uploadFileToR2(file, type);
         return {
-          ...result,
+          success: true,
+          url: result.url,
+          key: result.key,
           originalName: file.originalname,
         };
       } catch (error: any) {
-        console.error(`Failed to upload ${file.originalname}:`, error);
-        throw error; // Re-throw to be caught by Promise.all
+        console.error(`Failed to upload ${file.originalname} to R2:`, error);
+        return {
+          success: false,
+          originalName: file.originalname,
+          error: error.message || 'Upload failed',
+        };
       }
     });
-    return Promise.all(uploadPromises);
+    
+    const results = await Promise.allSettled(uploadPromises);
+    
+    // Extract values from settled promises
+    return results.map((result) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      } else {
+        // This shouldn't happen since we catch errors in the promise, but handle it just in case
+        return {
+          success: false,
+          originalName: 'unknown',
+          error: result.reason?.message || 'Unknown error',
+        };
+      }
+    });
   } catch (error: any) {
-    console.error('Error uploading files to R2:', error);
-    throw new Error(`Failed to upload files to R2: ${error.message}`);
+    console.error('Error in uploadFilesToR2:', error);
+    // Return error results for all files
+    return files.map((file) => ({
+      success: false,
+      originalName: file.originalname,
+      error: error.message || 'Failed to upload files to R2',
+    }));
   }
 }
 

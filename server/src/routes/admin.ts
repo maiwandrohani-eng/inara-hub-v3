@@ -751,12 +751,22 @@ router.post('/library/bulk-import', upload.array('files', 50), async (req: AuthR
     const errors = [];
 
     // Upload all files to R2 first (more efficient)
+    // This now handles individual failures gracefully
     const uploadedFiles = await uploadFilesToR2(files, 'library');
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const uploadedFile = uploadedFiles[i];
+      const uploadResult = uploadedFiles[i];
       const folderPath = paths[i] || '';
+      
+      // Skip files that failed to upload to R2
+      if (!uploadResult.success || !uploadResult.url) {
+        errors.push({
+          fileName: file.originalname,
+          error: uploadResult.error || 'Failed to upload file to R2',
+        });
+        continue;
+      }
       
       try {
         const fileName = file.originalname;
@@ -783,7 +793,7 @@ router.post('/library/bulk-import', upload.array('files', 50), async (req: AuthR
           data: {
             title,
             description: `Imported from ${fileName}`,
-            fileUrl: uploadedFile.url,
+            fileUrl: uploadResult.url,
             resourceType,
             category: categoryMatch.category || null,
             subcategory: categoryMatch.subcategory || null,
@@ -827,6 +837,7 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
     }
 
     // Upload all files to R2 first (more efficient)
+    // This now handles individual failures gracefully
     const uploadedFiles = await uploadFilesToR2(files, 'policy');
 
     // Get folder paths from request body
@@ -838,8 +849,17 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const uploadedFile = uploadedFiles[i];
+      const uploadResult = uploadedFiles[i];
       const folderPath = paths[i] || '';
+      
+      // Skip files that failed to upload to R2
+      if (!uploadResult.success || !uploadResult.url) {
+        errors.push({
+          fileName: file.originalname,
+          error: uploadResult.error || 'Failed to upload file to R2',
+        });
+        continue;
+      }
       
       try {
         const fileName = file.originalname;
@@ -921,6 +941,7 @@ router.post('/templates/bulk-import', upload.array('files', 50), async (req: Aut
     }
 
     // Upload all files to R2 first (more efficient)
+    // This now handles individual failures gracefully
     const uploadedFiles = await uploadFilesToR2(files, 'template');
 
     // Get folder paths from request body
@@ -932,7 +953,16 @@ router.post('/templates/bulk-import', upload.array('files', 50), async (req: Aut
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const uploadedFile = uploadedFiles[i];
+      const uploadResult = uploadedFiles[i];
+      
+      // Skip files that failed to upload to R2
+      if (!uploadResult.success || !uploadResult.url) {
+        errors.push({
+          fileName: file.originalname,
+          error: uploadResult.error || 'Failed to upload file to R2',
+        });
+        continue;
+      }
       const folderPath = paths[i] || '';
       
       try {
