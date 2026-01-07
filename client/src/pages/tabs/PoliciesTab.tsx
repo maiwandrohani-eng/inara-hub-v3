@@ -1,6 +1,6 @@
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { useState, useMemo, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import QuickViewModal from '../../components/QuickViewModal';
@@ -13,6 +13,7 @@ export default function PoliciesTab() {
   const [selectedPolicy, setSelectedPolicy] = useState<any | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'COUNTRY_DIRECTOR' || user?.role === 'DEPARTMENT_HEAD';
 
   const { data, isLoading } = useQuery('policies', async () => {
@@ -283,13 +284,15 @@ export default function PoliciesTab() {
                     >
                       Quick View
                     </button>
-                    <Link
-                      to={`/policies/${policy.id}`}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPolicy(policy);
+                      }}
                       className="text-primary-500 hover:text-primary-700 text-sm font-medium"
-                      onClick={(e) => e.stopPropagation()}
                     >
                       {status === 'NOT_ACKNOWLEDGED' ? 'Read & Certify' : 'View'} →
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
