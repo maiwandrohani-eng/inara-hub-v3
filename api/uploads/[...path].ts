@@ -26,7 +26,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Otherwise, generate a presigned URL and redirect to it
     // This provides temporary access without exposing credentials
     // Use dynamic import to avoid TypeScript path resolution issues
-    const { getPresignedUrl } = await import('../server/src/utils/r2Storage.js');
+    // Try compiled path first, then source path
+    let getPresignedUrl: any;
+    try {
+      const r2Module = await import('../server/dist/utils/r2Storage.js');
+      getPresignedUrl = r2Module.getPresignedUrl;
+    } catch {
+      try {
+        const r2Module = await import('../server/src/utils/r2Storage.js');
+        getPresignedUrl = r2Module.getPresignedUrl;
+      } catch (importError: any) {
+        throw new Error(`Failed to import r2Storage: ${importError.message}`);
+      }
+    }
     const presignedUrl = await getPresignedUrl(filePath as string, 3600); // 1 hour expiry
     return res.redirect(302, presignedUrl);
   } catch (error: any) {
