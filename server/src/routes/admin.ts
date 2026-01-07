@@ -1788,7 +1788,7 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
       });
     }
 
-    // Handle PDF upload
+    // Handle PDF upload (optional - step can be created without PDF)
     let pdfUrl = null;
     if (req.file) {
       try {
@@ -1803,9 +1803,11 @@ router.post('/orientations/:id/steps', upload.single('pdf'), async (req: AuthReq
         console.log('✅ PDF uploaded successfully:', pdfUrl);
       } catch (uploadError: any) {
         console.error('❌ PDF upload failed:', uploadError);
-        return res.status(500).json({ 
-          message: `Failed to upload PDF: ${uploadError.message || 'Unknown error'}` 
-        });
+        // Don't fail the entire step creation if PDF upload fails
+        // Just log the error and continue without PDF
+        console.warn('⚠️ Continuing step creation without PDF due to upload failure');
+        // Optionally, you could return an error here if PDF is required
+        // For now, we'll allow step creation without PDF
       }
     }
 
