@@ -1797,14 +1797,35 @@ router.put('/orientations/:id/steps/:stepId', upload.single('pdf'), async (req: 
 router.delete('/orientations/:id/steps/:stepId', async (req: AuthRequest, res) => {
   try {
     const { stepId } = req.params;
-
-    await prisma.orientationStep.delete({
+    
+    // Check if step exists
+    const step = await prisma.orientationStep.findUnique({
       where: { id: stepId },
     });
 
+    if (!step) {
+      return res.status(404).json({ message: 'Orientation step not found' });
+    }
+
+    // Delete step confirmations first (they will cascade, but being explicit)
+    await prisma.orientationStepConfirmation.deleteMany({
+      where: { stepId },
+    });
+
+    // Delete the step
+    await prisma.orientationStep.delete({
+      where: { id: stepId },
+    });
+    
     res.json({ message: 'Step deleted successfully' });
   } catch (error: any) {
     console.error('Delete orientation step error:', error);
+    
+    // Handle Prisma "record not found" error
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Orientation step not found' });
+    }
+    
     res.status(500).json({ message: error.message });
   }
 });
