@@ -412,7 +412,7 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks, just p
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     
     // Extract response based on API provider
     let aiResponse = '';
@@ -526,22 +526,23 @@ Return ONLY JSON:
           });
 
           if (quizResponse.ok) {
-            const quizData = await quizResponse.json();
+            const quizData = await quizResponse.json() as any;
             let quizText = '';
+            const typedQuizData = quizData;
             
             if (isHuggingFaceRouter || (isHuggingFaceInference && actualApiUrl.includes('router.huggingface.co'))) {
               // Router endpoint uses OpenAI-compatible format
-              quizText = quizData.choices?.[0]?.message?.content || '';
+              quizText = typedQuizData.choices?.[0]?.message?.content || '';
             } else if (isHuggingFaceInference) {
               // Old inference endpoint format
-              if (Array.isArray(quizData) && quizData[0]?.generated_text) {
-                quizText = quizData[0].generated_text;
-              } else if (quizData.generated_text) {
-                quizText = quizData.generated_text;
+              if (Array.isArray(typedQuizData) && typedQuizData[0]?.generated_text) {
+                quizText = typedQuizData[0].generated_text;
+              } else if (typedQuizData.generated_text) {
+                quizText = typedQuizData.generated_text;
               }
             } else {
               // OpenAI-compatible format
-              quizText = quizData.choices?.[0]?.message?.content || '';
+              quizText = typedQuizData.choices?.[0]?.message?.content || '';
             }
             
             // Clean up JSON

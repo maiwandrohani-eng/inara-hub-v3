@@ -313,8 +313,8 @@ router.post('/login', async (req, res) => {
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
     const token = jwt.sign(
       { userId: user.id },
-      jwtSecret,
-      { expiresIn }
+      jwtSecret as string,
+      { expiresIn: expiresIn as string }
     );
 
     await prismaInstance.user.update({

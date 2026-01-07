@@ -67,7 +67,7 @@ export function detectCategoryFromPath(
   // Try to match subcategory
   let bestSubcategory: string | undefined;
   if (bestCategory && subcategoryPart) {
-    const subcategories = categories[bestCategory] || [];
+    const subcategories = (categories as Record<string, string[]>)[bestCategory] || [];
     let bestSubScore = 0;
 
     for (const subcategory of subcategories) {

@@ -46,7 +46,13 @@ export const authenticate = async (
     }
 
     req.userId = user.id;
-    req.user = user;
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      department: user.department || undefined,
+      country: user.country || undefined,
+    };
     next();
   } catch (error) {
     return res.status(401).json({ message: 'Invalid token' });
