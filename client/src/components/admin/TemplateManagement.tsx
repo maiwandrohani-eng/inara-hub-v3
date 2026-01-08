@@ -365,6 +365,11 @@ export default function TemplateManagement() {
           {/* Version marker: d6ed84a-v2 - Upload mode selector added */}
           <h3 className="text-xl font-bold text-white mb-4">Upload Template</h3>
           
+          {/* VERSION CHECK - If you see this yellow box, the new code is loaded! */}
+          <div className="mb-4 p-3 bg-yellow-600 text-black text-sm font-bold rounded">
+            ✅ NEW VERSION LOADED: Upload Mode Selector Available (d6ed84a-v2)
+          </div>
+          
           {/* Upload Mode Selection */}
           <div className="mb-6 p-5 bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg border-4 border-yellow-400 shadow-lg">
             <label className="block text-base font-bold text-white mb-4">
