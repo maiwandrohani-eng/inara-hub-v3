@@ -722,6 +722,136 @@ router.post('/library', async (req: AuthRequest, res) => {
   }
 });
 
+// Upload single library resource with file
+router.post('/library/upload', upload.single('file'), async (req: AuthRequest, res) => {
+  try {
+    const { title, description, resourceType, category, subcategory, tags } = req.body;
+    const file = req.file;
+
+    if (!file && !req.body.fileUrl) {
+      return res.status(400).json({ message: 'File or file URL is required' });
+    }
+
+    let fileUrl = req.body.fileUrl || null;
+    
+    // Upload file to R2 if provided
+    if (file) {
+      try {
+        const uploadedFile = await uploadFileToR2(file, 'library');
+        fileUrl = uploadedFile.url;
+      } catch (uploadError: any) {
+        console.error('File upload error:', uploadError);
+        return res.status(500).json({ 
+          message: `Failed to upload file: ${uploadError.message}` 
+        });
+      }
+    }
+
+    // Detect category if not provided
+    let finalCategory = category;
+    let finalSubcategory = subcategory;
+    if (!finalCategory && file) {
+      const categoryMatch = detectCategory(file.originalname, 'library');
+      finalCategory = categoryMatch.category || null;
+      finalSubcategory = categoryMatch.subcategory || null;
+    }
+
+    const resource = await prisma.libraryResource.create({
+      data: {
+        title: title || file?.originalname.replace(/\.[^/.]+$/, '') || 'Untitled',
+        description: description || `Uploaded file: ${file?.originalname || 'unknown'}`,
+        fileUrl,
+        resourceType: resourceType || detectResourceType(file?.originalname || ''),
+        category: finalCategory,
+        subcategory: finalSubcategory,
+        tags: tags ? (typeof tags === 'string' ? JSON.parse(tags) : tags) : [],
+        isActive: true,
+      },
+    });
+
+    res.status(201).json({ resource });
+  } catch (error: any) {
+    console.error('Library upload error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Upload multiple library resources with files
+router.post('/library/upload-multiple', upload.array('files', 50), async (req: AuthRequest, res) => {
+  try {
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      return res.status(400).json({ message: 'No files uploaded' });
+    }
+
+    const results = [];
+    const errors = [];
+
+    // Upload all files to R2 first
+    const uploadedFiles = await uploadFilesToR2(files, 'library');
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const uploadResult = uploadedFiles[i];
+      
+      // Skip files that failed to upload to R2
+      if (!uploadResult.success || !uploadResult.url) {
+        errors.push({
+          fileName: file.originalname,
+          error: uploadResult.error || 'Failed to upload file to R2',
+        });
+        continue;
+      }
+      
+      try {
+        const fileName = file.originalname;
+        const title = fileName.replace(/\.[^/.]+$/, ''); // Remove extension
+        
+        // Detect category from filename
+        const categoryMatch = detectCategory(fileName, 'library');
+        const resourceType = detectResourceType(fileName);
+
+        const resource = await prisma.libraryResource.create({
+          data: {
+            title,
+            description: `Uploaded file: ${fileName}`,
+            fileUrl: uploadResult.url,
+            resourceType,
+            category: categoryMatch.category || null,
+            subcategory: categoryMatch.subcategory || null,
+            tags: [],
+            isActive: true,
+          },
+        });
+
+        results.push({
+          fileName,
+          success: true,
+          resourceId: resource.id,
+          category: categoryMatch.category,
+          subcategory: categoryMatch.subcategory,
+        });
+      } catch (error: any) {
+        errors.push({
+          fileName: file.originalname,
+          error: error.message,
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      uploaded: results.length,
+      failed: errors.length,
+      resources: results,
+      errors,
+    });
+  } catch (error: any) {
+    console.error('Multiple library upload error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.delete('/library/:id', async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
