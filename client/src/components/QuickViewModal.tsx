@@ -99,8 +99,6 @@ export default function QuickViewModal({
     }
   };
 
-  if (!isOpen) return null;
-
   // Convert fileUrl to use API proxy for R2 URLs (same logic as PDFViewer)
   const getProxiedFileUrl = () => {
     if (!fileUrl) return '';
@@ -143,6 +141,8 @@ export default function QuickViewModal({
   const proxiedFileUrl = getProxiedFileUrl();
   const isPDF = fileType === 'pdf' || fileUrl?.toLowerCase().endsWith('.pdf') || 
                 fileUrl?.toLowerCase().includes('.pdf');
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
