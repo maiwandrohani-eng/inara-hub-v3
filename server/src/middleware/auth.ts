@@ -61,47 +61,70 @@ export const authenticate = async (
 
 export const authorize = (...roles: UserRole[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
+    // Enhanced debugging
+    console.log('[Authorization] Middleware called:', {
+      path: req.path,
+      method: req.method,
+      hasUser: !!req.user,
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      userRole: req.user?.role,
+      requiredRoles: roles,
+    });
+
     if (!req.user) {
+      console.error('[Authorization] No user object found in request');
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    // Debug: Log role comparison
-    const roleMatch = roles.includes(req.user.role);
+    // Debug: Log role comparison with detailed type checking
+    const userRole = req.user.role;
+    const roleMatch = roles.includes(userRole);
+    
+    // Additional check: compare string values (in case of type mismatch)
+    const roleMatchString = roles.some(r => String(r) === String(userRole));
+    
     console.log('[Authorization] Role check:', {
       userId: req.user.id,
       userEmail: req.user.email,
-      userRole: req.user.role,
-      userRoleType: typeof req.user.role,
+      userRole: userRole,
+      userRoleString: String(userRole),
+      userRoleType: typeof userRole,
       requiredRoles: roles,
+      requiredRolesStrings: roles.map(r => String(r)),
       requiredRolesTypes: roles.map(r => typeof r),
       roleMatch,
+      roleMatchString,
       path: req.path,
       method: req.method,
     });
 
-    if (!roleMatch) {
+    if (!roleMatch && !roleMatchString) {
       console.error('[Authorization] Access denied:', {
         userId: req.user.id,
         userEmail: req.user.email,
-        userRole: req.user.role,
-        userRoleType: typeof req.user.role,
+        userRole: userRole,
+        userRoleString: String(userRole),
+        userRoleType: typeof userRole,
         requiredRoles: roles,
-        requiredRolesTypes: roles.map(r => typeof r),
+        requiredRolesStrings: roles.map(r => String(r)),
         roleMatch,
+        roleMatchString,
         path: req.path,
         method: req.method,
       });
       return res.status(403).json({ 
         message: 'Insufficient permissions',
         requiredRoles: roles,
-        userRole: req.user.role,
-        userRoleType: typeof req.user.role,
+        userRole: userRole,
+        userRoleType: typeof userRole,
         userId: req.user.id,
         userEmail: req.user.email,
-        detail: `This action requires one of the following roles: ${roles.join(', ')}. Your current role is: ${req.user.role} (type: ${typeof req.user.role})`
+        detail: `This action requires one of the following roles: ${roles.join(', ')}. Your current role is: ${userRole} (type: ${typeof userRole})`
       });
     }
 
+    console.log('[Authorization] Access granted');
     next();
   };
 };

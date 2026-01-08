@@ -1108,6 +1108,16 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
 
 router.post('/templates/bulk-import', upload.array('files', 50), async (req: AuthRequest, res) => {
   try {
+    // Debug: Log request details
+    console.log('[Templates Bulk Import] Request received:', {
+      userId: req.userId,
+      userEmail: req.user?.email,
+      userRole: req.user?.role,
+      hasFiles: !!req.files,
+      filesCount: Array.isArray(req.files) ? req.files.length : 0,
+      contentType: req.headers['content-type'],
+    });
+
     const files = req.files as Express.Multer.File[];
     if (!files || files.length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
