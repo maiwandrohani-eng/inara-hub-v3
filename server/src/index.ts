@@ -107,7 +107,7 @@ app.options('*', (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '0b06be8' });
 });
 
 // R2 connectivity test (public endpoint for debugging)
