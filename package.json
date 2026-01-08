@@ -7,7 +7,7 @@
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
     "build": "npm run build:server && npm run build:client",
-    "build:client": "cd client && npm install && npm run build",
+    "build:client": "cd client && npm install && npm run build && echo '✅ Client build completed - Version: 5790d9d'",
     "build:server": "cd server && npm install && npm run db:generate && npm run build",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
     "start": "cd server && npm start",
