@@ -359,6 +359,7 @@ export default function TemplateManagement() {
 
       {showForm && (
         <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">
+          {/* Version marker: d6ed84a-v2 - Upload mode selector added */}
           <h3 className="text-xl font-bold text-white mb-4">Upload Template</h3>
           
           {/* Upload Mode Selection */}
