@@ -92,6 +92,9 @@ export default function CertificateViewer({
             background: white;
             page-break-after: avoid;
           }
+          .certificate-container > div:first-child {
+            display: none !important;
+          }
           .certificate-actions,
           .certificate-actions * {
             display: none !important;
@@ -142,9 +145,31 @@ export default function CertificateViewer({
           </div>
 
           {/* Certificate */}
-          <div className="certificate-container bg-white p-8" style={{ minHeight: '11in', width: '8.5in' }}>
+          <div className="certificate-container bg-white p-8 relative" style={{ minHeight: '11in', width: '8.5in' }}>
+            {/* Watermark Logo Background */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+              <img 
+                src="/inara-logo.png" 
+                alt="INARA Watermark" 
+                className="opacity-5 object-contain"
+                style={{
+                  width: '600px',
+                  height: '600px'
+                }}
+                onError={(e) => {
+                  // Try alternative paths
+                  const img = e.target as HTMLImageElement;
+                  if (img.src.includes('/inara-logo.png')) {
+                    img.src = '/assets/inara-logo.png';
+                  } else {
+                    img.style.display = 'none';
+                  }
+                }}
+              />
+            </div>
+
             {/* Border */}
-            <div className="border-4 border-blue-800 p-12 h-full" style={{ minHeight: '10.5in' }}>
+            <div className="border-4 border-blue-800 p-12 h-full relative" style={{ minHeight: '10.5in', zIndex: 1 }}>
               {/* Logo */}
               <div className="text-center mb-6">
                 <img 
