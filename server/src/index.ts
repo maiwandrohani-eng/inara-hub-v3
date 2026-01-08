@@ -96,6 +96,15 @@ if (process.env.NODE_ENV === 'development') {
   app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'public', 'uploads')));
 }
 
+// Handle OPTIONS preflight requests explicitly (for file uploads)
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

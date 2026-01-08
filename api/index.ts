@@ -32,6 +32,26 @@ async function getApp() {
 // Vercel serverless function handler
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    // Log request details for debugging
+    console.log('[Vercel Handler] Request received:', {
+      method: req.method,
+      url: req.url,
+      path: req.url?.split('?')[0],
+      contentType: req.headers['content-type'],
+      contentLength: req.headers['content-length'],
+      hasBody: !!req.body,
+      bodyType: typeof req.body,
+    });
+
+    // Handle OPTIONS preflight requests explicitly
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      return res.status(200).end();
+    }
+
     const expressApp = await getApp();
     
     // Call the Express app as a handler
@@ -41,6 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: error.message,
       code: error.code,
       name: error.name,
+      stack: error.stack,
     });
     
     // Return error response
