@@ -56,7 +56,13 @@ export async function extractTextFromPDF(pdfPathOrBuffer: string | Buffer): Prom
     // Load pdf-parse if not already loaded
     const pdfParser = await loadPdfParse();
     if (!pdfParser) {
-      throw new Error('pdf-parse library is not available. Please ensure it is installed: npm install pdf-parse');
+      // Provide more helpful error message
+      const errorMsg = 'pdf-parse library is not available. ' +
+        'This is required for PDF text extraction. ' +
+        'Please ensure pdf-parse is installed: npm install pdf-parse. ' +
+        'If running on Vercel, ensure the package is in dependencies (not devDependencies).';
+      console.error('❌', errorMsg);
+      throw new Error(errorMsg);
     }
     
     let dataBuffer: Buffer;
