@@ -377,13 +377,14 @@ export default function OrientationManagement() {
     setShowStepForm(true);
   };
 
-  // Parse bulk questions from text format
+  // Parse bulk questions from text format - expects multiple choice format
   const parseBulkQuestions = (text: string): any[] => {
     const questions: any[] = [];
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     
     let currentQuestion: any = null;
     let questionCounter = 1;
+    let baseId = Date.now();
     
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -394,11 +395,18 @@ export default function OrientationManagement() {
         if (match && match[1]) {
           // Save previous question if exists
           if (currentQuestion && currentQuestion.question) {
-            questions.push(currentQuestion);
+            // Ensure it's multiple choice and has at least 2 options
+            if (currentQuestion.options && currentQuestion.options.length >= 2) {
+              // If no correct answer set, use first option
+              if (!currentQuestion.correctAnswer && currentQuestion.options.length > 0) {
+                currentQuestion.correctAnswer = currentQuestion.options[0];
+              }
+              questions.push(currentQuestion);
+            }
           }
-          // Start new question
+          // Start new question - always multiple choice
           currentQuestion = {
-            id: `q-${Date.now()}-${questionCounter++}`,
+            id: `q-${baseId}-${questionCounter++}`,
             question: match[1].trim(),
             type: 'multiple_choice',
             options: [],
@@ -407,22 +415,20 @@ export default function OrientationManagement() {
           };
         }
       }
-      // Check if it's an answer (A1:, A2:, etc. or just starts with A:)
+      // Check if it's an answer (A1:, A2:, etc. or just starts with A:) - this sets the correct answer
       else if (line.match(/^A\d*:?\s*(.+)$/i)) {
         const match = line.match(/^A\d*:?\s*(.+)$/i);
         if (match && match[1] && currentQuestion) {
           const answer = match[1].trim();
-          // If it's a simple answer, make it a text question
-          if (currentQuestion.options.length === 0) {
-            currentQuestion.type = 'text';
-            currentQuestion.correctAnswer = answer;
-          } else {
-            // If options exist, set as correct answer
-            currentQuestion.correctAnswer = answer;
+          // Set as correct answer (must match one of the options)
+          currentQuestion.correctAnswer = answer;
+          // If this answer is not in options yet, add it
+          if (currentQuestion.options.indexOf(answer) === -1 && currentQuestion.options.length < 4) {
+            currentQuestion.options.push(answer);
           }
         }
       }
-      // Check if it's an option (starts with -, *, or number)
+      // Check if it's an option (starts with -, *, •, or number like 1. 2. etc.)
       else if (line.match(/^[-*•]\s*(.+)$/) || line.match(/^\d+[.)]\s*(.+)$/)) {
         const match = line.match(/^[-*•]\s*(.+)$/) || line.match(/^\d+[.)]\s*(.+)$/);
         if (match && match[1] && currentQuestion) {
@@ -430,15 +436,15 @@ export default function OrientationManagement() {
           if (!currentQuestion.options) {
             currentQuestion.options = [];
           }
-          currentQuestion.options.push(option);
-          // If it's the first option, change to multiple_choice
-          if (currentQuestion.options.length === 1) {
-            currentQuestion.type = 'multiple_choice';
-            currentQuestion.correctAnswer = option; // Default to first option
+          // Only add if not already present
+          if (currentQuestion.options.indexOf(option) === -1) {
+            currentQuestion.options.push(option);
           }
+          // Ensure it stays multiple_choice
+          currentQuestion.type = 'multiple_choice';
         }
       }
-      // If no prefix, treat as continuation of previous line
+      // If no prefix and we have a current question, treat as continuation
       else if (currentQuestion && line.length > 0) {
         // If we have options, add to last option
         if (currentQuestion.options && currentQuestion.options.length > 0) {
@@ -451,34 +457,20 @@ export default function OrientationManagement() {
       }
     }
     
-    // Add last question if exists
+    // Add last question if exists and valid
     if (currentQuestion && currentQuestion.question) {
-      questions.push(currentQuestion);
-    }
-    
-    // Ensure we have at least some questions
-    if (questions.length === 0) {
-      // Try alternative format: Question? Answer
-      const altQuestions: any[] = [];
-      for (let i = 0; i < lines.length; i += 2) {
-        if (i + 1 < lines.length) {
-          const question = lines[i].replace(/^Q\d*:?\s*/i, '').replace(/\?$/, '').trim();
-          const answer = lines[i + 1].replace(/^A\d*:?\s*/i, '').trim();
-          if (question && answer) {
-            altQuestions.push({
-              id: `q-${Date.now()}-${altQuestions.length + 1}`,
-              question: question + (question.endsWith('?') ? '' : '?'),
-              type: 'text',
-              correctAnswer: answer,
-              required: true,
-            });
-          }
+      // Ensure it's multiple choice and has at least 2 options
+      if (currentQuestion.options && currentQuestion.options.length >= 2) {
+        // If no correct answer set, use first option
+        if (!currentQuestion.correctAnswer && currentQuestion.options.length > 0) {
+          currentQuestion.correctAnswer = currentQuestion.options[0];
         }
+        questions.push(currentQuestion);
       }
-      return altQuestions;
     }
     
-    return questions;
+    // Validate all questions have at least 2 options
+    return questions.filter(q => q.options && q.options.length >= 2 && q.correctAnswer);
   };
 
   const selectedOrientationData = orientations.find((o: any) => o.id === selectedOrientation);
@@ -902,11 +894,19 @@ export default function OrientationManagement() {
                               Paste 10 Questions and Answers (One per line)
                             </label>
                             <p className="text-xs text-gray-400 mb-2">
-                              Format: <br />
+                              Format (Multiple Choice): <br />
                               Q1: Your question here?<br />
-                              A1: Correct answer<br />
+                              - Option 1<br />
+                              - Option 2<br />
+                              - Option 3<br />
+                              - Option 4<br />
+                              A1: Correct answer (must match one of the options)<br />
+                              <br />
                               Q2: Another question?<br />
-                              A2: Another answer<br />
+                              - Option A<br />
+                              - Option B<br />
+                              - Option C<br />
+                              A2: Option B<br />
                               ... (repeat for 10 questions)
                             </p>
                             <textarea
@@ -915,13 +915,25 @@ export default function OrientationManagement() {
                               rows={20}
                               className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded text-sm font-mono"
                               placeholder={`Q1: What is the primary goal of beneficiary communication?
-A1: To ensure transparency and accountability
+- To inform beneficiaries about programs
+- To ensure transparency and accountability
+- To collect feedback and complaints
+- All of the above
+A1: All of the above
 
 Q2: Which communication channels should be used?
-A2: Face-to-face meetings, community notice boards, SMS
+- Face-to-face meetings only
+- Community notice boards only
+- SMS and phone calls only
+- Multiple channels (face-to-face, notice boards, SMS, radio)
+A2: Multiple channels (face-to-face, notice boards, SMS, radio)
 
 Q3: How should complaints be handled?
-A3: Promptly, confidentially, and with respect
+- Ignore them
+- Handle them promptly and confidentially
+- Share them publicly
+- Delay response
+A3: Handle them promptly and confidentially
 
 ... (continue for 10 questions)`}
                             />
@@ -931,13 +943,26 @@ A3: Promptly, confidentially, and with respect
                                 try {
                                   const parsed = parseBulkQuestions(bulkQuestionsText);
                                   if (parsed.length > 0) {
-                                    setStepFormData({
-                                      ...stepFormData,
-                                      questions: parsed,
-                                    });
-                                    alert(`✅ Parsed ${parsed.length} questions successfully!`);
+                                    // Validate all questions have proper structure
+                                    const validQuestions = parsed.filter(q => 
+                                      q.question && 
+                                      q.options && 
+                                      q.options.length >= 2 && 
+                                      q.correctAnswer &&
+                                      q.type === 'multiple_choice'
+                                    );
+                                    
+                                    if (validQuestions.length > 0) {
+                                      setStepFormData({
+                                        ...stepFormData,
+                                        questions: validQuestions,
+                                      });
+                                      alert(`✅ Parsed ${validQuestions.length} multiple choice questions successfully!`);
+                                    } else {
+                                      alert('❌ Could not parse valid multiple choice questions. Each question needs at least 2 options and a correct answer.');
+                                    }
                                   } else {
-                                    alert('❌ Could not parse questions. Please check the format.');
+                                    alert('❌ Could not parse questions. Please check the format:\n\nQ1: Question?\n- Option 1\n- Option 2\n- Option 3\nA1: Correct answer');
                                   }
                                 } catch (error: any) {
                                   alert(`Error parsing questions: ${error.message}`);
@@ -947,6 +972,11 @@ A3: Promptly, confidentially, and with respect
                             >
                               Parse Questions
                             </button>
+                            {stepFormData.questions && Array.isArray(stepFormData.questions) && stepFormData.questions.length > 0 && (
+                              <p className="text-xs text-green-400 mt-2">
+                                ✅ {stepFormData.questions.length} question(s) ready to save
+                              </p>
+                            )}
                           </div>
                         )}
 
@@ -989,6 +1019,25 @@ A3: Promptly, confidentially, and with respect
                             <p className="text-xs text-gray-400 mt-2">
                               This will generate 10 questions based on the markdown content you entered above.
                             </p>
+                          </div>
+                        )}
+
+                        {/* Show parsed bulk questions preview */}
+                        {questionMode === 'bulk' && stepFormData.questions && Array.isArray(stepFormData.questions) && stepFormData.questions.length > 0 && (
+                          <div className="mb-4 p-3 bg-green-900/20 border border-green-500/30 rounded-lg">
+                            <p className="text-sm text-green-400 font-semibold mb-2">
+                              ✅ {stepFormData.questions.length} Multiple Choice Question(s) Ready
+                            </p>
+                            <div className="text-xs text-gray-300 space-y-1 max-h-32 overflow-y-auto">
+                              {stepFormData.questions.slice(0, 3).map((q: any, idx: number) => (
+                                <div key={idx}>
+                                  <span className="text-green-400">Q{idx + 1}:</span> {q.question?.substring(0, 50)}... ({q.options?.length || 0} options, Answer: {q.correctAnswer?.substring(0, 30)})
+                                </div>
+                              ))}
+                              {stepFormData.questions.length > 3 && (
+                                <div className="text-gray-500">... and {stepFormData.questions.length - 3} more</div>
+                              )}
+                            </div>
                           </div>
                         )}
 
