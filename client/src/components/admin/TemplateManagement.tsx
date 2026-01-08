@@ -3,6 +3,9 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../../api/client';
 
 export default function TemplateManagement() {
+  // Debug: Log component version
+  console.log('📋 TemplateManagement component loaded - Version: d6ed84a-v2 (with upload mode selector)');
+  
   const [showForm, setShowForm] = useState(false);
   const [uploadMode, setUploadMode] = useState<'single' | 'multiple'>('single');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
