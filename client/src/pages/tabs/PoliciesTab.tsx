@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import QuickViewModal from '../../components/QuickViewModal';
+import PDFViewer from '../../components/PDFViewer';
 
 export default function PoliciesTab() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -12,6 +13,10 @@ export default function PoliciesTab() {
   const [viewMode, setViewMode] = useState<'brief' | 'complete' | 'assessment' | 'file'>('brief');
   const [selectedPolicy, setSelectedPolicy] = useState<any | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [takingAssessment, setTakingAssessment] = useState(false);
+  const [assessmentAnswers, setAssessmentAnswers] = useState<{ [key: number]: string }>({});
+  const [assessmentSubmitted, setAssessmentSubmitted] = useState(false);
+  const [assessmentScore, setAssessmentScore] = useState<number | null>(null);
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'COUNTRY_DIRECTOR' || user?.role === 'DEPARTMENT_HEAD';
@@ -20,6 +25,31 @@ export default function PoliciesTab() {
     const res = await api.get('/policies');
     return res.data;
   });
+
+  // Mutation for submitting assessment
+  const assessmentMutation = useMutation(
+    async (data: { policyId: string; answers: { [key: number]: string } }) => {
+      const res = await api.post(`/policies/${data.policyId}/assessment`, {
+        answers: Object.entries(data.answers).map(([_, value]) => value),
+      });
+      return res.data;
+    },
+    {
+      onSuccess: (data) => {
+        setAssessmentScore(data.score);
+        setAssessmentSubmitted(true);
+        queryClient.invalidateQueries('policies');
+        if (data.passed) {
+          alert(`✅ Assessment passed! Score: ${data.score}%`);
+        } else {
+          alert(`❌ Assessment not passed. Score: ${data.score}%. Passing score: 70%`);
+        }
+      },
+      onError: (error: any) => {
+        alert(error.response?.data?.message || 'Failed to submit assessment');
+      },
+    }
+  );
 
   const allPolicies = data?.policies || [];
 
@@ -388,8 +418,69 @@ export default function PoliciesTab() {
                   <div dangerouslySetInnerHTML={{ __html: selectedPolicy.complete }} />
                 )}
                 {viewMode === 'assessment' && selectedPolicy.assessment && (
-                  <div>
-                    <p className="text-gray-400 mb-4">Assessment available. Click below to take it.</p>
+                  <div className="space-y-4">
+                    {!assessmentSubmitted ? (
+                      <>
+                        <div className="bg-blue-900/30 border border-blue-700 p-4 rounded-lg mb-4">
+                          <p className="text-blue-300 text-sm">
+                            📋 Assessment: Answer all questions correctly to certify this policy. Passing score: 70%
+                          </p>
+                        </div>
+                        {selectedPolicy.assessment.questions?.map((question: any, qIdx: number) => (
+                          <div key={qIdx} className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <p className="text-white font-semibold mb-3">
+                              {qIdx + 1}. {question.question}
+                            </p>
+                            {question.type === 'multiple_choice' && question.options && (
+                              <div className="space-y-2">
+                                {question.options.map((option: string, oIdx: number) => (
+                                  <label key={oIdx} className="flex items-center p-2 rounded hover:bg-gray-700 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`question-${qIdx}`}
+                                      value={option}
+                                      checked={assessmentAnswers[qIdx] === option}
+                                      onChange={(e) => setAssessmentAnswers({ ...assessmentAnswers, [qIdx]: e.target.value })}
+                                      className="mr-3"
+                                    />
+                                    <span className="text-gray-300">{option}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                            {question.type === 'text' && (
+                              <input
+                                type="text"
+                                placeholder="Enter your answer..."
+                                value={assessmentAnswers[qIdx] || ''}
+                                onChange={(e) => setAssessmentAnswers({ ...assessmentAnswers, [qIdx]: e.target.value })}
+                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className={`text-6xl mb-4 ${assessmentScore! >= 70 ? '✅' : '❌'}`}></div>
+                        <p className="text-2xl font-bold text-white mb-2">
+                          {assessmentScore! >= 70 ? 'Assessment Passed!' : 'Assessment Not Passed'}
+                        </p>
+                        <p className="text-gray-300 mb-6">
+                          Your Score: <span className="text-lg font-bold">{assessmentScore}%</span>
+                        </p>
+                        <button
+                          onClick={() => {
+                            setAssessmentSubmitted(false);
+                            setAssessmentAnswers({});
+                            setAssessmentScore(null);
+                          }}
+                          className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                        >
+                          Retake Assessment
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
                 {viewMode === 'file' && selectedPolicy.fileUrl && (
@@ -413,11 +504,44 @@ export default function PoliciesTab() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-4 border-t border-gray-700">
+            <div className="flex items-center justify-between p-4 border-t border-gray-700 flex-wrap gap-2">
               <div className="text-xs text-gray-500">
                 Effective: {new Date(selectedPolicy.effectiveDate).toLocaleDateString()}
               </div>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 flex-wrap">
+                {viewMode === 'assessment' && !assessmentSubmitted && (
+                  <button
+                    onClick={() => {
+                      const allAnswered = Object.keys(assessmentAnswers).length === (selectedPolicy.assessment?.questions?.length || 0);
+                      if (!allAnswered) {
+                        alert('Please answer all questions before submitting');
+                        return;
+                      }
+                      assessmentMutation.mutate({
+                        policyId: selectedPolicy.id,
+                        answers: assessmentAnswers,
+                      });
+                    }}
+                    disabled={assessmentMutation.isLoading}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm disabled:opacity-50"
+                  >
+                    {assessmentMutation.isLoading ? 'Submitting...' : 'Submit Assessment'}
+                  </button>
+                )}
+                {(viewMode === 'brief' || viewMode === 'complete') && (
+                  <button
+                    onClick={() => {
+                      assessmentMutation.mutate({
+                        policyId: selectedPolicy.id,
+                        answers: {},
+                      });
+                      setSelectedPolicy(null);
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  >
+                    ✓ Mark as Acknowledged
+                  </button>
+                )}
                 {selectedPolicy.fileUrl && (
                   <a
                     href={selectedPolicy.fileUrl}
@@ -446,7 +570,12 @@ export default function PoliciesTab() {
                   Download as Text
                 </button>
                 <button
-                  onClick={() => setSelectedPolicy(null)}
+                  onClick={() => {
+                    setSelectedPolicy(null);
+                    setAssessmentSubmitted(false);
+                    setAssessmentAnswers({});
+                    setAssessmentScore(null);
+                  }}
                   className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
                 >
                   Close
