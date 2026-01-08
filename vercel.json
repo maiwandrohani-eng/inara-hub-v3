@@ -15,6 +15,7 @@
       "memory": 3008
     }
   },
+  "regions": ["fra1"],
   "rewrites": [
     {
       "source": "/api/(.*)",
