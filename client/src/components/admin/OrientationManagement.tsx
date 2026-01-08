@@ -145,7 +145,15 @@ export default function OrientationManagement() {
         stepNumber: stepData.stepNumber,
         hasPdf: !!pdfFile,
         hasQuestions: !!stepData.questions,
+        questionsCount: Array.isArray(stepData.questions) ? stepData.questions.length : 0,
+        questionsPreview: Array.isArray(stepData.questions) ? stepData.questions.slice(0, 2).map((q: any) => ({
+          id: q.id,
+          question: q.question?.substring(0, 50),
+          type: q.type,
+          optionsCount: q.options?.length || 0,
+        })) : null,
         pdfFileName: pdfFile?.name,
+        questionMode: questionMode,
       });
 
       try {

@@ -2167,10 +2167,35 @@ router.post('/orientations/:id/steps', (req, res, next) => {
     }
     // Manual or bulk questions provided
     else if (questions) {
-      // Manual questions provided
+      // Manual or bulk questions provided
       try {
         parsedQuestions = typeof questions === 'string' ? JSON.parse(questions) : questions;
-        console.log('✅ Questions parsed:', Array.isArray(parsedQuestions) ? parsedQuestions.length : 'not an array');
+        console.log('✅ Questions parsed:', {
+          count: Array.isArray(parsedQuestions) ? parsedQuestions.length : 0,
+          isArray: Array.isArray(parsedQuestions),
+          firstQuestion: Array.isArray(parsedQuestions) && parsedQuestions.length > 0 ? {
+            id: parsedQuestions[0].id,
+            question: parsedQuestions[0].question?.substring(0, 50),
+            type: parsedQuestions[0].type,
+            optionsCount: parsedQuestions[0].options?.length || 0,
+          } : null,
+        });
+        
+        // Validate questions structure
+        if (Array.isArray(parsedQuestions)) {
+          const validQuestions = parsedQuestions.filter((q: any) => 
+            q && 
+            q.question && 
+            q.type && 
+            (q.type === 'multiple_choice' ? (q.options && q.options.length >= 2 && q.correctAnswer) : q.correctAnswer)
+          );
+          
+          if (validQuestions.length !== parsedQuestions.length) {
+            console.warn(`⚠️ Some questions are invalid. Valid: ${validQuestions.length}/${parsedQuestions.length}`);
+          }
+          
+          parsedQuestions = validQuestions.length > 0 ? validQuestions : parsedQuestions;
+        }
       } catch (parseError: any) {
         console.warn('⚠️ Failed to parse questions JSON:', parseError);
         // If it's not valid JSON, try to keep it as is or set to null
