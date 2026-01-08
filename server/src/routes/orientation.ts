@@ -221,9 +221,9 @@ router.post('/steps/:stepId/confirm', authenticate, async (req: AuthRequest, res
       });
       
       // Check if all required questions are answered correctly
-      const requiredQuestions = (step.questions as any[]).filter((q: any) => q.required !== false);
+      const requiredQuestionsForValidation = (step.questions as any[]).filter((q: any) => q.required !== false);
       const incorrectAnswers = answerValidation.filter(
-        (validation: any) => !validation.isCorrect && requiredQuestions.some((q: any) => q.id === validation.questionId)
+        (validation: any) => !validation.isCorrect && requiredQuestionsForValidation.some((q: any) => q.id === validation.questionId)
       );
       
       if (incorrectAnswers.length > 0) {

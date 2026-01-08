@@ -199,19 +199,25 @@ router.post('/academy/courses/:id/resources', upload.array('files', 10), async (
     // Upload files to R2
     const uploadedFiles = await uploadFilesToR2(files, 'academy/resources');
 
+    // Filter out failed uploads
+    const successfulUploads = uploadedFiles.filter((f) => f.success && f.url);
+    if (successfulUploads.length === 0) {
+      return res.status(400).json({ message: 'All file uploads failed' });
+    }
+
     const titlesArray = titles ? JSON.parse(titles) : [];
     const descriptionsArray = descriptions ? JSON.parse(descriptions || '[]') : [];
     const typesArray = resourceTypes ? JSON.parse(resourceTypes) : [];
 
     const resources = await Promise.all(
-      uploadedFiles.map(async (uploadedFile, index) => {
-        const originalFile = files[index];
+      successfulUploads.map(async (uploadedFile, index) => {
+        const originalFile = files[uploadedFiles.indexOf(uploadedFile)];
         const resource = await prisma.courseResource.create({
           data: {
             trainingId: id,
             title: titlesArray[index] || originalFile.originalname.replace(/\.[^/.]+$/, ''),
             description: descriptionsArray[index] || null,
-            fileUrl: uploadedFile.url,
+            fileUrl: uploadedFile.url!,
             fileName: originalFile.originalname,
             fileSize: originalFile.size,
             fileType: path.extname(originalFile.originalname).substring(1).toLowerCase(),

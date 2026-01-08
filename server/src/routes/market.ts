@@ -56,7 +56,9 @@ router.post('/submit', authenticate, marketUpload.array('attachments', 10), asyn
     if (files && files.length > 0) {
       const uploadedFiles = await uploadFilesToR2(files, 'market');
       uploadedFiles.forEach((uploadedFile) => {
-        attachmentUrls.push(uploadedFile.url);
+        if (uploadedFile.success && uploadedFile.url) {
+          attachmentUrls.push(uploadedFile.url);
+        }
       });
     }
 
