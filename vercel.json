@@ -1,7 +1,6 @@
 {
   "version": 2,
   "buildCommand": "npm run install:all && npm run build",
-  "_comment": "Deployment trigger - f16e5ae",
   "installCommand": "npm install && cd server && npm install && cd ../client && npm install",
   "framework": null,
   "outputDirectory": "client/dist",
