@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../../api/client';
 import { getAllLibraryCategories, getLibrarySubcategories } from '../../config/categories';
@@ -26,6 +26,13 @@ export default function LibraryManagement() {
   const isCustomCategory = formData.category === 'OTHER';
   const isCustomSubcategory = formData.subcategory === 'OTHER';
   const queryClient = useQueryClient();
+
+  // Debug: Log when form opens/closes
+  useEffect(() => {
+    if (showForm) {
+      console.log('✅ Upload form opened, uploadMode:', uploadMode);
+    }
+  }, [showForm, uploadMode]);
 
   const { data: resources } = useQuery('admin-library', async () => {
     const res = await api.get('/admin/library');
@@ -274,6 +281,7 @@ export default function LibraryManagement() {
           </button>
           <button
             onClick={() => {
+              console.log('📤 Upload Resource button clicked, showForm was:', showForm);
               setShowForm(!showForm);
               if (showForm) {
                 setUploadMode('single');
@@ -281,6 +289,7 @@ export default function LibraryManagement() {
                 setSelectedFiles([]);
               }
               if (showForm) setShowBulkImport(false);
+              console.log('📤 Upload Resource button clicked, showForm is now:', !showForm);
             }}
             className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600"
           >
@@ -366,33 +375,39 @@ export default function LibraryManagement() {
         <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">
           <h3 className="text-xl font-bold text-white mb-4">Upload Library Resource</h3>
           
-          {/* Upload Mode Selection - v2.0 */}
-          <div className="mb-6 p-4 bg-gray-700 rounded-lg border-2 border-primary-500">
-            <label className="block text-sm font-medium text-gray-200 mb-3">
-              📤 Upload Mode <span className="text-xs text-gray-400">(Choose how to upload)</span>
+          {/* Upload Mode Selection - v3.0 - HIGHLY VISIBLE */}
+          <div className="mb-6 p-5 bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg border-4 border-yellow-400 shadow-lg">
+            <label className="block text-base font-bold text-white mb-4">
+              📤 UPLOAD MODE <span className="text-xs font-normal text-yellow-200">(Choose how to upload)</span>
             </label>
             <div className="flex gap-4">
-              <label className="flex items-center space-x-2 cursor-pointer p-3 rounded-lg hover:bg-gray-600 transition-colors">
+              <label className="flex items-center space-x-3 cursor-pointer p-4 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30 transition-all border-2 border-transparent hover:border-yellow-300">
                 <input
                   type="radio"
                   name="uploadMode"
                   value="single"
                   checked={uploadMode === 'single'}
-                  onChange={(e) => setUploadMode(e.target.value as 'single')}
-                  className="w-4 h-4 text-primary-500"
+                  onChange={(e) => {
+                    console.log('📄 Single file mode selected');
+                    setUploadMode(e.target.value as 'single');
+                  }}
+                  className="w-5 h-5 text-primary-500"
                 />
-                <span className="text-gray-300 text-sm font-medium">📄 Single File</span>
+                <span className="text-white text-base font-semibold">📄 Single File</span>
               </label>
-              <label className="flex items-center space-x-2 cursor-pointer p-3 rounded-lg hover:bg-gray-600 transition-colors">
+              <label className="flex items-center space-x-3 cursor-pointer p-4 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30 transition-all border-2 border-transparent hover:border-yellow-300">
                 <input
                   type="radio"
                   name="uploadMode"
                   value="multiple"
                   checked={uploadMode === 'multiple'}
-                  onChange={(e) => setUploadMode(e.target.value as 'multiple')}
-                  className="w-4 h-4 text-primary-500"
+                  onChange={(e) => {
+                    console.log('📚 Multiple files mode selected');
+                    setUploadMode(e.target.value as 'multiple');
+                  }}
+                  className="w-5 h-5 text-primary-500"
                 />
-                <span className="text-gray-300 text-sm font-medium">📚 Multiple Files</span>
+                <span className="text-white text-base font-semibold">📚 Multiple Files</span>
               </label>
             </div>
           </div>
