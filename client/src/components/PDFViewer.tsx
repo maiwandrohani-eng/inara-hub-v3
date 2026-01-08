@@ -11,13 +11,31 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
 
   // Convert relative URL to absolute if needed
   // Handle different URL formats:
-  // - Full URLs (http://...): use as-is (R2 public URLs)
-  // - URLs starting with /uploads: use with API base URL (proxy through API)
-  // - Relative paths: prepend /uploads
+  // - Full URLs (http://...): Check if it's R2 public URL or needs proxy
+  // - URLs starting with /uploads: proxy through API
+  // - Relative paths: prepend /uploads and proxy through API
   const getFullPdfUrl = () => {
+    // Always use API proxy for R2 URLs to avoid Vercel rewrite issues
+    // R2 public URLs might be caught by Vercel rewrites and return HTML instead of PDF
+    
     if (pdfUrl.startsWith('http')) {
-      // R2 public URL - use directly
-      return pdfUrl;
+      // If it's an R2 public URL (hub.inara.ngo), extract the path and use API proxy
+      // This prevents Vercel from catching it and returning HTML
+      try {
+        const url = new URL(pdfUrl);
+        // If it's the same origin or R2 public URL, use API proxy
+        if (url.hostname === window.location.hostname || url.hostname.includes('inara.ngo')) {
+          // Extract path (e.g., /library/1767878369908-79350700.pdf)
+          const path = url.pathname;
+          // Use API proxy to ensure we get the actual file, not HTML
+          return `${window.location.origin}/api${path}`;
+        }
+        // External URL - use directly
+        return pdfUrl;
+      } catch {
+        // Invalid URL, use as-is
+        return pdfUrl;
+      }
     }
     
     // If URL already starts with /uploads, proxy through API
@@ -74,7 +92,26 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
         <iframe
           src={`${fullPdfUrl}#toolbar=1&navpanes=1&scrollbar=1`}
           className="w-full h-96 md:h-[600px]"
-          onLoad={() => setLoading(false)}
+          onLoad={(e) => {
+            // Check if iframe loaded HTML instead of PDF
+            try {
+              const iframe = e.target as HTMLIFrameElement;
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+              if (iframeDoc) {
+                // If we can access the document and it has a body with React content, it's HTML
+                const bodyText = iframeDoc.body?.innerText || '';
+                if (bodyText.includes('Loading INARA Platform') || bodyText.includes('React')) {
+                  console.error('PDFViewer: Iframe loaded HTML instead of PDF');
+                  setLoading(false);
+                  setError(true);
+                  return;
+                }
+              }
+            } catch (err) {
+              // Cross-origin or other error - assume it's fine (PDFs often block access)
+            }
+            setLoading(false);
+          }}
           onError={() => {
             setLoading(false);
             setError(true);
