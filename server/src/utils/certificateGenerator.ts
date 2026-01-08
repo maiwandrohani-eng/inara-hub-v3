@@ -297,6 +297,16 @@ export async function generateOrientationCertificate(
 
       doc.moveDown(1.5);
 
+      // PAGE BREAK - Start page 2
+      doc.addPage();
+      
+      // Redraw border on page 2
+      doc.rect(margin, margin, pageWidth - (margin * 2), pageHeight - (margin * 2))
+         .lineWidth(borderWidth)
+         .stroke(inaraBlue);
+      
+      doc.y = margin + 30;
+
       // STATUS GRANTED Section
       doc.fontSize(14)
          .fillColor(inaraBlue)
