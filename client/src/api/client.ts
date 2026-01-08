@@ -3,13 +3,25 @@ import { useAuthStore } from '../store/authStore';
 
 // Get API base URL from environment or use relative path
 const getApiBaseUrl = () => {
-  // In production, use VITE_API_URL if set, otherwise use relative path
+  // Always use relative path in production (works with any domain)
+  // VITE_API_URL should only be used for development or if frontend/backend are on different domains
   const envUrl = (import.meta as any).env?.VITE_API_URL;
-  if (envUrl) {
-    return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+  
+  // If we're on the same domain (production), use relative path to avoid CORS issues
+  if (typeof window !== 'undefined') {
+    const currentOrigin = window.location.origin;
+    // If VITE_API_URL is set but points to a different domain, use it
+    // Otherwise, use relative path
+    if (envUrl && !envUrl.includes(currentOrigin)) {
+      // Different domain - use the env URL
+      return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+    }
+    // Same domain or no env URL - use relative path (avoids CORS)
+    return '/api';
   }
-  // Use relative path (will be proxied by vercel.json or nginx)
-  return '/api';
+  
+  // Fallback for SSR or edge cases
+  return envUrl || '/api';
 };
 
 const api = axios.create({
