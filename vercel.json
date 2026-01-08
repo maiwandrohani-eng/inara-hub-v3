@@ -19,10 +19,10 @@
   "rewrites": [
     {
       "source": "/api/uploads/(.*)",
-      "destination": "/api/uploads/[...path]"
+      "destination": "/api/uploads/$1"
     },
     {
-      "source": "/api/(.*)",
+      "source": "/api/(?!uploads)(.*)",
       "destination": "/api/index"
     },
     {
