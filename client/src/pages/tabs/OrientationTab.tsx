@@ -263,18 +263,6 @@ export default function OrientationTab() {
     }
   };
 
-  if (isLoading) {
-    return <div className="text-center py-12 text-gray-400">Loading orientation...</div>;
-  }
-
-  const orientation = data?.orientation;
-  const orientationSteps = orientation?.steps || [];
-  const policies = data?.policies || [];
-  const completed = data?.completed;
-  const certificateUrl = data?.certificateUrl;
-  const checklistData = data?.checklistData;
-  const stepConfirmations = data?.stepConfirmations || new Set();
-
   // Initialize policy confirmations from policies data (check if they're already acknowledged)
   useEffect(() => {
     if (policies && policies.length > 0) {
@@ -292,47 +280,6 @@ export default function OrientationTab() {
     }
   }, [policies]);
 
-  console.log('OrientationTab: Data loaded', {
-    hasSteps: orientationSteps.length > 0,
-    hasPolicies: policies.length > 0,
-    completed,
-    currentStep,
-    checklistItems: checklist.length,
-    stepConfirmations: stepConfirmations.size,
-  });
-
-  // Use orientation steps if available (with PDFs and questions), otherwise fall back to policies
-  const useSteps = orientationSteps.length > 0;
-  
-  // Group policies by category (for fallback)
-  const policiesByCategory = policies.reduce((acc: any, policy: any) => {
-    const category = policy.category || 'Other';
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(policy);
-    return acc;
-  }, {});
-  
-  let totalSteps = 1; // Step 0 is always checklist
-  let currentStepData: any = null;
-  let currentCategory = '';
-  let currentPolicies: any[] = [];
-  
-  if (useSteps) {
-    // Use orientation steps (which can have PDFs and questions)
-    totalSteps = 1 + orientationSteps.length;
-    if (currentStep > 0 && currentStep <= orientationSteps.length) {
-      currentStepData = orientationSteps[currentStep - 1];
-    }
-  } else {
-    // Fallback to old behavior: policies grouped by category
-    totalSteps = 1 + Object.keys(policiesByCategory).length;
-    currentCategory = Object.keys(policiesByCategory)[currentStep - 1] || '';
-    currentPolicies = currentStep > 0 ? policiesByCategory[currentCategory] || [] : [];
-    currentStepData = { type: 'policies', policies: currentPolicies, category: currentCategory };
-  }
-
   // Safety check: ensure currentStep doesn't exceed totalSteps - 1
   // This prevents "Step 2 of 1" and "200% Complete" when there are no steps
   useEffect(() => {
@@ -345,6 +292,10 @@ export default function OrientationTab() {
       }
     }
   }, [currentStep, totalSteps]);
+
+  if (isLoading) {
+    return <div className="text-center py-12 text-gray-400">Loading orientation...</div>;
+  }
 
   // If completed and user wants to see onboarding flow, show it
   if (completed && !showOnboardingFlow) {
