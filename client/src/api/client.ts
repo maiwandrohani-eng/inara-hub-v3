@@ -47,23 +47,37 @@ api.interceptors.response.use(
     // Log 403 errors with more details for debugging
     if (error.response?.status === 403) {
       const errorData = error.response?.data;
-      console.error('🚫 403 Forbidden Error:', {
+      console.error('🚫🚫🚫 403 FORBIDDEN ERROR 🚫🚫🚫');
+      console.error('Full Error Response:', error.response?.data);
+      console.error('Error Details:', {
         message: errorData?.message,
         detail: errorData?.detail,
         requiredRoles: errorData?.requiredRoles,
         userRole: errorData?.userRole,
+        userRoleType: errorData?.userRoleType,
         userEmail: errorData?.userEmail,
         userId: errorData?.userId,
         url: error.config?.url,
+        method: error.config?.method,
       });
       
       // Show user-friendly alert with details
       const user = useAuthStore.getState().user;
-      if (user) {
-        console.warn(`⚠️ Your current role: ${user.role}`);
-        console.warn(`⚠️ Required role: ${errorData?.requiredRoles?.join(' or ')}`);
-        console.warn(`💡 To fix: Contact an admin to update your role to ADMIN`);
+      console.error('=== CLIENT-SIDE ROLE ===');
+      console.error('Stored Role:', user?.role);
+      console.error('Stored Email:', user?.email);
+      console.error('=== SERVER-SIDE ROLE ===');
+      console.error('Server Sees Role:', errorData?.userRole);
+      console.error('Server Sees Role Type:', errorData?.userRoleType);
+      console.error('Required Roles:', errorData?.requiredRoles);
+      
+      if (user?.role !== errorData?.userRole) {
+        console.error('⚠️⚠️⚠️ ROLE MISMATCH DETECTED ⚠️⚠️⚠️');
+        console.error('Client shows:', user?.role);
+        console.error('Server shows:', errorData?.userRole);
+        console.error('💡 SOLUTION: Log out and log back in to refresh your token');
       }
+      console.error('🚫🚫🚫 END 403 ERROR 🚫🚫🚫');
     }
     return Promise.reject(error);
   }
