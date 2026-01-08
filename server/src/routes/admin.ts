@@ -882,14 +882,101 @@ router.get('/templates', async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/templates', async (req: AuthRequest, res) => {
+router.post('/templates', upload.single('file'), async (req: AuthRequest, res) => {
   try {
+    const { title, description, category, subcategory, tags } = req.body;
+    const file = req.file;
+
+    let fileUrl = req.body.fileUrl || null;
+    
+    // Upload file to R2 if provided
+    if (file) {
+      try {
+        const uploadedFile = await uploadFileToR2(file, 'template');
+        fileUrl = uploadedFile.url;
+      } catch (uploadError: any) {
+        console.error('File upload error:', uploadError);
+        return res.status(500).json({ 
+          message: `Failed to upload file: ${uploadError.message}` 
+        });
+      }
+    }
+
+    const parsedTags = tags ? (typeof tags === 'string' ? JSON.parse(tags) : tags) : [];
+
     const template = await prisma.template.create({
-      data: req.body,
+      data: {
+        title,
+        description: description || null,
+        fileUrl: fileUrl!,
+        category: category || null,
+        subcategory: subcategory || null,
+        tags: parsedTags,
+        version: 1,
+        approvalStatus: 'approved',
+        isActive: true,
+      },
     });
 
     res.status(201).json({ template });
   } catch (error: any) {
+    console.error('Template creation error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Upload multiple templates with files
+router.post('/templates/upload-multiple', upload.array('files', 50), async (req: AuthRequest, res) => {
+  try {
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      return res.status(400).json({ message: 'No files uploaded' });
+    }
+
+    // Upload all files to R2 first
+    const uploadedFiles = await uploadFilesToR2(files, 'template');
+
+    const templates = [];
+    const errors = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const uploadResult = uploadedFiles[i];
+
+      if (!uploadResult.success || !uploadResult.url) {
+        errors.push({ fileName: file.originalname, error: uploadResult.error || 'Upload failed' });
+        continue;
+      }
+
+      try {
+        const title = file.originalname.replace(/\.[^/.]+$/, '');
+        const template = await prisma.template.create({
+          data: {
+            title,
+            description: `Imported from ${file.originalname}`,
+            fileUrl: uploadResult.url,
+            category: null,
+            subcategory: null,
+            tags: [],
+            version: 1,
+            approvalStatus: 'approved',
+            isActive: true,
+          },
+        });
+        templates.push(template);
+      } catch (error: any) {
+        errors.push({ fileName: file.originalname, error: error.message });
+      }
+    }
+
+    res.status(201).json({
+      templates,
+      uploaded: templates.length,
+      failed: errors.length,
+      errors,
+    });
+  } catch (error: any) {
+    console.error('Multiple template upload error:', error);
     res.status(500).json({ message: error.message });
   }
 });

@@ -4,6 +4,9 @@ import api from '../../api/client';
 
 export default function TemplateManagement() {
   const [showForm, setShowForm] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'single' | 'multiple'>('single');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -20,18 +23,70 @@ export default function TemplateManagement() {
   });
 
   const createMutation = useMutation(
-    async (data: any) => {
-      const res = await api.post('/admin/templates', {
-        ...data,
-        tags: data.tags.filter((t: string) => t.trim()),
-      });
-      return res.data;
+    async (data: { formData: any; file?: File | null }) => {
+      if (data.file) {
+        // Upload file first, then create template
+        const formDataObj = new FormData();
+        formDataObj.append('file', data.file);
+        formDataObj.append('title', data.formData.title || data.file.name.replace(/\.[^/.]+$/, ''));
+        formDataObj.append('description', data.formData.description || '');
+        formDataObj.append('category', data.formData.category || '');
+        formDataObj.append('subcategory', data.formData.subcategory || '');
+        formDataObj.append('tags', JSON.stringify(data.formData.tags.filter((t: string) => t.trim())));
+        
+        const res = await api.post('/admin/templates', formDataObj, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return res.data;
+      } else {
+        // Create template without file (using URL)
+        const res = await api.post('/admin/templates', {
+          ...data.formData,
+          tags: data.formData.tags.filter((t: string) => t.trim()),
+        });
+        return res.data;
+      }
     },
     {
       onSuccess: () => {
         queryClient.invalidateQueries('admin-templates');
         setShowForm(false);
+        setSelectedFile(null);
+        setFormData({
+          title: '',
+          description: '',
+          fileUrl: '',
+          category: '',
+          subcategory: '',
+          tags: [''],
+        });
         alert('Template added successfully!');
+      },
+      onError: (error: any) => {
+        alert(error.response?.data?.message || 'Failed to upload template');
+      },
+    }
+  );
+
+  const multipleUploadMutation = useMutation(
+    async (files: File[]) => {
+      const formDataObj = new FormData();
+      files.forEach((file) => {
+        formDataObj.append('files', file);
+      });
+      const res = await api.post('/admin/templates/upload-multiple', formDataObj, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return res.data;
+    },
+    {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries('admin-templates');
+        setSelectedFiles([]);
+        alert(`Successfully uploaded ${data.uploaded || data.templates?.length || 0} template(s)!`);
+      },
+      onError: (error: any) => {
+        alert(error.response?.data?.message || 'Failed to upload templates');
       },
     }
   );
@@ -54,7 +109,23 @@ export default function TemplateManagement() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+    
+    if (uploadMode === 'multiple' && selectedFiles.length > 0) {
+      // Handle multiple file upload
+      multipleUploadMutation.mutate(selectedFiles);
+      return;
+    }
+    
+    // Handle single file upload or URL
+    createMutation.mutate({ formData, file: selectedFile });
+  };
+
+  const handleMultipleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(files);
+    if (files.length > 0 && !formData.title) {
+      setFormData({ ...formData, title: files[0].name.replace(/\.[^/.]+$/, '') });
+    }
   };
 
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -289,6 +360,38 @@ export default function TemplateManagement() {
       {showForm && (
         <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">
           <h3 className="text-xl font-bold text-white mb-4">Upload Template</h3>
+          
+          {/* Upload Mode Selection */}
+          <div className="mb-6 p-5 bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg border-4 border-yellow-400 shadow-lg">
+            <label className="block text-base font-bold text-white mb-4">
+              📤 UPLOAD MODE <span className="text-xs font-normal text-yellow-200">(Choose how to upload)</span>
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center space-x-3 cursor-pointer p-4 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30 transition-all border-2 border-transparent hover:border-yellow-300">
+                <input
+                  type="radio"
+                  name="uploadMode"
+                  value="single"
+                  checked={uploadMode === 'single'}
+                  onChange={(e) => setUploadMode(e.target.value as 'single')}
+                  className="w-5 h-5 text-primary-500"
+                />
+                <span className="text-white text-base font-semibold">📄 Single File</span>
+              </label>
+              <label className="flex items-center space-x-3 cursor-pointer p-4 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30 transition-all border-2 border-transparent hover:border-yellow-300">
+                <input
+                  type="radio"
+                  name="uploadMode"
+                  value="multiple"
+                  checked={uploadMode === 'multiple'}
+                  onChange={(e) => setUploadMode(e.target.value as 'multiple')}
+                  className="w-5 h-5 text-primary-500"
+                />
+                <span className="text-white text-base font-semibold">📚 Multiple Files</span>
+              </label>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-200 mb-1">Title *</label>
@@ -329,23 +432,79 @@ export default function TemplateManagement() {
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
               />
             </div>
+            {/* File Upload Section */}
+            {uploadMode === 'single' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-1">Upload File</label>
+                <input
+                  key="single-file-input"
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setSelectedFile(file);
+                    if (file && !formData.title) {
+                      setFormData({ ...formData, title: file.name.replace(/\.[^/.]+$/, '') });
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                  accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                />
+                {selectedFile && (
+                  <p className="text-sm text-gray-400 mt-1">Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">Or enter a file URL below</p>
+              </div>
+            )}
+
+            {uploadMode === 'multiple' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-1">Upload Multiple Files</label>
+                <input
+                  key="multiple-file-input"
+                  type="file"
+                  multiple
+                  onChange={handleMultipleFileSelect}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                  accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                />
+                <p className="text-xs text-gray-500 mt-1">💡 You can select multiple individual files (not folders)</p>
+                {selectedFiles.length > 0 && (
+                  <div className="mt-2 p-3 bg-gray-700 rounded-lg">
+                    <p className="text-sm text-green-400 mb-2">✅ {selectedFiles.length} file(s) selected</p>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {selectedFiles.map((file, idx) => (
+                        <p key={idx} className="text-xs text-gray-300">
+                          • {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">File URL *</label>
+              <label className="block text-sm font-medium text-gray-200 mb-1">File URL {uploadMode === 'single' ? '(Optional - if not uploading file)' : '(Not used for multiple upload)'}</label>
               <input
                 type="text"
                 value={formData.fileUrl}
                 onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
-                required
+                required={uploadMode === 'single' && !selectedFile}
+                disabled={uploadMode === 'multiple'}
                 placeholder="URL to template file"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg disabled:opacity-50"
               />
             </div>
             <button
               type="submit"
-              disabled={createMutation.isLoading}
+              disabled={createMutation.isLoading || multipleUploadMutation.isLoading || (uploadMode === 'single' && !selectedFile && !formData.fileUrl) || (uploadMode === 'multiple' && selectedFiles.length === 0)}
               className="w-full bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 disabled:opacity-50"
             >
-              {createMutation.isLoading ? 'Uploading...' : 'Add Template'}
+              {createMutation.isLoading || multipleUploadMutation.isLoading 
+                ? 'Uploading...' 
+                : uploadMode === 'multiple' 
+                  ? `Upload ${selectedFiles.length} Template(s)`
+                  : 'Add Template'}
             </button>
           </form>
         </div>
