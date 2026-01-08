@@ -16,6 +16,7 @@
     }
   },
   "regions": ["fra1"],
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api/(.*)",
