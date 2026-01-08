@@ -101,6 +101,46 @@ export default function QuickViewModal({
 
   if (!isOpen) return null;
 
+  // Convert fileUrl to use API proxy for R2 URLs (same logic as PDFViewer)
+  const getProxiedFileUrl = () => {
+    if (!fileUrl) return '';
+    
+    // Always use API proxy for R2 URLs to avoid Vercel rewrite issues
+    if (fileUrl.startsWith('http')) {
+      try {
+        const url = new URL(fileUrl);
+        // If it's the same origin or R2 public URL, use API proxy
+        if (url.hostname === window.location.hostname || url.hostname.includes('inara.ngo')) {
+          // Extract path (e.g., /templates/1767878369908-79350700.pdf)
+          // Remove leading slash to get the R2 key (e.g., templates/1767878369908-79350700.pdf)
+          const r2Key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+          // Use API uploads proxy endpoint - it expects the R2 key directly
+          return `${window.location.origin}/api/uploads/${r2Key}`;
+        }
+        // External URL - use directly
+        return fileUrl;
+      } catch {
+        // Invalid URL, use as-is
+        return fileUrl;
+      }
+    }
+    
+    // If URL already starts with /uploads, proxy through API
+    if (fileUrl.startsWith('/uploads')) {
+      const apiBase = (import.meta as any).env?.DEV 
+        ? 'http://localhost:5000' 
+        : ((import.meta as any).env?.VITE_API_URL || window.location.origin);
+      return `${apiBase}/api${fileUrl}`;
+    }
+    
+    // Otherwise, prepend /uploads and proxy through API
+    const apiBase = (import.meta as any).env?.DEV 
+      ? 'http://localhost:5000' 
+      : ((import.meta as any).env?.VITE_API_URL || window.location.origin);
+    return `${apiBase}/api/uploads/${fileUrl}`;
+  };
+
+  const proxiedFileUrl = getProxiedFileUrl();
   const isPDF = fileType === 'pdf' || fileUrl?.toLowerCase().endsWith('.pdf') || 
                 fileUrl?.toLowerCase().includes('.pdf');
 
@@ -148,7 +188,7 @@ export default function QuickViewModal({
         <div className="flex-1 overflow-hidden">
           {isPDF ? (
             <div className="h-full w-full">
-              <PDFViewer pdfUrl={fileUrl} title={title} />
+              <PDFViewer pdfUrl={proxiedFileUrl || fileUrl} title={title} />
             </div>
           ) : (
             <div className="h-full w-full flex items-center justify-center p-8">

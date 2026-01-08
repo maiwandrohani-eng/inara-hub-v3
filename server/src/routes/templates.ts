@@ -61,14 +61,27 @@ router.get('/:id/download', authenticate, async (req: AuthRequest, res) => {
 
     console.log('📁 Template fileUrl:', template.fileUrl);
 
-    // Get presigned URL from R2 or redirect to public URL
-    const { getPresignedUrl } = await import('../utils/r2Storage.js');
-    const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
-    
     // Extract key from template URL
-    const key = template.fileUrl.replace(/^\/uploads\//, '').replace(/^https?:\/\/[^\/]+\//, '');
+    // Handle different URL formats:
+    // - /uploads/templates/... -> templates/...
+    // - https://hub.inara.ngo/templates/... -> templates/...
+    // - templates/... -> templates/...
+    let key = template.fileUrl;
+    if (key.startsWith('/uploads/')) {
+      key = key.replace('/uploads/', '');
+    } else if (key.startsWith('http')) {
+      try {
+        const url = new URL(key);
+        key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+      } catch {
+        // Invalid URL, try to extract key directly
+        key = key.replace(/^https?:\/\/[^\/]+\//, '');
+      }
+    }
     
-    // Track download
+    console.log('📦 Extracted R2 key:', key);
+
+    // Track download (do this before streaming to ensure it's tracked even if stream fails)
     try {
       await prisma.templateDownload.create({
         data: {
@@ -96,14 +109,49 @@ router.get('/:id/download', authenticate, async (req: AuthRequest, res) => {
       console.warn('⚠️ Failed to log activity:', logError.message);
     }
 
-    // Redirect to R2 file
-    if (R2_PUBLIC_URL) {
-      // Redirect to public URL
-      return res.redirect(302, `${R2_PUBLIC_URL}/${key}`);
-    } else {
-      // Generate presigned URL
-      const presignedUrl = await getPresignedUrl(key, 3600); // 1 hour expiry
-      return res.redirect(302, presignedUrl);
+    // Stream file directly from R2 instead of redirecting
+    // This ensures the file is downloaded properly and not HTML
+    try {
+      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const { getR2Client } = await import('../utils/r2Storage.js');
+      
+      const s3Client = getR2Client();
+      const command = new GetObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME!,
+        Key: key,
+      });
+
+      const response = await s3Client.send(command);
+      
+      // Set appropriate headers
+      const contentType = response.ContentType || 'application/octet-stream';
+      const contentLength = response.ContentLength || 0;
+      const contentDisposition = `attachment; filename="${template.title}${key.match(/\.[0-9a-z]+$/i)?.[0] || ''}"`;
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Length', contentLength.toString());
+      res.setHeader('Content-Disposition', contentDisposition);
+      res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+      
+      // Stream the file
+      if (response.Body) {
+        // @ts-ignore - Body is a stream
+        const stream = response.Body as any;
+        return stream.pipe(res);
+      } else {
+        return res.status(500).json({ message: 'File body is empty' });
+      }
+    } catch (streamError: any) {
+      console.error('❌ Error streaming template file:', streamError);
+      // Fallback: try redirecting to presigned URL
+      try {
+        const { getPresignedUrl } = await import('../utils/r2Storage.js');
+        const presignedUrl = await getPresignedUrl(key, 3600);
+        return res.redirect(302, presignedUrl);
+      } catch (presignError: any) {
+        console.error('❌ Error generating presigned URL:', presignError);
+        return res.status(500).json({ message: 'Failed to download template file' });
+      }
     }
   } catch (error: any) {
     console.error('❌ Error downloading template:', error);
