@@ -88,11 +88,50 @@ export default function TemplateManagement() {
         alert(`Bulk import completed! ${data.imported} imported, ${data.failed} failed.`);
       },
       onError: (error: any) => {
-        const errorMessage = error.response?.data?.message || 'Bulk import failed';
-        const errorDetail = error.response?.data?.detail;
-        const fullMessage = errorDetail ? `${errorMessage}\n\n${errorDetail}` : errorMessage;
+        console.error('❌ Bulk import error:', error);
+        console.error('Error response:', error.response);
+        console.error('Error response data:', error.response?.data);
+        
+        const errorData = error.response?.data || {};
+        const errorMessage = errorData.message || 'Bulk import failed';
+        const errorDetail = errorData.detail;
+        const userRole = errorData.userRole;
+        const userRoleType = errorData.userRoleType;
+        const requiredRoles = errorData.requiredRoles;
+        const userId = errorData.userId;
+        const userEmail = errorData.userEmail;
+        
+        // Log detailed information
+        console.error('=== 403 Error Details ===');
+        console.error('Server sees role:', userRole);
+        console.error('Role type:', userRoleType);
+        console.error('Required roles:', requiredRoles);
+        console.error('User ID:', userId);
+        console.error('User email:', userEmail);
+        
+        // Get client-side role for comparison
+        const authData = JSON.parse(localStorage.getItem('inara-auth') || '{}');
+        const clientRole = authData?.state?.user?.role;
+        console.error('Client-side role:', clientRole);
+        console.error('Role mismatch:', clientRole !== userRole);
+        
+        let fullMessage = errorMessage;
+        if (errorDetail) {
+          fullMessage += `\n\n${errorDetail}`;
+        }
+        if (userRole && requiredRoles) {
+          fullMessage += `\n\nServer sees your role as: ${userRole} (${userRoleType})\nRequired: ${requiredRoles.join(' or ')}`;
+          if (clientRole && clientRole !== userRole) {
+            fullMessage += `\n\n⚠️ Mismatch: Client shows "${clientRole}" but server sees "${userRole}"`;
+            fullMessage += `\n\n💡 Solution: Log out and log back in to refresh your token.`;
+          } else if (error.response?.status === 403) {
+            fullMessage += `\n\n💡 Your JWT token may be stale. Please log out and log back in to refresh your token with your current role.`;
+          }
+        } else if (error.response?.status === 403) {
+          fullMessage += `\n\n💡 This action requires ADMIN role. If you recently had your role updated, please log out and log back in to refresh your token.`;
+        }
+        
         alert(fullMessage);
-        console.error('Bulk import error:', error.response?.data);
       },
       onSettled: () => {
         setBulkImporting(false);
