@@ -41,6 +41,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       contentLength: req.headers['content-length'],
       hasBody: !!req.body,
       bodyType: typeof req.body,
+      origin: req.headers.origin,
+      referer: req.headers.referer,
+      authorization: req.headers.authorization ? 'Bearer ***' : 'MISSING',
+      userAgent: req.headers['user-agent'],
     });
 
     // Handle OPTIONS preflight requests explicitly
@@ -53,6 +57,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const expressApp = await getApp();
+    
+    // Add error handler to catch any issues before they become 403
+    const originalEnd = res.end.bind(res);
+    res.end = function(chunk?: any, encoding?: any) {
+      console.log('[Vercel Handler] Response ending:', {
+        statusCode: res.statusCode,
+        headers: res.getHeaders(),
+        chunkLength: chunk ? (typeof chunk === 'string' ? chunk.length : chunk.byteLength) : 0,
+      });
+      return originalEnd(chunk, encoding);
+    };
     
     // Call the Express app as a handler
     return expressApp(req, res);

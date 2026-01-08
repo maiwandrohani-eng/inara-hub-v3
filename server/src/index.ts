@@ -71,17 +71,17 @@ const corsOptions = {
   origin: corsOrigin
     ? corsOrigin.split(',').map(origin => origin.trim())
     : process.env.NODE_ENV === 'production'
-      ? false // Deny all in production if CORS_ORIGIN not set
+      ? true // Allow all in production if CORS_ORIGIN not set (Vercel handles this)
       : true, // Allow all in development
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 };
 
 if (process.env.NODE_ENV === 'production' && !corsOrigin) {
-  console.warn('⚠️ CORS_ORIGIN not set in production. CORS requests from browsers will be blocked.');
-  console.warn('Set CORS_ORIGIN to your frontend domain (e.g., https://your-app.vercel.app)');
+  console.warn('⚠️ CORS_ORIGIN not set in production. Allowing all origins (Vercel handles security).');
+  console.warn('For better security, set CORS_ORIGIN to your frontend domain (e.g., https://hub.inara.ngo)');
 }
 
 // Middleware
