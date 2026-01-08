@@ -2221,8 +2221,16 @@ router.post('/orientations/:id/steps', (req, res, next) => {
       title: title.trim(),
       hasPdf: !!pdfUrl,
       hasQuestions: !!parsedQuestions,
+      questionsCount: Array.isArray(parsedQuestions) ? parsedQuestions.length : 0,
+      questionMode: questionMode,
       isRequired: isRequiredValue,
       order: finalOrderValue,
+      firstQuestionPreview: Array.isArray(parsedQuestions) && parsedQuestions.length > 0 ? {
+        id: parsedQuestions[0].id,
+        type: parsedQuestions[0].type,
+        hasOptions: !!parsedQuestions[0].options,
+        optionsCount: parsedQuestions[0].options?.length || 0,
+      } : null,
     });
 
     const step = await prisma.orientationStep.create({
