@@ -8,29 +8,41 @@ let pdfParseLoaded = false;
 // Lazy load pdf-parse using dynamic import or createRequire
 async function loadPdfParse() {
   if (pdfParseLoaded && pdfParse) return pdfParse;
+  
   try {
-    // Try dynamic import first
-    const pdfParseModule = await import('pdf-parse');
-    // Handle both ESM and CommonJS exports
-    pdfParse = (pdfParseModule as any).default || pdfParseModule;
+    // Try createRequire first (more reliable for CommonJS modules)
+    const { createRequire } = await import('module');
+    const require = createRequire(import.meta.url);
+    pdfParse = require('pdf-parse');
     pdfParseLoaded = true;
+    console.log('✅ pdf-parse loaded via require');
     return pdfParse;
-  } catch (error: any) {
-    console.error('⚠️ Failed to load pdf-parse:', error);
-    // Try require as fallback (for CommonJS compatibility)
+  } catch (requireError: any) {
+    console.warn('⚠️ Failed to load pdf-parse with require, trying dynamic import:', requireError.message);
+    
     try {
-      // Use type assertion to handle module import
-      const module = await import('module');
-      const createRequire = (module as any).createRequire || (module.default as any)?.createRequire;
-      if (createRequire) {
-        const require = createRequire(import.meta.url);
-        pdfParse = require('pdf-parse');
+      // Try dynamic import as fallback
+      const pdfParseModule = await import('pdf-parse');
+      // Handle both ESM and CommonJS exports
+      pdfParse = (pdfParseModule as any).default || pdfParseModule;
+      
+      // If it's a function, use it directly; if it's an object with a default, extract it
+      if (typeof pdfParse === 'function') {
         pdfParseLoaded = true;
+        console.log('✅ pdf-parse loaded via dynamic import (function)');
         return pdfParse;
+      } else if (pdfParse && typeof pdfParse.default === 'function') {
+        pdfParse = pdfParse.default;
+        pdfParseLoaded = true;
+        console.log('✅ pdf-parse loaded via dynamic import (default export)');
+        return pdfParse;
+      } else {
+        console.error('⚠️ pdf-parse loaded but is not a function:', typeof pdfParse, pdfParse);
+        return null;
       }
-      return null;
-    } catch (requireError) {
-      console.error('⚠️ Failed to load pdf-parse with require:', requireError);
+    } catch (importError: any) {
+      console.error('⚠️ Failed to load pdf-parse with dynamic import:', importError.message);
+      console.error('⚠️ Full error:', importError);
       return null;
     }
   }
