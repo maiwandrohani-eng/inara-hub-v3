@@ -355,11 +355,11 @@ export default function OrientationTab() {
               <div className="space-y-4">
                 <p className="text-gray-300">Your certificate is ready!</p>
                 <button
-                  onClick={() => setShowCertificateForm(true)}
+                  onClick={() => setShowCertificateViewer(true)}
                   className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-semibold flex items-center space-x-2 mx-auto"
                 >
                   <span>📄</span>
-                  <span>Download Certificate</span>
+                  <span>View & Print Certificate</span>
                 </button>
               </div>
             )}
