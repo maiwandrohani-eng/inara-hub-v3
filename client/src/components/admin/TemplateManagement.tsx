@@ -92,6 +92,20 @@ export default function TemplateManagement() {
         console.error('Error response:', error.response);
         console.error('Error response data:', error.response?.data);
         
+        // Check if Vercel blocked the request (plain "Forbidden" text, not JSON)
+        const responseText = error.response?.data;
+        const isVercelBlock = typeof responseText === 'string' && responseText.includes('Forbidden') && !error.response?.data?.message;
+        
+        if (isVercelBlock) {
+          console.error('🚫 Vercel blocked the request before it reached our app!');
+          console.error('This usually means:');
+          console.error('1. Request body exceeds 4.5MB (Vercel Hobby plan limit)');
+          console.error('2. Or there is a routing/configuration issue');
+          
+          alert(`❌ Request blocked by Vercel platform.\n\nPossible causes:\n1. Total file size exceeds 4.5MB limit\n2. Too many files in one request\n\n💡 Solution: Try uploading fewer files at once, or use single/multiple file upload instead of bulk import.`);
+          return;
+        }
+        
         const errorData = error.response?.data || {};
         const errorMessage = errorData.message || 'Bulk import failed';
         const errorDetail = errorData.detail;
@@ -144,6 +158,17 @@ export default function TemplateManagement() {
       alert('Please select folders to import');
       return;
     }
+    
+    // Check total file size (Vercel Hobby plan limit is 4.5MB)
+    const totalSize = bulkFiles.reduce((sum, file) => sum + file.size, 0);
+    const maxSize = 4.5 * 1024 * 1024; // 4.5MB in bytes
+    
+    if (totalSize > maxSize) {
+      alert(`Total file size (${(totalSize / 1024 / 1024).toFixed(2)} MB) exceeds Vercel's 4.5MB limit. Please select fewer files or smaller files.`);
+      return;
+    }
+    
+    console.log(`📦 Uploading ${bulkFiles.length} files, total size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
     setBulkImporting(true);
     bulkImportMutation.mutate(bulkFiles);
   };

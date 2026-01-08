@@ -241,6 +241,17 @@ export default function LibraryManagement() {
       alert('Please select folders to import');
       return;
     }
+    
+    // Check total file size (Vercel Hobby plan limit is 4.5MB)
+    const totalSize = bulkFiles.reduce((sum, file) => sum + file.size, 0);
+    const maxSize = 4.5 * 1024 * 1024; // 4.5MB in bytes
+    
+    if (totalSize > maxSize) {
+      alert(`Total file size (${(totalSize / 1024 / 1024).toFixed(2)} MB) exceeds Vercel's 4.5MB limit.\n\nPlease select fewer files or use single/multiple file upload instead.`);
+      return;
+    }
+    
+    console.log(`📦 Uploading ${bulkFiles.length} files, total size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
     setBulkImporting(true);
     bulkImportMutation.mutate(bulkFiles);
   };
