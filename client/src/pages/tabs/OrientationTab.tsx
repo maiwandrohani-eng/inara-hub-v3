@@ -855,17 +855,18 @@ export default function OrientationTab() {
                   }
                 }
 
-                // Move to next step or complete
+                // Move to next step or show certificate form
                 if (currentStep < totalSteps - 1) {
                   setCurrentStep(currentStep + 1);
                 } else {
-                  // All steps done, complete orientation
+                  // Last step completed - show certificate form
                   const allChecklistChecked = checklist.every(item => item.checked);
                   if (!allChecklistChecked) {
                     alert('Please complete all checklist items before finishing orientation.');
                     return;
                   }
-                  await handleComplete();
+                  // Show certificate form instead of completing immediately
+                  setShowCertificateForm(true);
                 }
               }}
               disabled={confirmStepMutation.isLoading}
@@ -1014,6 +1015,33 @@ export default function OrientationTab() {
                   }
 
                   try {
+                    // First, complete the orientation with certificate data
+                    const checklistData = {
+                      orientation: checklist.filter(c => c.category === 'orientation').map(c => ({
+                        id: c.id,
+                        label: c.label,
+                        checked: c.checked,
+                      })),
+                      equipment: checklist.filter(c => c.category === 'equipment').map(c => ({
+                        id: c.id,
+                        label: c.label,
+                        checked: c.checked,
+                      })),
+                      completedAt: new Date().toISOString(),
+                    };
+
+                    // Complete orientation with certificate data
+                    const completionResult = await completeMutation.mutateAsync({
+                      score: 100,
+                      checklistData,
+                      certificateData: {
+                        passportId: certificateData.passportId,
+                        country: certificateData.country || '',
+                        department: certificateData.department || '',
+                        role: certificateData.role || '',
+                      },
+                    });
+
                     // Get the token from auth store
                     const { token } = useAuthStore.getState();
                     
@@ -1070,10 +1098,13 @@ export default function OrientationTab() {
                     window.URL.revokeObjectURL(url);
 
                     setShowCertificateForm(false);
-                    alert('✅ Certificate downloaded successfully!');
+                    alert('🎉 Orientation completed successfully! Your certificate has been downloaded.');
+                    
+                    // Refresh orientation data
+                    await refetch();
                   } catch (error: any) {
-                    console.error('Error downloading certificate:', error);
-                    const errorMessage = error.message || error.response?.data?.message || 'Failed to download certificate. Please try again.';
+                    console.error('Error completing orientation or downloading certificate:', error);
+                    const errorMessage = error.message || error.response?.data?.message || 'Failed to complete orientation or download certificate. Please try again.';
                     alert(errorMessage);
                   }
                 }}

@@ -280,11 +280,11 @@ router.post('/steps/:stepId/confirm', authenticate, async (req: AuthRequest, res
   }
 });
 
-// Complete orientation (with checklist data)
+// Complete orientation (with checklist data and certificate data)
 router.post('/complete', authenticate, async (req: AuthRequest, res) => {
   try {
     const userId = req.userId!;
-    const { score, checklistData } = req.body;
+    const { score, checklistData, certificateData } = req.body;
 
     const orientation = await prisma.orientation.findFirst({
       where: { isActive: true },
@@ -325,6 +325,9 @@ router.post('/complete', authenticate, async (req: AuthRequest, res) => {
         firstName: true,
         lastName: true,
         email: true,
+        country: true,
+        department: true,
+        role: true,
       },
     });
 
@@ -340,6 +343,49 @@ router.post('/complete', authenticate, async (req: AuthRequest, res) => {
       ? `https://${process.env.VERCEL_URL}` 
       : process.env.API_BASE_URL || process.env.R2_PUBLIC_URL || 'http://localhost:5000';
     const certificateUrl = `${baseUrl}/api/orientation/certificate/${userId}`;
+
+    // Generate certificate immediately if certificate data is provided
+    let certificateGenerated = false;
+    if (certificateData && certificateData.passportId) {
+      try {
+        const userDataForCertificate = {
+          ...user,
+          passportId: certificateData.passportId || undefined,
+          country: certificateData.country || user.country || undefined,
+          department: certificateData.department || user.department || undefined,
+          role: certificateData.role || user.role || undefined,
+        };
+
+        // Generate certificate PDF
+        const certificateBuffer = await generateOrientationCertificate(
+          userDataForCertificate,
+          completionDate
+        );
+
+        // Upload certificate to R2 for permanent storage
+        try {
+          const { uploadToR2, generateFileKey } = await import('../utils/r2Storage.js');
+          const certificateKey = generateFileKey('certificates', `orientation_${userId}_${Date.now()}.pdf`);
+          await uploadToR2(certificateBuffer, certificateKey, 'application/pdf');
+          
+          // Update certificate URL to point to R2
+          const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+          const finalCertificateUrl = R2_PUBLIC_URL 
+            ? `${R2_PUBLIC_URL}/${certificateKey}`
+            : `/api/uploads/${certificateKey}`;
+          
+          certificateGenerated = true;
+          console.log('✅ Certificate generated and uploaded to R2:', certificateKey);
+        } catch (uploadError: any) {
+          console.warn('⚠️ Failed to upload certificate to R2, but certificate was generated:', uploadError.message);
+          // Continue with on-demand generation
+        }
+      } catch (certError: any) {
+        console.error('❌ Error generating certificate during completion:', certError);
+        // Don't fail the completion if certificate generation fails
+        // Certificate can still be generated on-demand later
+      }
+    }
 
     const completion = await prisma.orientationCompletion.upsert({
       where: { userId },
