@@ -28,7 +28,7 @@ const validateR2Config = () => {
 // Initialize R2 client with validation
 let r2Client: S3Client | null = null;
 
-const getR2Client = (): S3Client => {
+export const getR2Client = (): S3Client => {
   if (!r2Client) {
     validateR2Config();
     const endpoint = getR2Endpoint();
