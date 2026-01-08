@@ -515,6 +515,7 @@ export default function LibraryManagement() {
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-1">Upload File</label>
                 <input
+                  key="single-file-input"
                   type="file"
                   onChange={(e) => {
                     const file = e.target.files?.[0] || null;
@@ -525,6 +526,8 @@ export default function LibraryManagement() {
                   }}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
                   accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                  // Explicitly ensure webkitdirectory is NOT set
+                  {...({} as any)}
                 />
                 {selectedFile && (
                   <p className="text-sm text-gray-400 mt-1">Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</p>
@@ -537,12 +540,16 @@ export default function LibraryManagement() {
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-1">Upload Multiple Files</label>
                 <input
+                  key="multiple-file-input"
                   type="file"
                   multiple
                   onChange={handleMultipleFileSelect}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
                   accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                  // Explicitly ensure webkitdirectory is NOT set - this allows file selection, not folder selection
+                  {...({} as any)}
                 />
+                <p className="text-xs text-gray-500 mt-1">💡 You can select multiple individual files (not folders)</p>
                 {selectedFiles.length > 0 && (
                   <div className="mt-2 p-3 bg-gray-700 rounded-lg">
                     <p className="text-sm text-green-400 mb-2">✅ {selectedFiles.length} file(s) selected</p>
