@@ -57,6 +57,47 @@ export default function OrientationTab() {
     refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
+  // Extract data - must be before useEffect hooks that use this data
+  const orientation = data?.orientation;
+  const orientationSteps = orientation?.steps || [];
+  const policies = data?.policies || [];
+  const completed = data?.completed;
+  const certificateUrl = data?.certificateUrl;
+  const checklistData = data?.checklistData;
+  const stepConfirmations = data?.stepConfirmations || new Set();
+
+  // Pre-calculate values needed by useEffect hooks
+  const useSteps = orientationSteps.length > 0;
+  
+  // Group policies by category (for fallback)
+  const policiesByCategory = policies.reduce((acc: any, policy: any) => {
+    const category = policy.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(policy);
+    return acc;
+  }, {});
+  
+  let totalSteps = 1; // Step 0 is always checklist
+  let currentStepData: any = null;
+  let currentCategory = '';
+  let currentPolicies: any[] = [];
+  
+  if (useSteps) {
+    // Use orientation steps (which can have PDFs and questions)
+    totalSteps = 1 + orientationSteps.length;
+    if (currentStep > 0 && currentStep <= orientationSteps.length) {
+      currentStepData = orientationSteps[currentStep - 1];
+    }
+  } else {
+    // Fallback to old behavior: policies grouped by category
+    totalSteps = 1 + Object.keys(policiesByCategory).length;
+    currentCategory = Object.keys(policiesByCategory)[currentStep - 1] || '';
+    currentPolicies = currentStep > 0 ? policiesByCategory[currentCategory] || [] : [];
+    currentStepData = { type: 'policies', policies: currentPolicies, category: currentCategory };
+  }
+
   // Force refetch on component mount to ensure fresh data
   useEffect(() => {
     console.log('🔄 OrientationTab mounted - forcing data refetch...');
