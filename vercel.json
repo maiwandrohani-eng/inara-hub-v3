@@ -15,7 +15,6 @@
       "memory": 3008
     }
   },
-  "_comment": "Force deployment - v2 - includes OPTIONS handling and file upload config",
   "rewrites": [
     {
       "source": "/api/(.*)",
