@@ -288,11 +288,23 @@ app.get('/api/auth/diagnostic', async (req, res) => {
 app.get('/api/uploads/*', async (req, res) => {
   try {
     // Extract the path after /api/uploads/
-    const filePath = req.path.replace('/api/uploads/', '');
+    // req.path includes /api/uploads/, so we need to remove that prefix
+    let filePath = req.path;
+    if (filePath.startsWith('/api/uploads/')) {
+      filePath = filePath.replace('/api/uploads/', '');
+    } else if (filePath.startsWith('/uploads/')) {
+      filePath = filePath.replace('/uploads/', '');
+    }
     
-    if (!filePath) {
+    if (!filePath || filePath === '/api/uploads' || filePath === '/api/uploads/') {
       return res.status(400).json({ error: 'File path required' });
     }
+
+    console.log('[Uploads Route] Request received:', {
+      originalPath: req.path,
+      extractedPath: filePath,
+      method: req.method,
+    });
 
     // Get R2 configuration
     const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
@@ -301,17 +313,25 @@ app.get('/api/uploads/*', async (req, res) => {
     const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 
     if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
+      console.error('[Uploads Route] R2 configuration missing');
       return res.status(500).json({ error: 'R2 configuration missing' });
     }
 
     // Import getPresignedUrl
     const { getPresignedUrl } = await import('./utils/r2Storage.js');
     
+    console.log('[Uploads Route] Generating presigned URL for:', filePath);
     // Generate presigned URL and redirect
     const presignedUrl = await getPresignedUrl(filePath, 3600); // 1 hour expiry
+    console.log('[Uploads Route] Presigned URL generated, redirecting...');
+    
     return res.redirect(302, presignedUrl);
   } catch (error: any) {
-    console.error('Error in uploads route:', error);
+    console.error('[Uploads Route] Error:', {
+      message: error.message,
+      stack: error.stack,
+      path: req.path,
+    });
     return res.status(500).json({ error: error.message || 'Failed to get file' });
   }
 });
