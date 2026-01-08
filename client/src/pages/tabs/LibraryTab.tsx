@@ -269,7 +269,7 @@ export default function LibraryTab() {
               <div
                 key={resource.id}
                 className="bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => window.open(resource.fileUrl || '#', '_blank')}
+                onClick={() => setSelectedResource(resource)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-lg font-semibold text-white">
@@ -360,6 +360,8 @@ export default function LibraryTab() {
           fileUrl={selectedResource.fileUrl || ''}
           title={selectedResource.title}
           fileType={selectedResource.fileUrl?.split('.').pop()?.toLowerCase()}
+          downloadEndpoint={selectedResource.fileUrl?.startsWith('/uploads/') ? `/api${selectedResource.fileUrl}` : undefined}
+          resourceId={selectedResource.id}
         />
       )}
     </div>

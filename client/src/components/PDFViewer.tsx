@@ -11,28 +11,29 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
 
   // Convert relative URL to absolute if needed
   // Handle different URL formats:
-  // - Full URLs (http://...): use as-is
-  // - URLs starting with /uploads: use with API base URL (don't add /uploads again)
+  // - Full URLs (http://...): use as-is (R2 public URLs)
+  // - URLs starting with /uploads: use with API base URL (proxy through API)
   // - Relative paths: prepend /uploads
   const getFullPdfUrl = () => {
     if (pdfUrl.startsWith('http')) {
+      // R2 public URL - use directly
       return pdfUrl;
     }
     
-    // If URL already starts with /uploads, use it directly with API base
+    // If URL already starts with /uploads, proxy through API
     if (pdfUrl.startsWith('/uploads')) {
-      // For development, use localhost:5000, for production use window.location.origin
+      // Use API proxy endpoint to handle CORS and authentication
       const apiBase = (import.meta as any).env?.DEV 
         ? 'http://localhost:5000' 
         : ((import.meta as any).env?.VITE_API_URL || window.location.origin);
-      return `${apiBase}${pdfUrl}`;
+      return `${apiBase}/api${pdfUrl}`;
     }
     
-    // Otherwise, prepend /uploads
+    // Otherwise, prepend /uploads and proxy through API
     const apiBase = (import.meta as any).env?.DEV 
       ? 'http://localhost:5000' 
       : ((import.meta as any).env?.VITE_API_URL || window.location.origin);
-    return `${apiBase}/uploads/${pdfUrl}`;
+    return `${apiBase}/api/uploads/${pdfUrl}`;
   };
 
   const fullPdfUrl = getFullPdfUrl();
