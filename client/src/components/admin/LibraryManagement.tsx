@@ -91,11 +91,20 @@ export default function LibraryManagement() {
   );
 
   const multipleUploadMutation = useMutation(
-    async (files: File[]) => {
+    async (data: { files: File[]; category?: string; subcategory?: string; resourceType?: string }) => {
       const formData = new FormData();
-      files.forEach((file) => {
+      data.files.forEach((file) => {
         formData.append('files', file);
       });
+      if (data.category) {
+        formData.append('category', data.category);
+      }
+      if (data.subcategory) {
+        formData.append('subcategory', data.subcategory);
+      }
+      if (data.resourceType) {
+        formData.append('resourceType', data.resourceType);
+      }
       const res = await api.post('/admin/library/upload-multiple', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -133,8 +142,18 @@ export default function LibraryManagement() {
     e.preventDefault();
     
     if (uploadMode === 'multiple' && selectedFiles.length > 0) {
-      // Handle multiple file upload
-      multipleUploadMutation.mutate(selectedFiles);
+      // Handle multiple file upload with category/subcategory
+      const submitData: any = {
+        ...formData,
+        category: isCustomCategory ? formData.customCategory : formData.category,
+        subcategory: isCustomSubcategory ? formData.customSubcategory : formData.subcategory,
+      };
+      multipleUploadMutation.mutate({
+        files: selectedFiles,
+        category: submitData.category || undefined,
+        subcategory: submitData.subcategory || undefined,
+        resourceType: submitData.resourceType || undefined,
+      });
       return;
     }
     
@@ -550,6 +569,7 @@ export default function LibraryManagement() {
                   {...({} as any)}
                 />
                 <p className="text-xs text-gray-500 mt-1">💡 You can select multiple individual files (not folders)</p>
+                <p className="text-xs text-yellow-400 mt-1">📁 The category, subcategory, and resource type above will apply to all selected files</p>
                 {selectedFiles.length > 0 && (
                   <div className="mt-2 p-3 bg-gray-700 rounded-lg">
                     <p className="text-sm text-green-400 mb-2">✅ {selectedFiles.length} file(s) selected</p>

@@ -790,6 +790,11 @@ router.post('/library/upload-multiple', upload.array('files', 50), async (req: A
       return res.status(400).json({ message: 'No files uploaded' });
     }
 
+    // Get category, subcategory, and resourceType from request body (applies to all files)
+    const category = req.body.category || null;
+    const subcategory = req.body.subcategory || null;
+    const resourceType = req.body.resourceType || null;
+
     const results = [];
     const errors = [];
 
@@ -813,16 +818,16 @@ router.post('/library/upload-multiple', upload.array('files', 50), async (req: A
         const fileName = file.originalname;
         const title = fileName.replace(/\.[^/.]+$/, ''); // Remove extension
         
-        // Detect category from filename
-        const categoryMatch = detectCategory(fileName, 'library');
-        const resourceType = detectResourceType(fileName);
+        // Use provided category/subcategory, or detect from filename if not provided
+        const categoryMatch = category ? { category, subcategory } : detectCategory(fileName, 'library');
+        const finalResourceType = resourceType || detectResourceType(fileName);
 
         const resource = await prisma.libraryResource.create({
           data: {
             title,
             description: `Uploaded file: ${fileName}`,
             fileUrl: uploadResult.url,
-            resourceType,
+            resourceType: finalResourceType,
             category: categoryMatch.category || null,
             subcategory: categoryMatch.subcategory || null,
             tags: [],
@@ -933,6 +938,10 @@ router.post('/templates/upload-multiple', upload.array('files', 50), async (req:
       return res.status(400).json({ message: 'No files uploaded' });
     }
 
+    // Get category and subcategory from request body (applies to all files)
+    const category = req.body.category || null;
+    const subcategory = req.body.subcategory || null;
+
     // Upload all files to R2 first
     const uploadedFiles = await uploadFilesToR2(files, 'template');
 
@@ -955,8 +964,8 @@ router.post('/templates/upload-multiple', upload.array('files', 50), async (req:
             title,
             description: `Imported from ${file.originalname}`,
             fileUrl: uploadResult.url,
-            category: null,
-            subcategory: null,
+            category: category,
+            subcategory: subcategory,
             tags: [],
             version: 1,
             approvalStatus: 'approved',

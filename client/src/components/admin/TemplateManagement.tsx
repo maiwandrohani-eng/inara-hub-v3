@@ -72,11 +72,17 @@ export default function TemplateManagement() {
   );
 
   const multipleUploadMutation = useMutation(
-    async (files: File[]) => {
+    async (data: { files: File[]; category?: string; subcategory?: string }) => {
       const formDataObj = new FormData();
-      files.forEach((file) => {
+      data.files.forEach((file) => {
         formDataObj.append('files', file);
       });
+      if (data.category) {
+        formDataObj.append('category', data.category);
+      }
+      if (data.subcategory) {
+        formDataObj.append('subcategory', data.subcategory);
+      }
       const res = await api.post('/admin/templates/upload-multiple', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -114,8 +120,12 @@ export default function TemplateManagement() {
     e.preventDefault();
     
     if (uploadMode === 'multiple' && selectedFiles.length > 0) {
-      // Handle multiple file upload
-      multipleUploadMutation.mutate(selectedFiles);
+      // Handle multiple file upload with category/subcategory
+      multipleUploadMutation.mutate({
+        files: selectedFiles,
+        category: formData.category || undefined,
+        subcategory: formData.subcategory || undefined,
+      });
       return;
     }
     
@@ -477,6 +487,7 @@ export default function TemplateManagement() {
                   accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
                 />
                 <p className="text-xs text-gray-500 mt-1">💡 You can select multiple individual files (not folders)</p>
+                <p className="text-xs text-yellow-400 mt-1">📁 The category and subcategory above will apply to all selected files</p>
                 {selectedFiles.length > 0 && (
                   <div className="mt-2 p-3 bg-gray-700 rounded-lg">
                     <p className="text-sm text-green-400 mb-2">✅ {selectedFiles.length} file(s) selected</p>
