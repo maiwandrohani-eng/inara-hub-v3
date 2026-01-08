@@ -5,6 +5,9 @@ import { getAllLibraryCategories, getLibrarySubcategories } from '../../config/c
 
 export default function LibraryManagement() {
   const [showForm, setShowForm] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'single' | 'multiple' | 'bulk'>('single');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -30,18 +33,75 @@ export default function LibraryManagement() {
   });
 
   const createMutation = useMutation(
-    async (data: any) => {
-      const res = await api.post('/admin/library', {
-        ...data,
-        tags: data.tags.filter((t: string) => t.trim()),
-      });
-      return res.data;
+    async (data: { formData: any; file?: File | null }) => {
+      if (data.file) {
+        // Upload file first, then create resource
+        const formDataObj = new FormData();
+        formDataObj.append('file', data.file);
+        formDataObj.append('title', data.formData.title || data.file.name.replace(/\.[^/.]+$/, ''));
+        formDataObj.append('description', data.formData.description || '');
+        formDataObj.append('resourceType', data.formData.resourceType);
+        formDataObj.append('category', data.formData.category || '');
+        formDataObj.append('subcategory', data.formData.subcategory || '');
+        formDataObj.append('tags', JSON.stringify(data.formData.tags.filter((t: string) => t.trim())));
+        
+        const res = await api.post('/admin/library/upload', formDataObj, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return res.data;
+      } else {
+        // Create resource without file (using URL)
+        const res = await api.post('/admin/library', {
+          ...data.formData,
+          tags: data.formData.tags.filter((t: string) => t.trim()),
+        });
+        return res.data;
+      }
     },
     {
       onSuccess: () => {
         queryClient.invalidateQueries('admin-library');
         setShowForm(false);
+        setSelectedFile(null);
+        setFormData({
+          title: '',
+          description: '',
+          content: '',
+          fileUrl: '',
+          resourceType: 'book',
+          category: '',
+          subcategory: '',
+          customCategory: '',
+          customSubcategory: '',
+          tags: [''],
+        });
         alert('Library resource added successfully!');
+      },
+      onError: (error: any) => {
+        alert(error.response?.data?.message || 'Failed to upload resource');
+      },
+    }
+  );
+
+  const multipleUploadMutation = useMutation(
+    async (files: File[]) => {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+      const res = await api.post('/admin/library/upload-multiple', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return res.data;
+    },
+    {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries('admin-library');
+        setSelectedFiles([]);
+        alert(`Successfully uploaded ${data.uploaded || data.resources?.length || 0} file(s)!`);
+      },
+      onError: (error: any) => {
+        alert(error.response?.data?.message || 'Failed to upload files');
       },
     }
   );
@@ -64,6 +124,13 @@ export default function LibraryManagement() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (uploadMode === 'multiple' && selectedFiles.length > 0) {
+      // Handle multiple file upload
+      multipleUploadMutation.mutate(selectedFiles);
+      return;
+    }
+    
     const submitData: any = {
       ...formData,
       category: isCustomCategory ? formData.customCategory : formData.category,
@@ -71,7 +138,17 @@ export default function LibraryManagement() {
     };
     delete submitData.customCategory;
     delete submitData.customSubcategory;
-    createMutation.mutate(submitData);
+    
+    createMutation.mutate({ formData: submitData, file: selectedFile });
+  };
+
+  const handleMultipleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(files);
+    if (files.length > 0 && !formData.title) {
+      // Auto-fill title from first file if not set
+      setFormData({ ...formData, title: files[0].name.replace(/\.[^/.]+$/, '') });
+    }
   };
 
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -187,13 +264,24 @@ export default function LibraryManagement() {
         <h2 className="text-2xl font-bold text-white">Library Management</h2>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowBulkImport(!showBulkImport)}
+            onClick={() => {
+              setShowBulkImport(!showBulkImport);
+              if (showBulkImport) setShowForm(false);
+            }}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
           >
             {showBulkImport ? 'Cancel Bulk Import' : '📦 Bulk Import'}
           </button>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              setShowForm(!showForm);
+              if (showForm) {
+                setUploadMode('single');
+                setSelectedFile(null);
+                setSelectedFiles([]);
+              }
+              if (showForm) setShowBulkImport(false);
+            }}
             className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600"
           >
             {showForm ? 'Cancel' : '+ Upload Resource'}
@@ -277,6 +365,36 @@ export default function LibraryManagement() {
       {showForm && (
         <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">
           <h3 className="text-xl font-bold text-white mb-4">Upload Library Resource</h3>
+          
+          {/* Upload Mode Selection */}
+          <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+            <label className="block text-sm font-medium text-gray-200 mb-3">Upload Mode</label>
+            <div className="flex gap-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="uploadMode"
+                  value="single"
+                  checked={uploadMode === 'single'}
+                  onChange={(e) => setUploadMode(e.target.value as 'single')}
+                  className="w-4 h-4 text-primary-500"
+                />
+                <span className="text-gray-300 text-sm">📄 Single File</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="uploadMode"
+                  value="multiple"
+                  checked={uploadMode === 'multiple'}
+                  onChange={(e) => setUploadMode(e.target.value as 'multiple')}
+                  className="w-4 h-4 text-primary-500"
+                />
+                <span className="text-gray-300 text-sm">📚 Multiple Files</span>
+              </label>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-200 mb-1">Title *</label>
@@ -364,22 +482,74 @@ export default function LibraryManagement() {
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
               />
             </div>
+            {/* File Upload Section */}
+            {uploadMode === 'single' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-1">Upload File</label>
+                <input
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setSelectedFile(file);
+                    if (file && !formData.title) {
+                      setFormData({ ...formData, title: file.name.replace(/\.[^/.]+$/, '') });
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                  accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                />
+                {selectedFile && (
+                  <p className="text-sm text-gray-400 mt-1">Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">Or enter a file URL below</p>
+              </div>
+            )}
+
+            {uploadMode === 'multiple' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-1">Upload Multiple Files</label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleMultipleFileSelect}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                  accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                />
+                {selectedFiles.length > 0 && (
+                  <div className="mt-2 p-3 bg-gray-700 rounded-lg">
+                    <p className="text-sm text-green-400 mb-2">✅ {selectedFiles.length} file(s) selected</p>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {selectedFiles.map((file, idx) => (
+                        <p key={idx} className="text-xs text-gray-300">
+                          • {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">File URL or Content</label>
+              <label className="block text-sm font-medium text-gray-200 mb-1">File URL (Optional - if not uploading file)</label>
               <input
                 type="text"
                 value={formData.fileUrl}
                 onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
-                placeholder="URL to file or content"
+                placeholder="URL to file or content (leave empty if uploading file above)"
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
               />
             </div>
             <button
               type="submit"
-              disabled={createMutation.isLoading}
+              disabled={createMutation.isLoading || multipleUploadMutation.isLoading || (uploadMode === 'single' && !selectedFile && !formData.fileUrl) || (uploadMode === 'multiple' && selectedFiles.length === 0)}
               className="w-full bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 disabled:opacity-50"
             >
-              {createMutation.isLoading ? 'Uploading...' : 'Add Resource'}
+              {createMutation.isLoading || multipleUploadMutation.isLoading 
+                ? 'Uploading...' 
+                : uploadMode === 'multiple' 
+                  ? `Upload ${selectedFiles.length} File(s)`
+                  : 'Add Resource'}
             </button>
           </form>
         </div>
