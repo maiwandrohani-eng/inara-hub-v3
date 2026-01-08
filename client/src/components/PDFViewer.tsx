@@ -26,9 +26,10 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
         // If it's the same origin or R2 public URL, use API proxy
         if (url.hostname === window.location.hostname || url.hostname.includes('inara.ngo')) {
           // Extract path (e.g., /library/1767878369908-79350700.pdf)
-          const path = url.pathname;
-          // Use API proxy to ensure we get the actual file, not HTML
-          return `${window.location.origin}/api${path}`;
+          // Remove leading slash to get the R2 key (e.g., library/1767878369908-79350700.pdf)
+          const r2Key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+          // Use API uploads proxy endpoint - it expects the R2 key directly
+          return `${window.location.origin}/api/uploads/${r2Key}`;
         }
         // External URL - use directly
         return pdfUrl;
