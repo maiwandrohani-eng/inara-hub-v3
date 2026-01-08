@@ -151,17 +151,42 @@ export async function deleteFromR2(key: string): Promise<void> {
  */
 export async function getPresignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
   try {
-    const client = getR2Client();
+    // Create a separate client for presigned URLs with path-style addressing
+    // This ensures the signature matches correctly
+    validateR2Config();
+    const endpoint = getR2Endpoint();
+    const accessKeyId = process.env.R2_ACCESS_KEY_ID!;
+    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY!;
     const bucketName = process.env.R2_BUCKET_NAME!;
+    
+    // Use path-style for presigned URLs to avoid signature issues
+    const presignClient = new S3Client({
+      region: 'auto',
+      endpoint: endpoint,
+      credentials: {
+        accessKeyId: accessKeyId,
+        secretAccessKey: secretAccessKey,
+      },
+      forcePathStyle: true, // Use path-style for presigned URLs
+    });
     
     const command = new GetObjectCommand({
       Bucket: bucketName,
       Key: key,
     });
 
-    return await getSignedUrl(client, command, { expiresIn });
+    const presignedUrl = await getSignedUrl(presignClient, command, { expiresIn });
+    
+    console.log('✅ Generated presigned URL for:', key);
+    return presignedUrl;
   } catch (error: any) {
-    console.error('Error generating presigned URL:', error);
+    console.error('❌ Error generating presigned URL:', {
+      message: error.message,
+      key,
+      endpoint: getR2Endpoint(),
+      bucket: process.env.R2_BUCKET_NAME,
+      hasCredentials: !!(process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY),
+    });
     throw new Error(`Failed to generate presigned URL: ${error.message}`);
   }
 }
