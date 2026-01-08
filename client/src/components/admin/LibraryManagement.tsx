@@ -366,11 +366,13 @@ export default function LibraryManagement() {
         <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">
           <h3 className="text-xl font-bold text-white mb-4">Upload Library Resource</h3>
           
-          {/* Upload Mode Selection */}
-          <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-            <label className="block text-sm font-medium text-gray-200 mb-3">Upload Mode</label>
+          {/* Upload Mode Selection - v2.0 */}
+          <div className="mb-6 p-4 bg-gray-700 rounded-lg border-2 border-primary-500">
+            <label className="block text-sm font-medium text-gray-200 mb-3">
+              📤 Upload Mode <span className="text-xs text-gray-400">(Choose how to upload)</span>
+            </label>
             <div className="flex gap-4">
-              <label className="flex items-center space-x-2 cursor-pointer">
+              <label className="flex items-center space-x-2 cursor-pointer p-3 rounded-lg hover:bg-gray-600 transition-colors">
                 <input
                   type="radio"
                   name="uploadMode"
@@ -379,9 +381,9 @@ export default function LibraryManagement() {
                   onChange={(e) => setUploadMode(e.target.value as 'single')}
                   className="w-4 h-4 text-primary-500"
                 />
-                <span className="text-gray-300 text-sm">📄 Single File</span>
+                <span className="text-gray-300 text-sm font-medium">📄 Single File</span>
               </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
+              <label className="flex items-center space-x-2 cursor-pointer p-3 rounded-lg hover:bg-gray-600 transition-colors">
                 <input
                   type="radio"
                   name="uploadMode"
@@ -390,7 +392,7 @@ export default function LibraryManagement() {
                   onChange={(e) => setUploadMode(e.target.value as 'multiple')}
                   className="w-4 h-4 text-primary-500"
                 />
-                <span className="text-gray-300 text-sm">📚 Multiple Files</span>
+                <span className="text-gray-300 text-sm font-medium">📚 Multiple Files</span>
               </label>
             </div>
           </div>
