@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import PDFViewer from '../../components/PDFViewer';
+import CertificateViewer from '../../components/CertificateViewer';
 
 type ChecklistItem = {
   id: string;
@@ -34,28 +35,11 @@ export default function OrientationTab() {
   const [showOnboardingFlow, setShowOnboardingFlow] = useState(false); // Allow viewing onboarding even if completed
   const [questionResponses, setQuestionResponses] = useState<Record<string, Record<string, string | string[]>>>({}); // stepId -> questionId -> answer
   const [answerFeedback, setAnswerFeedback] = useState<Record<string, Record<string, { isCorrect: boolean; correctAnswer?: string | string[]; message?: string }>>>({}); // stepId -> questionId -> feedback
-  const [showCertificateForm, setShowCertificateForm] = useState(false); // Show certificate form modal
-  const [certificateData, setCertificateData] = useState({
-    passportId: '',
-    country: '',
-    department: '',
-    role: '',
-  });
+  const [showCertificateViewer, setShowCertificateViewer] = useState(false); // Show certificate viewer
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
-  // Initialize certificate data from user profile when user is available
-  useEffect(() => {
-    if (user) {
-      setCertificateData({
-        passportId: '',
-        country: user.country || '',
-        department: user.department || '',
-        role: user.role || '',
-      });
-    }
-  }, [user]);
 
   const { data, isLoading, refetch } = useQuery('orientation', async () => {
     console.log('🔄 Fetching orientation data from API...');
@@ -859,14 +843,14 @@ export default function OrientationTab() {
                 if (currentStep < totalSteps - 1) {
                   setCurrentStep(currentStep + 1);
                 } else {
-                  // Last step completed - show certificate form
+                  // Last step completed - show certificate viewer
                   const allChecklistChecked = checklist.every(item => item.checked);
                   if (!allChecklistChecked) {
                     alert('Please complete all checklist items before finishing orientation.');
                     return;
                   }
-                  // Show certificate form instead of completing immediately
-                  setShowCertificateForm(true);
+                  // Show certificate viewer instead of completing immediately
+                  setShowCertificateViewer(true);
                 }
               }}
               disabled={confirmStepMutation.isLoading}
@@ -984,191 +968,53 @@ export default function OrientationTab() {
         </div>
       )}
 
-      {/* Certificate Information Form Modal */}
-      {showCertificateForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-white">Certificate Information</h2>
-                <button
-                  onClick={() => setShowCertificateForm(false)}
-                  className="text-gray-400 hover:text-white"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+      {/* Certificate Viewer */}
+      {showCertificateViewer && (
+        <CertificateViewer
+          isOpen={showCertificateViewer}
+          onClose={() => setShowCertificateViewer(false)}
+          onComplete={async (certData) => {
+            try {
+              // Complete the orientation
+              const checklistData = {
+                orientation: checklist.filter(c => c.category === 'orientation').map(c => ({
+                  id: c.id,
+                  label: c.label,
+                  checked: c.checked,
+                })),
+                equipment: checklist.filter(c => c.category === 'equipment').map(c => ({
+                  id: c.id,
+                  label: c.label,
+                  checked: c.checked,
+                })),
+                completedAt: new Date().toISOString(),
+              };
 
-              <p className="text-gray-300 mb-6">
-                Please provide the following information to generate your certificate. Fields marked with * are required.
-              </p>
+              await completeMutation.mutateAsync({
+                score: 100,
+                checklistData,
+                certificateData: {
+                  passportId: certData.passportId,
+                  country: certData.country || '',
+                  department: certData.department || '',
+                  role: '',
+                },
+              });
 
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  
-                  if (!certificateData.passportId.trim()) {
-                    alert('Please enter your Passport/National ID number.');
-                    return;
-                  }
-
-                  try {
-                    // First, complete the orientation with certificate data
-                    const checklistData = {
-                      orientation: checklist.filter(c => c.category === 'orientation').map(c => ({
-                        id: c.id,
-                        label: c.label,
-                        checked: c.checked,
-                      })),
-                      equipment: checklist.filter(c => c.category === 'equipment').map(c => ({
-                        id: c.id,
-                        label: c.label,
-                        checked: c.checked,
-                      })),
-                      completedAt: new Date().toISOString(),
-                    };
-
-                    // Complete orientation with certificate data
-                    const completionResult = await completeMutation.mutateAsync({
-                      score: 100,
-                      checklistData,
-                      certificateData: {
-                        passportId: certificateData.passportId,
-                        country: certificateData.country || '',
-                        department: certificateData.department || '',
-                        role: certificateData.role || '',
-                      },
-                    });
-
-                    // Get the token from auth store
-                    const { token } = useAuthStore.getState();
-                    
-                    if (!token || !user?.id) {
-                      throw new Error('No authentication token or user ID found');
-                    }
-
-                    // Build the certificate URL directly using the user ID
-                    const certificatePath = `/orientation/certificate/${user.id}`;
-
-                    // Add certificate data as query parameters
-                    const params = new URLSearchParams({
-                      passportId: certificateData.passportId,
-                      country: certificateData.country || '',
-                      department: certificateData.department || '',
-                      role: certificateData.role || '',
-                    });
-                    const finalUrl = `${certificatePath}?${params.toString()}`;
-
-                    // Fetch certificate with the additional data using the api client
-                    const response = await api.get(finalUrl, {
-                      responseType: 'blob',
-                    });
-
-                    // Check if response is actually a PDF (not an error JSON)
-                    const contentType = response.headers['content-type'] || '';
-                    if (!contentType.includes('application/pdf')) {
-                      // Try to parse as JSON error
-                      const text = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsText(response.data);
-                      });
-                      
-                      let errorMessage = 'Failed to download certificate.';
-                      try {
-                        const errorData = JSON.parse(text as string);
-                        errorMessage = errorData.message || errorMessage;
-                      } catch {
-                        errorMessage = 'Server returned an invalid response.';
-                      }
-                      throw new Error(errorMessage);
-                    }
-
-                    // Create blob and download
-                    const blob = new Blob([response.data], { type: 'application/pdf' });
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `INARA_Orientation_Certificate_${user?.firstName}_${user?.lastName}.pdf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-
-                    setShowCertificateForm(false);
-                    alert('🎉 Orientation completed successfully! Your certificate has been downloaded.');
-                    
-                    // Refresh orientation data
-                    await refetch();
-                  } catch (error: any) {
-                    console.error('Error completing orientation or downloading certificate:', error);
-                    const errorMessage = error.message || error.response?.data?.message || 'Failed to complete orientation or download certificate. Please try again.';
-                    alert(errorMessage);
-                  }
-                }}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Passport / National ID Number <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={certificateData.passportId}
-                    onChange={(e) => setCertificateData({ ...certificateData, passportId: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="Enter your passport or national ID number"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Country Office
-                  </label>
-                  <input
-                    type="text"
-                    value={certificateData.country}
-                    onChange={(e) => setCertificateData({ ...certificateData, country: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="Enter your country office"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Department / Role
-                  </label>
-                  <input
-                    type="text"
-                    value={certificateData.department || ''}
-                    onChange={(e) => setCertificateData({ ...certificateData, department: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="Enter your department and role (e.g., Programs Department - Staff Member)"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-4 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowCertificateForm(false)}
-                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-semibold"
-                  >
-                    Generate & Download Certificate
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+              setShowCertificateViewer(false);
+              alert('🎉 Orientation completed successfully! You can print your certificate using the Print button.');
+              
+              // Refresh orientation data
+              await refetch();
+            } catch (error: any) {
+              console.error('Error completing orientation:', error);
+              const errorMessage = error.message || error.response?.data?.message || 'Failed to complete orientation. Please try again.';
+              alert(errorMessage);
+              throw error;
+            }
+          }}
+          completionDate={new Date()}
+        />
       )}
     </div>
   );
