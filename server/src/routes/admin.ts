@@ -1172,6 +1172,7 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
             tags: [],
             isMandatory: false,
             isActive: true,
+            fileUrl: uploadResult.url,
           },
         });
 

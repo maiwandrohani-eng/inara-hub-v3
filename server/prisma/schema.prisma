@@ -501,6 +501,7 @@ model Policy {
   brief      String // Brief summary
   complete   String // Full policy content (markdown)
   assessment Json? // Assessment questions
+  fileUrl    String? // URL to uploaded policy document (PDF/DOC/DOCX)
 
   // Version control
   version       Int      @default(1)

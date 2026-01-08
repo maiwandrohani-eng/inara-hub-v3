@@ -5,6 +5,7 @@ import { getAllPolicyCategories, getPolicySubcategories } from '../../config/cat
 
 export default function PolicyManagement() {
   const [showForm, setShowForm] = useState(false);
+  const [showSingleUpload, setShowSingleUpload] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     brief: '',
@@ -80,6 +81,8 @@ export default function PolicyManagement() {
   const [bulkFolders, setBulkFolders] = useState<string[]>([]);
   const [bulkImporting, setBulkImporting] = useState(false);
   const [bulkResults, setBulkResults] = useState<any>(null);
+  const [singleFile, setSingleFile] = useState<File | null>(null);
+  const [singleFileUploading, setSingleFileUploading] = useState(false);
 
   const bulkImportMutation = useMutation(
     async (files: File[]) => {
@@ -147,11 +150,53 @@ export default function PolicyManagement() {
     setBulkFolders(Array.from(folders));
   };
 
+  const singleFileUploadMutation = useMutation(
+    async (file: File) => {
+      const formData = new FormData();
+      formData.append('files', file);
+      formData.append('type', 'policy');
+      const res = await api.post('/admin/policies/bulk-import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return res.data;
+    },
+    {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries('admin-policies');
+        setSingleFile(null);
+        setShowSingleUpload(false);
+        alert(`File uploaded successfully! Title: ${data.results?.[0]?.policyId || 'Policy created'}`);
+      },
+      onError: (error: any) => {
+        const errorMessage = error.response?.data?.message || 'File upload failed';
+        alert(errorMessage);
+      },
+      onSettled: () => {
+        setSingleFileUploading(false);
+      },
+    }
+  );
+
+  const handleSingleFileUpload = () => {
+    if (!singleFile) {
+      alert('Please select a file to upload');
+      return;
+    }
+    setSingleFileUploading(true);
+    singleFileUploadMutation.mutate(singleFile);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Policy Management</h2>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowSingleUpload(!showSingleUpload)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            {showSingleUpload ? 'Cancel' : '📄 Single Upload'}
+          </button>
           <button
             onClick={() => setShowBulkImport(!showBulkImport)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
@@ -166,6 +211,40 @@ export default function PolicyManagement() {
           </button>
         </div>
       </div>
+
+      {showSingleUpload && (
+        <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">
+          <h3 className="text-xl font-bold text-white mb-4">Single File Upload</h3>
+          <p className="text-sm text-gray-400 mb-4">
+            Upload a single policy document (PDF, DOC, DOCX). The system will extract content and create a policy.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-200 mb-2">
+                Select File (PDF, DOC, DOCX)
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => setSingleFile(e.target.files?.[0] || null)}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+              />
+              {singleFile && (
+                <p className="text-sm text-green-400 mt-2">
+                  ✅ File selected: {singleFile.name} ({(singleFile.size / 1024 / 1024).toFixed(2)} MB)
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleSingleFileUpload}
+              disabled={singleFileUploading || !singleFile}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {singleFileUploading ? 'Uploading...' : 'Upload File'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showBulkImport && (
         <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">

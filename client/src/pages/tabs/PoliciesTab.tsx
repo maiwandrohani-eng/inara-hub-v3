@@ -9,7 +9,7 @@ export default function PoliciesTab() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<'all' | 'mandatory' | 'acknowledged' | 'not-acknowledged'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'brief' | 'complete' | 'assessment'>('brief');
+  const [viewMode, setViewMode] = useState<'brief' | 'complete' | 'assessment' | 'file'>('brief');
   const [selectedPolicy, setSelectedPolicy] = useState<any | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const { user } = useAuthStore();
@@ -250,6 +250,18 @@ export default function PoliciesTab() {
                       {mode.charAt(0).toUpperCase() + mode.slice(1)}
                     </button>
                   ))}
+                  {policy.fileUrl && (
+                    <button
+                      onClick={() => setViewMode('file')}
+                      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                        viewMode === 'file'
+                          ? 'border-primary-500 text-primary-500'
+                          : 'border-transparent text-gray-500 hover:text-gray-200'
+                      }`}
+                    >
+                      📄 File
+                    </button>
+                  )}
                 </div>
 
                 {/* Content */}
@@ -266,6 +278,21 @@ export default function PoliciesTab() {
                   {viewMode === 'assessment' && policy.assessment && (
                     <div className="text-gray-200">
                       <p>Assessment available. Click below to take it.</p>
+                    </div>
+                  )}
+                  {viewMode === 'file' && policy.fileUrl && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-300 mb-4">
+                        📄 Policy document is available for download
+                      </p>
+                      <a
+                        href={policy.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                      >
+                        Open in New Tab
+                      </a>
                     </div>
                   )}
                 </div>
@@ -324,6 +351,35 @@ export default function PoliciesTab() {
               </button>
             </div>
 
+            {/* Modal Tabs */}
+            <div className="flex space-x-2 px-6 pt-4 border-b border-gray-700">
+              {(['brief', 'complete', 'assessment'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    viewMode === mode
+                      ? 'border-primary-500 text-primary-500'
+                      : 'border-transparent text-gray-500 hover:text-gray-200'
+                  }`}
+                >
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
+              {selectedPolicy.fileUrl && (
+                <button
+                  onClick={() => setViewMode('file')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    viewMode === 'file'
+                      ? 'border-primary-500 text-primary-500'
+                      : 'border-transparent text-gray-500 hover:text-gray-200'
+                  }`}
+                >
+                  📄 File
+                </button>
+              )}
+            </div>
+
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="prose prose-invert max-w-none text-gray-200">
@@ -336,6 +392,23 @@ export default function PoliciesTab() {
                     <p className="text-gray-400 mb-4">Assessment available. Click below to take it.</p>
                   </div>
                 )}
+                {viewMode === 'file' && selectedPolicy.fileUrl && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-300 mb-4">
+                      📄 Policy document is available for download and viewing
+                    </p>
+                    <div className="space-y-2">
+                      <a
+                        href={selectedPolicy.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                      >
+                        Open in New Tab
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -345,27 +418,36 @@ export default function PoliciesTab() {
                 Effective: {new Date(selectedPolicy.effectiveDate).toLocaleDateString()}
               </div>
               <div className="flex items-center space-x-3">
+                {selectedPolicy.fileUrl && (
+                  <a
+                    href={selectedPolicy.fileUrl}
+                    download={`${selectedPolicy.title.replace(/[^a-z0-9]/gi, '_')}`}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    Download File
+                  </a>
+                )}
                 <button
                   onClick={() => {
-                    // Export policy as PDF or text
-                    const content = viewMode === 'brief' ? selectedPolicy.brief : selectedPolicy.complete;
+                    // Export policy as text
+                    const content = viewMode === 'brief' ? selectedPolicy.brief : viewMode === 'complete' ? selectedPolicy.complete : 'Assessment data';
                     const blob = new Blob([content], { type: 'text/plain' });
                     const url = window.URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
-                    link.download = `${selectedPolicy.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
+                    link.download = `${selectedPolicy.title.replace(/[^a-z0-9]/gi, '_')}_${viewMode}.txt`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     window.URL.revokeObjectURL(url);
                   }}
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm"
                 >
                   Download as Text
                 </button>
                 <button
                   onClick={() => setSelectedPolicy(null)}
-                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
                 >
                   Close
                 </button>
