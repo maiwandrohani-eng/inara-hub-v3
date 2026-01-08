@@ -42,7 +42,8 @@ export default function OrientationManagement() {
   });
 
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
-  const [questionMode, setQuestionMode] = useState<'auto' | 'manual'>('manual');
+  const [questionMode, setQuestionMode] = useState<'auto' | 'manual' | 'bulk' | 'markdown'>('manual');
+  const [bulkQuestionsText, setBulkQuestionsText] = useState('');
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [stepPdfFile, setStepPdfFile] = useState<File | null>(null);
@@ -129,7 +130,14 @@ export default function OrientationManagement() {
       if (stepData.questions) formData.append('questions', JSON.stringify(stepData.questions));
       formData.append('isRequired', stepData.isRequired.toString());
       formData.append('order', stepData.order.toString());
-      if (pdfFile) formData.append('pdf', pdfFile);
+      if (pdfFile) {
+        formData.append('pdf', pdfFile);
+        formData.append('questionMode', questionMode);
+      }
+      // Also send questionMode for markdown generation
+      if (questionMode === 'markdown' || questionMode === 'bulk') {
+        formData.append('questionMode', questionMode);
+      }
 
       console.log('📤 Creating step:', {
         orientationId,
@@ -369,6 +377,110 @@ export default function OrientationManagement() {
     setShowStepForm(true);
   };
 
+  // Parse bulk questions from text format
+  const parseBulkQuestions = (text: string): any[] => {
+    const questions: any[] = [];
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    
+    let currentQuestion: any = null;
+    let questionCounter = 1;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Check if it's a question (Q1:, Q2:, etc. or just starts with Q:)
+      if (line.match(/^Q\d*:?\s*(.+)$/i)) {
+        const match = line.match(/^Q\d*:?\s*(.+)$/i);
+        if (match && match[1]) {
+          // Save previous question if exists
+          if (currentQuestion && currentQuestion.question) {
+            questions.push(currentQuestion);
+          }
+          // Start new question
+          currentQuestion = {
+            id: `q-${Date.now()}-${questionCounter++}`,
+            question: match[1].trim(),
+            type: 'multiple_choice',
+            options: [],
+            correctAnswer: '',
+            required: true,
+          };
+        }
+      }
+      // Check if it's an answer (A1:, A2:, etc. or just starts with A:)
+      else if (line.match(/^A\d*:?\s*(.+)$/i)) {
+        const match = line.match(/^A\d*:?\s*(.+)$/i);
+        if (match && match[1] && currentQuestion) {
+          const answer = match[1].trim();
+          // If it's a simple answer, make it a text question
+          if (currentQuestion.options.length === 0) {
+            currentQuestion.type = 'text';
+            currentQuestion.correctAnswer = answer;
+          } else {
+            // If options exist, set as correct answer
+            currentQuestion.correctAnswer = answer;
+          }
+        }
+      }
+      // Check if it's an option (starts with -, *, or number)
+      else if (line.match(/^[-*•]\s*(.+)$/) || line.match(/^\d+[.)]\s*(.+)$/)) {
+        const match = line.match(/^[-*•]\s*(.+)$/) || line.match(/^\d+[.)]\s*(.+)$/);
+        if (match && match[1] && currentQuestion) {
+          const option = match[1].trim();
+          if (!currentQuestion.options) {
+            currentQuestion.options = [];
+          }
+          currentQuestion.options.push(option);
+          // If it's the first option, change to multiple_choice
+          if (currentQuestion.options.length === 1) {
+            currentQuestion.type = 'multiple_choice';
+            currentQuestion.correctAnswer = option; // Default to first option
+          }
+        }
+      }
+      // If no prefix, treat as continuation of previous line
+      else if (currentQuestion && line.length > 0) {
+        // If we have options, add to last option
+        if (currentQuestion.options && currentQuestion.options.length > 0) {
+          currentQuestion.options[currentQuestion.options.length - 1] += ' ' + line;
+        }
+        // Otherwise, continue the question text
+        else if (currentQuestion.question) {
+          currentQuestion.question += ' ' + line;
+        }
+      }
+    }
+    
+    // Add last question if exists
+    if (currentQuestion && currentQuestion.question) {
+      questions.push(currentQuestion);
+    }
+    
+    // Ensure we have at least some questions
+    if (questions.length === 0) {
+      // Try alternative format: Question? Answer
+      const altQuestions: any[] = [];
+      for (let i = 0; i < lines.length; i += 2) {
+        if (i + 1 < lines.length) {
+          const question = lines[i].replace(/^Q\d*:?\s*/i, '').replace(/\?$/, '').trim();
+          const answer = lines[i + 1].replace(/^A\d*:?\s*/i, '').trim();
+          if (question && answer) {
+            altQuestions.push({
+              id: `q-${Date.now()}-${altQuestions.length + 1}`,
+              question: question + (question.endsWith('?') ? '' : '?'),
+              type: 'text',
+              correctAnswer: answer,
+              required: true,
+            });
+          }
+        }
+      }
+      return altQuestions;
+    }
+    
+    return questions;
+  };
+
   const selectedOrientationData = orientations.find((o: any) => o.id === selectedOrientation);
 
   return (
@@ -529,6 +641,7 @@ export default function OrientationManagement() {
                       });
                       setStepPdfFile(null);
                       setQuestionMode('manual'); // Reset to manual mode
+                      setBulkQuestionsText(''); // Reset bulk questions
                       setShowStepForm(true);
                       console.log('✅ Step form should now be visible');
                     }}
@@ -710,42 +823,172 @@ export default function OrientationManagement() {
                         </div>
                         
                         {/* Question Generation Mode Selection */}
-                        {stepPdfFile && (
-                          <div className="mb-4 p-3 bg-gray-600 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-200 mb-2">Question Generation Mode</label>
-                            <div className="flex gap-4">
-                              <label className="flex items-center space-x-2 cursor-pointer">
+                        <div className="mb-4 p-3 bg-gray-600 rounded-lg">
+                          <label className="block text-sm font-medium text-gray-200 mb-2">Question Generation Mode</label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-500">
+                              <input
+                                type="radio"
+                                name="questionMode"
+                                value="manual"
+                                checked={questionMode === 'manual'}
+                                onChange={(e) => setQuestionMode(e.target.value as 'auto' | 'manual' | 'bulk' | 'markdown')}
+                                className="w-4 h-4 text-primary-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                ✏️ Manual (One by one)
+                              </span>
+                            </label>
+                            <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-500">
+                              <input
+                                type="radio"
+                                name="questionMode"
+                                value="bulk"
+                                checked={questionMode === 'bulk'}
+                                onChange={(e) => setQuestionMode(e.target.value as 'auto' | 'manual' | 'bulk' | 'markdown')}
+                                className="w-4 h-4 text-primary-500"
+                              />
+                              <span className="text-gray-300 text-sm">
+                                📝 Bulk (10 Q&A at once)
+                              </span>
+                            </label>
+                            {stepPdfFile && (
+                              <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-500">
                                 <input
                                   type="radio"
                                   name="questionMode"
                                   value="auto"
                                   checked={questionMode === 'auto'}
-                                  onChange={(e) => setQuestionMode(e.target.value as 'auto' | 'manual')}
+                                  onChange={(e) => setQuestionMode(e.target.value as 'auto' | 'manual' | 'bulk' | 'markdown')}
                                   className="w-4 h-4 text-primary-500"
                                 />
                                 <span className="text-gray-300 text-sm">
-                                  🤖 Automatic (AI generates questions from PDF)
+                                  🤖 Auto from PDF
                                 </span>
                               </label>
-                              <label className="flex items-center space-x-2 cursor-pointer">
+                            )}
+                            {stepFormData.content && (
+                              <label className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-gray-500">
                                 <input
                                   type="radio"
                                   name="questionMode"
-                                  value="manual"
-                                  checked={questionMode === 'manual'}
-                                  onChange={(e) => setQuestionMode(e.target.value as 'auto' | 'manual')}
+                                  value="markdown"
+                                  checked={questionMode === 'markdown'}
+                                  onChange={(e) => setQuestionMode(e.target.value as 'auto' | 'manual' | 'bulk' | 'markdown')}
                                   className="w-4 h-4 text-primary-500"
                                 />
                                 <span className="text-gray-300 text-sm">
-                                  ✏️ Manual (Create questions yourself)
+                                  📄 Generate from Markdown
                                 </span>
                               </label>
-                            </div>
-                            {questionMode === 'auto' && (
-                              <p className="text-xs text-gray-400 mt-2">
-                                Questions will be automatically generated from the PDF when you create the step.
-                              </p>
                             )}
+                          </div>
+                          {questionMode === 'auto' && stepPdfFile && (
+                            <p className="text-xs text-gray-400 mt-2">
+                              Questions will be automatically generated from the PDF when you create the step.
+                            </p>
+                          )}
+                          {questionMode === 'markdown' && stepFormData.content && (
+                            <p className="text-xs text-gray-400 mt-2">
+                              Questions will be generated from the markdown content above using AI.
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Bulk Questions Input */}
+                        {questionMode === 'bulk' && (
+                          <div className="mb-4 p-3 bg-gray-700 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-200 mb-2">
+                              Paste 10 Questions and Answers (One per line)
+                            </label>
+                            <p className="text-xs text-gray-400 mb-2">
+                              Format: <br />
+                              Q1: Your question here?<br />
+                              A1: Correct answer<br />
+                              Q2: Another question?<br />
+                              A2: Another answer<br />
+                              ... (repeat for 10 questions)
+                            </p>
+                            <textarea
+                              value={bulkQuestionsText}
+                              onChange={(e) => setBulkQuestionsText(e.target.value)}
+                              rows={20}
+                              className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded text-sm font-mono"
+                              placeholder={`Q1: What is the primary goal of beneficiary communication?
+A1: To ensure transparency and accountability
+
+Q2: Which communication channels should be used?
+A2: Face-to-face meetings, community notice boards, SMS
+
+Q3: How should complaints be handled?
+A3: Promptly, confidentially, and with respect
+
+... (continue for 10 questions)`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                try {
+                                  const parsed = parseBulkQuestions(bulkQuestionsText);
+                                  if (parsed.length > 0) {
+                                    setStepFormData({
+                                      ...stepFormData,
+                                      questions: parsed,
+                                    });
+                                    alert(`✅ Parsed ${parsed.length} questions successfully!`);
+                                  } else {
+                                    alert('❌ Could not parse questions. Please check the format.');
+                                  }
+                                } catch (error: any) {
+                                  alert(`Error parsing questions: ${error.message}`);
+                                }
+                              }}
+                              className="mt-2 px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                            >
+                              Parse Questions
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Generate from Markdown */}
+                        {questionMode === 'markdown' && stepFormData.content && (
+                          <div className="mb-4 p-3 bg-gray-700 rounded-lg">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!stepFormData.content || stepFormData.content.trim().length < 50) {
+                                  alert('Please add markdown content first (at least 50 characters)');
+                                  return;
+                                }
+                                setIsGeneratingQuestions(true);
+                                try {
+                                  const res = await api.post('/admin/surveys/generate-from-text', {
+                                    text: stepFormData.content,
+                                    numQuestions: 10,
+                                  });
+                                  if (res.data.questions && res.data.questions.length > 0) {
+                                    setStepFormData({
+                                      ...stepFormData,
+                                      questions: res.data.questions,
+                                    });
+                                    alert(`✅ Generated ${res.data.questions.length} questions from markdown!`);
+                                  } else {
+                                    alert('No questions were generated. Please try again or use manual mode.');
+                                  }
+                                } catch (error: any) {
+                                  alert(error.response?.data?.message || 'Failed to generate questions from markdown');
+                                } finally {
+                                  setIsGeneratingQuestions(false);
+                                }
+                              }}
+                              disabled={isGeneratingQuestions}
+                              className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              {isGeneratingQuestions ? 'Generating...' : '🤖 Generate 10 Questions from Markdown Content'}
+                            </button>
+                            <p className="text-xs text-gray-400 mt-2">
+                              This will generate 10 questions based on the markdown content you entered above.
+                            </p>
                           </div>
                         )}
 

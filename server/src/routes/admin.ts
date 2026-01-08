@@ -2137,6 +2137,7 @@ router.post('/orientations/:id/steps', (req, res, next) => {
     // Parse questions if provided as string
     let parsedQuestions = null;
     const questionMode = req.body.questionMode || 'manual';
+    const stepContent = req.body.content || '';
     
     // Auto-generate questions from PDF if auto mode is selected and PDF is uploaded
     if (questionMode === 'auto' && pdfBuffer && req.file) {
@@ -2151,7 +2152,21 @@ router.post('/orientations/:id/steps', (req, res, next) => {
         console.warn('⚠️ Continuing without auto-generated questions. Admin can add questions manually.');
         // Don't fail step creation, just log the error
       }
-    } else if (questions) {
+    } 
+    // Generate questions from markdown content
+    else if (questionMode === 'markdown' && stepContent && stepContent.trim().length >= 50) {
+      try {
+        console.log('🤖 Generating questions from markdown content...');
+        const { generateQuestionsWithAI } = await import('../utils/aiQuestionGenerator.js');
+        parsedQuestions = await generateQuestionsWithAI(stepContent, 10);
+        console.log(`✅ Generated ${parsedQuestions.length} questions from markdown`);
+      } catch (genError: any) {
+        console.error('❌ Failed to generate questions from markdown:', genError);
+        console.warn('⚠️ Continuing without generated questions. Admin can add questions manually.');
+      }
+    }
+    // Manual or bulk questions provided
+    else if (questions) {
       // Manual questions provided
       try {
         parsedQuestions = typeof questions === 'string' ? JSON.parse(questions) : questions;
