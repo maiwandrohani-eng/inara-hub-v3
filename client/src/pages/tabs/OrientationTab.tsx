@@ -335,14 +335,16 @@ export default function OrientationTab() {
 
   // Safety check: ensure currentStep doesn't exceed totalSteps - 1
   // This prevents "Step 2 of 1" and "200% Complete" when there are no steps
-  if (currentStep >= totalSteps) {
-    // Reset to last valid step (checklist only if no other steps)
-    if (totalSteps === 1) {
-      setCurrentStep(0);
-    } else {
-      setCurrentStep(totalSteps - 1);
+  useEffect(() => {
+    if (currentStep >= totalSteps) {
+      // Reset to last valid step (checklist only if no other steps)
+      if (totalSteps === 1) {
+        setCurrentStep(0);
+      } else {
+        setCurrentStep(totalSteps - 1);
+      }
     }
-  }
+  }, [currentStep, totalSteps]);
 
   // If completed and user wants to see onboarding flow, show it
   if (completed && !showOnboardingFlow) {
