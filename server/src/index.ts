@@ -284,6 +284,38 @@ app.get('/api/auth/diagnostic', async (req, res) => {
   }
 });
 
+// Uploads route - proxy to R2 (handles /api/uploads/*)
+app.get('/api/uploads/*', async (req, res) => {
+  try {
+    // Extract the path after /api/uploads/
+    const filePath = req.path.replace('/api/uploads/', '');
+    
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path required' });
+    }
+
+    // Get R2 configuration
+    const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+    const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+    const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+    const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+
+    if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
+      return res.status(500).json({ error: 'R2 configuration missing' });
+    }
+
+    // Import getPresignedUrl
+    const { getPresignedUrl } = await import('./utils/r2Storage.js');
+    
+    // Generate presigned URL and redirect
+    const presignedUrl = await getPresignedUrl(filePath, 3600); // 1 hour expiry
+    return res.redirect(302, presignedUrl);
+  } catch (error: any) {
+    console.error('Error in uploads route:', error);
+    return res.status(500).json({ error: error.message || 'Failed to get file' });
+  }
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
