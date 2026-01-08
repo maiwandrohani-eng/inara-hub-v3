@@ -17,6 +17,20 @@ export async function generateOrientationCertificate(
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
+      // Validate required fields
+      if (!user.firstName || !user.lastName) {
+        throw new Error('First name and last name are required for certificate generation');
+      }
+      
+      if (!completionDate || !(completionDate instanceof Date)) {
+        throw new Error('Valid completion date is required');
+      }
+      
+      console.log('📄 Starting certificate generation:', {
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        date: completionDate.toISOString(),
+      });
       const doc = new PDFDocument({
         size: 'LETTER',
         margins: { top: 50, bottom: 50, left: 50, right: 50 },
@@ -403,7 +417,12 @@ export async function generateOrientationCertificate(
          .text('INARA Global Governance & Compliance Office', { align: 'center' });
 
       doc.end();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Certificate generation error in PDFDocument:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
       reject(error);
     }
   });

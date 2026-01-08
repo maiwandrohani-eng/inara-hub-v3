@@ -357,10 +357,17 @@ router.post('/complete', authenticate, async (req: AuthRequest, res) => {
         };
 
         // Generate certificate PDF
+        console.log('📜 Generating certificate during completion for user:', userId);
         const certificateBuffer = await generateOrientationCertificate(
           userDataForCertificate,
           completionDate
         );
+
+        if (!certificateBuffer || certificateBuffer.length === 0) {
+          throw new Error('Certificate buffer is empty');
+        }
+
+        console.log('✅ Certificate generated, size:', certificateBuffer.length, 'bytes');
 
         // Upload certificate to R2 for permanent storage
         try {
@@ -378,10 +385,17 @@ router.post('/complete', authenticate, async (req: AuthRequest, res) => {
           console.log('✅ Certificate generated and uploaded to R2:', certificateKey);
         } catch (uploadError: any) {
           console.warn('⚠️ Failed to upload certificate to R2, but certificate was generated:', uploadError.message);
+          console.warn('⚠️ Certificate will be generated on-demand instead');
           // Continue with on-demand generation
         }
       } catch (certError: any) {
-        console.error('❌ Error generating certificate during completion:', certError);
+        console.error('❌ Error generating certificate during completion:', {
+          message: certError.message,
+          stack: certError.stack,
+          name: certError.name,
+          code: certError.code,
+          userId: userId,
+        });
         // Don't fail the completion if certificate generation fails
         // Certificate can still be generated on-demand later
       }
@@ -471,19 +485,43 @@ router.get('/certificate/:userId', authenticate, async (req: AuthRequest, res) =
 
     // Prepare user data for certificate (use query params if provided, otherwise use user data)
     const userData = {
-      ...completion.user,
-      passportId: passportId as string || undefined,
+      firstName: completion.user.firstName || 'User',
+      lastName: completion.user.lastName || '',
+      email: completion.user.email || '',
+      passportId: (passportId as string) || undefined,
       country: (country as string) || completion.user.country || undefined,
       department: (department as string) || completion.user.department || undefined,
       role: (role as string) || completion.user.role || undefined,
     };
+    
+    // Validate required fields
+    if (!userData.firstName || !userData.lastName) {
+      return res.status(400).json({ 
+        message: 'User first name and last name are required for certificate generation' 
+      });
+    }
 
     // Generate certificate PDF
     try {
+      console.log('📜 Generating certificate for user:', userId, {
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        passportId: userData.passportId,
+        country: userData.country,
+        department: userData.department,
+      });
+
       const certificateBuffer = await generateOrientationCertificate(
         userData,
         completion.completedAt
       );
+
+      if (!certificateBuffer || certificateBuffer.length === 0) {
+        throw new Error('Certificate buffer is empty');
+      }
+
+      console.log('✅ Certificate generated successfully, size:', certificateBuffer.length, 'bytes');
 
       // Set response headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
@@ -491,12 +529,27 @@ router.get('/certificate/:userId', authenticate, async (req: AuthRequest, res) =
         'Content-Disposition',
         `attachment; filename="INARA_Orientation_Certificate_${completion.user.firstName}_${completion.user.lastName}.pdf"`
       );
+      res.setHeader('Content-Length', certificateBuffer.length.toString());
 
       res.send(certificateBuffer);
     } catch (genError: any) {
-      console.error('Certificate generation error:', genError);
+      console.error('❌ Certificate generation error:', {
+        message: genError.message,
+        stack: genError.stack,
+        name: genError.name,
+        code: genError.code,
+        userId: userId,
+      });
+      
+      // Provide more detailed error message
+      const errorMessage = genError.message || 'Failed to generate certificate';
+      const isPdfKitError = errorMessage.includes('PDFDocument') || errorMessage.includes('pdfkit');
+      
       res.status(500).json({ 
-        message: genError.message || 'Failed to generate certificate. Please try again.' 
+        message: isPdfKitError 
+          ? 'PDF generation library error. Please contact support.'
+          : errorMessage,
+        error: process.env.NODE_ENV === 'development' ? genError.stack : undefined,
       });
     }
   } catch (error: any) {
