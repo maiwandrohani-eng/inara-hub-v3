@@ -92,8 +92,8 @@ export default function CertificateViewer({
             background: white;
             page-break-after: avoid;
           }
-          .certificate-container > div:first-child {
-            display: none !important;
+          .watermark-background {
+            visibility: visible !important;
           }
           .certificate-actions,
           .certificate-actions * {
@@ -145,9 +145,9 @@ export default function CertificateViewer({
           </div>
 
           {/* Certificate */}
-          <div className="certificate-container bg-white p-8 relative" style={{ minHeight: '11in', width: '8.5in' }}>
+          <div className="certificate-container bg-white p-6 relative" style={{ minHeight: '11in', width: '8.5in' }}>
             {/* Watermark Logo Background */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+            <div className="watermark-background absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
               <img 
                 src="/inara-logo.png" 
                 alt="INARA Watermark" 
@@ -169,212 +169,168 @@ export default function CertificateViewer({
             </div>
 
             {/* Border */}
-            <div className="border-4 border-blue-800 p-12 h-full relative" style={{ minHeight: '10.5in', zIndex: 1 }}>
-              {/* Logo */}
-              <div className="text-center mb-6">
-                <img 
-                  src="/inara-logo.png" 
-                  alt="INARA Logo" 
-                  className="mx-auto h-20 w-20 object-contain"
-                  onError={(e) => {
-                    // Try alternative paths
-                    const img = e.target as HTMLImageElement;
-                    if (img.src.includes('/inara-logo.png')) {
-                      img.src = '/assets/inara-logo.png';
-                    } else {
-                      img.style.display = 'none';
-                    }
-                  }}
-                />
-              </div>
+            <div className="border-4 border-blue-800 p-8 relative" style={{ zIndex: 1 }}>
 
               {/* Header */}
-              <h1 className="text-2xl font-bold text-blue-800 text-center mb-4">
+              <h1 className="text-lg font-bold text-blue-800 text-center mb-2">
                 INARA STAFF ONBOARDING & ORIENTATION CERTIFICATE
               </h1>
               
-              <div className="border-t-2 border-blue-800 my-4"></div>
+              <div className="border-t-2 border-blue-800 my-2"></div>
 
               {/* Certificate Title */}
-              <h2 className="text-xl font-bold text-gray-900 text-center mb-6">
+              <h2 className="text-sm font-bold text-gray-900 text-center mb-3">
                 CERTIFICATE OF OFFICIAL INSTITUTIONAL READINESS
               </h2>
 
               {/* Certificate Body */}
-              <p className="text-base text-gray-700 text-center mb-4">
+              <p className="text-sm text-gray-700 text-center mb-2">
                 This is to certify that
               </p>
 
-              <div className="border-t border-blue-800 my-4"></div>
+              <div className="border-t border-blue-800 my-2"></div>
 
               {/* Name Fields */}
-              <div className="text-center mb-4">
-                <div className="flex justify-center gap-2 mb-2">
+              <div className="text-center mb-2">
+                <div className="flex justify-center gap-2 mb-1">
                   <input
                     type="text"
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="certificate-form-fields text-2xl font-bold text-blue-800 text-center border-b-2 border-blue-800 focus:outline-none focus:border-blue-600 min-w-[150px]"
+                    className="certificate-form-fields text-lg font-bold text-blue-800 text-center border-b-2 border-blue-800 focus:outline-none focus:border-blue-600 min-w-[120px]"
                     placeholder="First Name"
-                    style={{ maxWidth: '200px' }}
+                    style={{ maxWidth: '150px' }}
                   />
                   <input
                     type="text"
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="certificate-form-fields text-2xl font-bold text-blue-800 text-center border-b-2 border-blue-800 focus:outline-none focus:border-blue-600 min-w-[150px]"
+                    className="certificate-form-fields text-lg font-bold text-blue-800 text-center border-b-2 border-blue-800 focus:outline-none focus:border-blue-600 min-w-[120px]"
                     placeholder="Last Name"
-                    style={{ maxWidth: '200px' }}
+                    style={{ maxWidth: '150px' }}
                   />
                 </div>
               </div>
 
               {/* Staff Details */}
-              <div className="text-center space-y-2 mb-4">
+              <div className="text-center space-y-1 mb-2">
                 <div>
-                  <span className="text-sm text-gray-700">Passport / National ID: </span>
+                  <span className="text-xs text-gray-700">Passport / National ID: </span>
                   <input
                     type="text"
                     value={formData.passportId}
                     onChange={(e) => setFormData({ ...formData, passportId: e.target.value })}
-                    className="certificate-form-fields text-sm text-gray-700 border-b border-gray-400 focus:outline-none focus:border-blue-600 min-w-[200px]"
+                    className="certificate-form-fields text-xs text-gray-700 border-b border-gray-400 focus:outline-none focus:border-blue-600 min-w-[150px]"
                     placeholder="[ ID NUMBER ]"
                     required
                   />
                 </div>
                 <div>
-                  <span className="text-sm text-gray-700">Country Office: </span>
+                  <span className="text-xs text-gray-700">Country Office: </span>
                   <input
                     type="text"
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="certificate-form-fields text-sm text-gray-700 border-b border-gray-400 focus:outline-none focus:border-blue-600 min-w-[200px]"
+                    className="certificate-form-fields text-xs text-gray-700 border-b border-gray-400 focus:outline-none focus:border-blue-600 min-w-[120px]"
                     placeholder="[ COUNTRY ]"
                   />
                 </div>
                 <div>
-                  <span className="text-sm text-gray-700">Department / Role: </span>
+                  <span className="text-xs text-gray-700">Department / Role: </span>
                   <input
                     type="text"
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="certificate-form-fields text-sm text-gray-700 border-b border-gray-400 focus:outline-none focus:border-blue-600 min-w-[250px]"
+                    className="certificate-form-fields text-xs text-gray-700 border-b border-gray-400 focus:outline-none focus:border-blue-600 min-w-[180px]"
                     placeholder="[ POSITION / DEPARTMENT ]"
                   />
                 </div>
               </div>
 
-              <div className="border-t border-blue-800 my-4"></div>
+              <div className="border-t border-blue-800 my-2"></div>
 
               {/* Completion Statement */}
-              <p className="text-sm text-gray-700 text-center leading-relaxed mb-2">
+              <p className="text-xs text-gray-700 text-center leading-tight mb-1">
                 has successfully completed all mandatory onboarding, institutional orientation,
               </p>
-              <p className="text-sm text-gray-700 text-center leading-relaxed mb-2">
-                safeguarding awareness, code of conduct acknowledgement, and compliance
-              </p>
-              <p className="text-sm text-gray-700 text-center leading-relaxed mb-4">
-                requirements of:
+              <p className="text-xs text-gray-700 text-center leading-tight mb-1">
+                safeguarding awareness, code of conduct acknowledgement, and compliance requirements of:
               </p>
 
-              <div className="border-t border-blue-800 my-4"></div>
+              <div className="border-t border-blue-800 my-1"></div>
 
               {/* INARA Name */}
-              <h3 className="text-xl font-bold text-blue-800 text-center mb-2">
+              <h3 className="text-base font-bold text-blue-800 text-center mb-1">
                 INARA
               </h3>
-              <p className="text-sm text-gray-600 text-center mb-4">
+              <p className="text-xs text-gray-600 text-center mb-1">
                 International Network for Aid, Relief and Assistance
               </p>
 
-              <p className="text-sm text-gray-700 text-center leading-relaxed mb-2">
+              <p className="text-xs text-gray-700 text-center leading-tight mb-1">
                 and is hereby recognized as an Officially Authorized INARA Staff Member,
               </p>
-              <p className="text-sm text-gray-700 text-center leading-relaxed mb-4">
+              <p className="text-xs text-gray-700 text-center leading-tight mb-1">
                 having demonstrated full understanding of:
               </p>
 
-              <div className="border-t border-blue-800 my-4"></div>
+              <div className="border-t border-blue-800 my-1"></div>
 
               {/* Bullet Points */}
-              <div className="text-sm text-gray-700 space-y-2 mb-4 pl-8">
+              <div className="text-xs text-gray-700 space-y-0.5 mb-1 pl-4">
                 <p>• INARA's mission, values, and humanitarian principles</p>
                 <p>• Safeguarding and accountability standards</p>
                 <p>• Internal policies and code of conduct</p>
                 <p>• Operational compliance and ethical responsibilities</p>
-                <p>• Institutional systems and reporting frameworks</p>
               </div>
 
-              <div className="border-t border-blue-800 my-4"></div>
+              <div className="border-t border-blue-800 my-1"></div>
 
               {/* STATUS GRANTED */}
-              <h3 className="text-lg font-bold text-blue-800 text-center mb-4">
+              <h3 className="text-sm font-bold text-blue-800 text-center mb-1">
                 STATUS GRANTED
               </h3>
 
-              <p className="text-sm text-gray-700 text-center mb-4">
-                The above-named individual is formally cleared and authorized to:
+              <p className="text-xs text-gray-700 text-center mb-1">
+                The above-named individual is authorized to:
               </p>
 
-              <div className="text-sm text-gray-700 space-y-2 mb-4 pl-8">
+              <div className="text-xs text-gray-700 space-y-0.5 mb-1 pl-4">
                 <p className="flex items-start">
-                  <span className="text-blue-800 font-bold mr-2">✔</span>
-                  <span>Access INARA operational systems</span>
+                  <span className="text-blue-800 font-bold mr-1">✔</span>
+                  <span>Access INARA systems and participate in programs</span>
                 </p>
                 <p className="flex items-start">
-                  <span className="text-blue-800 font-bold mr-2">✔</span>
-                  <span>Represent INARA in professional capacity</span>
+                  <span className="text-blue-800 font-bold mr-1">✔</span>
+                  <span>Represent INARA professionally</span>
                 </p>
                 <p className="flex items-start">
-                  <span className="text-blue-800 font-bold mr-2">✔</span>
-                  <span>Participate in INARA humanitarian programs</span>
-                </p>
-                <p className="flex items-start">
-                  <span className="text-blue-800 font-bold mr-2">✔</span>
+                  <span className="text-blue-800 font-bold mr-1">✔</span>
                   <span>Engage with beneficiaries, partners, and donors</span>
                 </p>
-                <p className="flex items-start">
-                  <span className="text-blue-800 font-bold mr-2">✔</span>
-                  <span>Operate under INARA's global governance and compliance framework</span>
-                </p>
               </div>
 
-              <div className="border-t border-blue-800 my-4"></div>
+              <div className="border-t border-blue-800 my-1"></div>
 
               {/* CERTIFICATE REFERENCE */}
-              <h3 className="text-lg font-bold text-blue-800 text-center mb-4">
-                CERTIFICATE REFERENCE
-              </h3>
-
-              <div className="text-xs text-gray-700 text-center space-y-1 mb-4">
-                <p>Certificate ID: {certificateId}</p>
-                <p>Issue Date: {completionDate.toLocaleDateString('en-US', { 
+              <div className="text-xs text-gray-700 text-center space-y-0.5 mb-1">
+                <p><strong>Certificate ID:</strong> {certificateId}</p>
+                <p><strong>Issue Date:</strong> {completionDate.toLocaleDateString('en-US', { 
                   year: 'numeric', 
-                  month: 'long', 
+                  month: 'short', 
                   day: 'numeric' 
                 })}</p>
-                <p>Valid Until: {validUntil.toLocaleDateString('en-US', { 
+                <p><strong>Valid Until:</strong> {validUntil.toLocaleDateString('en-US', { 
                   year: 'numeric', 
-                  month: 'long', 
+                  month: 'short', 
                   day: 'numeric' 
                 })}</p>
               </div>
 
-              <p className="text-xs text-gray-600 text-center leading-relaxed mb-2">
-                This certificate remains valid only while the holder maintains active compliance
-              </p>
-              <p className="text-xs text-gray-600 text-center leading-relaxed mb-4">
-                with INARA's mandatory training, safeguarding, and policy recertification requirements.
-              </p>
-
-              <div className="border-t border-blue-800 my-4"></div>
+              <div className="border-t border-blue-800 my-1"></div>
 
               {/* AUTHORIZED BY */}
-              <h3 className="text-lg font-bold text-blue-800 text-center mb-4">
-                AUTHORIZED BY
-              </h3>
-
-              <p className="text-base font-bold text-gray-900 text-center">
+              <p className="text-sm font-bold text-gray-900 text-center">
                 INARA Global Governance & Compliance Office
               </p>
             </div>
