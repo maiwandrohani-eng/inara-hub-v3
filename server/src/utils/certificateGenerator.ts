@@ -85,7 +85,7 @@ export async function generateOrientationCertificate(
       }
 
       // Header with logo - positioned with more space from top edge
-      doc.y = margin + 40; // Increased from 20 to 40 for more space from top
+      doc.y = margin + 20; // Reduced from 40 for more space
       
       if (logoExists && logoFile && !process.env.VERCEL) {
         try {
@@ -104,7 +104,7 @@ export async function generateOrientationCertificate(
             align: 'center'
           });
           
-          doc.y += logoSize + 25; // Increased spacing after logo (from 20 to 25)
+          doc.y += logoSize + 10; // Reduced spacing after logo
           console.log('✅ INARA logo added to certificate successfully at position:', logoX, doc.y - logoSize - 25);
         } catch (error: any) {
           console.warn('⚠️ Error adding logo to certificate (continuing without logo):', error.message);
@@ -120,12 +120,12 @@ export async function generateOrientationCertificate(
       }
 
       // Header text
-      doc.fontSize(20)
+      doc.fontSize(16)
          .fillColor(inaraBlue)
          .font('Helvetica-Bold')
          .text('INARA STAFF ONBOARDING & ORIENTATION CERTIFICATE', { align: 'center' });
 
-      doc.moveDown(1);
+      doc.moveDown(0.6);
       
       // Decorative line
       const lineY1 = doc.y;
@@ -134,15 +134,15 @@ export async function generateOrientationCertificate(
          .lineWidth(1)
          .stroke(inaraBlue);
 
-      doc.moveDown(1.5);
+      doc.moveDown(0.6);
 
       // Certificate Title
-      doc.fontSize(18)
+      doc.fontSize(14)
          .fillColor('#111827')
          .font('Helvetica-Bold')
          .text('CERTIFICATE OF OFFICIAL INSTITUTIONAL READINESS', { align: 'center' });
 
-      doc.moveDown(2);
+      doc.moveDown(1);
 
       // Certificate Body
       doc.fontSize(14)
@@ -150,7 +150,7 @@ export async function generateOrientationCertificate(
          .font('Helvetica')
          .text('This is to certify that', { align: 'center' });
 
-      doc.moveDown(1);
+      doc.moveDown(0.8);
       
       // Decorative line
       const lineY2 = doc.y;
@@ -159,7 +159,7 @@ export async function generateOrientationCertificate(
          .lineWidth(1)
          .stroke('#1e40af');
 
-      doc.moveDown(1.5);
+      doc.moveDown(0.8);
 
       // Staff Member Name (only first and last name, no role)
       // Clean the name - remove any role text that might be in firstName or lastName
@@ -176,28 +176,28 @@ export async function generateOrientationCertificate(
         ? `${firstName} ${lastName}`.trim().toUpperCase()
         : firstName.toUpperCase();
       
-      doc.fontSize(22)
+      doc.fontSize(18)
          .fillColor(inaraBlue)
          .font('Helvetica-Bold')
          .text(fullName, { align: 'center' });
 
-      doc.moveDown(1);
+      doc.moveDown(0.6);
 
       // Staff Details
-      doc.fontSize(11)
+      doc.fontSize(10)
          .fillColor('#374151')
          .font('Helvetica')
          .text(`Passport / National ID: ${user.passportId || '[ ID NUMBER ]'}`, { align: 'center' });
       
-      doc.moveDown(0.5);
+      doc.moveDown(0.3);
       doc.text(`Country Office: ${user.country || '[ COUNTRY ]'}`, { align: 'center' });
       
-      doc.moveDown(0.5);
+      doc.moveDown(0.3);
       // Department field is now free text (can contain role, department, or both)
       const deptRole = user.department || '[ POSITION / DEPARTMENT ]';
       doc.text(`Department / Role: ${deptRole}`, { align: 'center' });
 
-      doc.moveDown(1);
+      doc.moveDown(0.7);
       
       // Decorative line
       const lineY3 = doc.y;
@@ -206,21 +206,21 @@ export async function generateOrientationCertificate(
          .lineWidth(1)
          .stroke(inaraBlue);
 
-      doc.moveDown(1.5);
+      doc.moveDown(0.7);
 
       // Completion Statement
-      doc.fontSize(12)
+      doc.fontSize(11)
          .fillColor('#374151')
          .font('Helvetica')
          .text('has successfully completed all mandatory onboarding, institutional orientation,', { align: 'center' });
       
-      doc.moveDown(0.5);
+      doc.moveDown(0.3);
       doc.text('safeguarding awareness, code of conduct acknowledgement, and compliance', { align: 'center' });
       
-      doc.moveDown(0.5);
+      doc.moveDown(0.3);
       doc.text('requirements of:', { align: 'center' });
 
-      doc.moveDown(1);
+      doc.moveDown(0.7);
       
       // Decorative line
       const lineY4 = doc.y;
@@ -229,32 +229,42 @@ export async function generateOrientationCertificate(
          .lineWidth(1)
          .stroke(inaraBlue);
 
-      doc.moveDown(1.5);
+      doc.moveDown(0.7);
 
       // INARA Name
-      doc.fontSize(18)
+      doc.fontSize(14)
          .fillColor(inaraBlue)
          .font('Helvetica-Bold')
          .text('INARA', { align: 'center' });
       
-      doc.moveDown(0.5);
-      doc.fontSize(12)
+      doc.moveDown(0.3);
+      doc.fontSize(10)
          .fillColor('#6b7280')
          .font('Helvetica')
          .text('International Network for Aid, Relief and Assistance', { align: 'center' });
 
-      doc.moveDown(1.5);
+      doc.moveDown(0.8);
       
-      doc.fontSize(12)
+      doc.fontSize(11)
          .fillColor('#374151')
          .font('Helvetica')
          .text('and is hereby recognized as an Officially Authorized INARA Staff Member,', { align: 'center' });
       
-      doc.moveDown(0.5);
+      doc.moveDown(0.3);
       doc.text('having demonstrated full understanding of:', { align: 'center' });
 
-      doc.moveDown(1);
+      doc.moveDown(0.8);
+
+      // PAGE BREAK - Move to page 2
+      doc.addPage();
       
+      // Redraw border on page 2
+      doc.rect(margin, margin, pageWidth - (margin * 2), pageHeight - (margin * 2))
+         .lineWidth(borderWidth)
+         .stroke(inaraBlue);
+      
+      doc.y = margin + 20;
+
       // Decorative line
       const lineY5 = doc.y;
       doc.moveTo(margin + 50, lineY5)
@@ -262,7 +272,7 @@ export async function generateOrientationCertificate(
          .lineWidth(1)
          .stroke(inaraBlue);
 
-      doc.moveDown(1);
+      doc.moveDown(0.8);
 
       // Bullet Points
       const bulletPoints = [
@@ -286,7 +296,7 @@ export async function generateOrientationCertificate(
         }
       });
 
-      doc.moveDown(1.5);
+      doc.moveDown(1);
       
       // Decorative line
       const lineY6 = doc.y;
@@ -295,17 +305,7 @@ export async function generateOrientationCertificate(
          .lineWidth(1)
          .stroke('#1e40af');
 
-      doc.moveDown(1.5);
-
-      // PAGE BREAK - Start page 2
-      doc.addPage();
-      
-      // Redraw border on page 2
-      doc.rect(margin, margin, pageWidth - (margin * 2), pageHeight - (margin * 2))
-         .lineWidth(borderWidth)
-         .stroke(inaraBlue);
-      
-      doc.y = margin + 30;
+      doc.moveDown(1);
 
       // STATUS GRANTED Section
       doc.fontSize(14)
