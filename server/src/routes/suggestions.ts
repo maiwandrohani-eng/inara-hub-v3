@@ -243,7 +243,7 @@ router.post('/:id/vote', authenticate, async (req: AuthRequest, res) => {
 router.use(authorize(UserRole.ADMIN, UserRole.COUNTRY_DIRECTOR, UserRole.DEPARTMENT_HEAD));
 
 // Update suggestion status
-router.put('/:id', async (req: AuthRequest, res) => {
+router.put('/:id', authenticate, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const userId = req.user!.id;
@@ -280,7 +280,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
 });
 
 // Delete suggestion
-router.delete('/:id', async (req: AuthRequest, res) => {
+router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     await prisma.suggestion.update({
