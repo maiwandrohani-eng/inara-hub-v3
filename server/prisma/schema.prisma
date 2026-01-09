@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,6 +5,915 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id                           String                        @id @default(uuid())
+  email                        String                        @unique
+  passwordHash                 String
+  firstName                    String
+  lastName                     String
+  phone                        String?
+  whatsapp                     String?
+  role                         UserRole
+  department                   Department?
+  country                      String?
+  city                         String?
+  address                      String?
+  clearance                    String?
+  isActive                     Boolean                       @default(true)
+  lastLogin                    DateTime?
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  activityLogs                 ActivityLog[]
+  bookmarks                    Bookmark[]
+  certificates                 Certificate[]
+  comments                     Comment[]
+  libraryAccess                LibraryAccess[]
+  marketSubmissions            MarketSubmission[]
+  NewsConfirmation             NewsConfirmation[]
+  notifications                Notification[]
+  orientationCompletion        OrientationCompletion?
+  orientationStepConfirmations OrientationStepConfirmation[]
+  policyCertifications         PolicyCertification[]
+  searchHistory                SearchHistory[]
+  Suggestion                   Suggestion[]
+  SuggestionVote               SuggestionVote[]
+  surveySubmissions            SurveySubmission[]
+  templateDownloads            TemplateDownload[]
+  trainingCompletions          TrainingCompletion[]
+  achievements                 UserAchievement[]
+  userPreferences              UserPreferences?
+  workSystemAccess             WorkSystemAccess[]
+
+  @@index([email])
+  @@index([role, department, country])
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  type        String
+  key         String
+  value       String
+  description String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([type, key])
+  @@index([type, isActive])
+}
+
+model WorkSystem {
+  id          String                 @id @default(uuid())
+  name        String                 @unique
+  url         String
+  description String?
+  icon        String?
+  isActive    Boolean                @default(true)
+  order       Int                    @default(0)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  userAccess  WorkSystemAccess[]
+  accessRules WorkSystemAccessRule[]
+
+  @@index([name])
+}
+
+model WorkSystemAccessRule {
+  id                  String       @id @default(uuid())
+  workSystemId        String
+  requiredTrainingIds String[]
+  requiredPolicyIds   String[]
+  allowedRoles        UserRole[]
+  allowedDepartments  Department[]
+  allowedCountries    String[]
+  isActive            Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  workSystem          WorkSystem   @relation(fields: [workSystemId], references: [id], onDelete: Cascade)
+
+  @@index([workSystemId])
+}
+
+model WorkSystemAccess {
+  id           String     @id @default(uuid())
+  userId       String
+  workSystemId String
+  grantedAt    DateTime   @default(now())
+  expiresAt    DateTime?
+  lastAccessed DateTime?
+  accessCount  Int        @default(0)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workSystem   WorkSystem @relation(fields: [workSystemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workSystemId])
+  @@index([userId])
+  @@index([workSystemId])
+}
+
+model Training {
+  id                  String               @id @default(uuid())
+  title               String
+  description         String?
+  content             String
+  duration            Int
+  objectives          String[]
+  sections            Json
+  quiz                Json?
+  passingScore        Int                  @default(70)
+  certificateRules    Json?
+  courseType          CourseType           @default(PROFESSIONAL_COURSE)
+  courseDuration      CourseDuration       @default(SHORT_TERM)
+  isMandatory         Boolean              @default(false)
+  isOptional          Boolean              @default(true)
+  trackId             String?
+  trackOrder          Int?
+  assignedTo          AccessLevel          @default(GLOBAL)
+  assignedRoles       UserRole[]
+  assignedDepartments Department[]
+  assignedCountries   String[]
+  validityPeriod      Int?
+  requiresRenewal     Boolean              @default(false)
+  expiryDate          DateTime?
+  category            String?
+  subcategory         String?
+  tags                String[]
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  sourceFileUrl       String?
+  autoGenerated       Boolean              @default(false)
+  bookmarks           Bookmark[]
+  certificates        Certificate[]
+  comments            Comment[]
+  resources           CourseResource[]
+  lessons             Lesson[]
+  track               Track?               @relation(fields: [trackId], references: [id])
+  completions         TrainingCompletion[]
+  versions            TrainingVersion[]
+  trainingPaths       TrainingPath[]       @relation("TrainingToTrainingPath")
+
+  @@index([isMandatory, isActive])
+  @@index([category])
+  @@index([courseType])
+  @@index([trackId])
+}
+
+model CourseResource {
+  id           String   @id @default(uuid())
+  trainingId   String
+  title        String
+  description  String?
+  fileUrl      String
+  fileName     String
+  fileSize     Int?
+  fileType     String
+  resourceType String   @default("module")
+  order        Int      @default(0)
+  isRequired   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  training     Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+
+  @@index([trainingId])
+  @@index([trainingId, order])
+}
+
+model TrainingPath {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  trainings   Training[] @relation("TrainingToTrainingPath")
+}
+
+model Track {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  type        CourseType
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  courses     Training[]
+
+  @@index([type])
+}
+
+model Lesson {
+  id         String   @id @default(uuid())
+  trainingId String
+  title      String
+  order      Int      @default(0)
+  content    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  training   Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  slides     Slide[]
+
+  @@unique([trainingId, order])
+  @@index([trainingId])
+}
+
+model Slide {
+  id        String     @id @default(uuid())
+  lessonId  String
+  title     String
+  content   String
+  order     Int        @default(0)
+  slideType String     @default("content")
+  mediaUrl  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  microQuiz MicroQuiz?
+  lesson    Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, order])
+  @@index([lessonId])
+}
+
+model MicroQuiz {
+  id           String   @id @default(uuid())
+  slideId      String   @unique
+  title        String
+  questions    Json
+  passingScore Int      @default(70)
+  isRequired   Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  slide        Slide    @relation(fields: [slideId], references: [id], onDelete: Cascade)
+}
+
+model Certificate {
+  id                String    @id @default(uuid())
+  trainingId        String
+  userId            String
+  certificateNumber String    @unique
+  fullName          String
+  courseTitle       String
+  completionDate    DateTime
+  expiryDate        DateTime?
+  score             Int?
+  passingScore      Int
+  passed            Boolean
+  certificateUrl    String
+  signedBy          String?
+  signatureDate     DateTime  @default(now())
+  isRecertified     Boolean   @default(false)
+  recertifiedFrom   String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  training          Training  @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trainingId])
+  @@index([userId])
+  @@index([trainingId])
+  @@index([certificateNumber])
+  @@index([expiryDate])
+}
+
+model TrainingCompletion {
+  id             String         @id @default(uuid())
+  userId         String
+  trainingId     String
+  status         TrainingStatus @default(NOT_STARTED)
+  progress       Int            @default(0)
+  score          Int?
+  completedAt    DateTime?
+  expiresAt      DateTime?
+  certificateUrl String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  training       Training       @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trainingId])
+  @@index([userId])
+  @@index([trainingId])
+  @@index([status, expiresAt])
+}
+
+model Orientation {
+  id          String                  @id @default(uuid())
+  title       String
+  content     String
+  sections    Json
+  pdfFiles    Json?
+  isActive    Boolean                 @default(true)
+  version     Int                     @default(1)
+  updatedAt   DateTime                @updatedAt
+  createdAt   DateTime                @default(now())
+  completions OrientationCompletion[]
+  steps       OrientationStep[]
+}
+
+model OrientationStep {
+  id            String                        @id @default(uuid())
+  orientationId String
+  stepNumber    Int
+  title         String
+  description   String?
+  content       String?
+  pdfUrl        String?
+  policyId      String?
+  questions     Json?
+  isRequired    Boolean                       @default(true)
+  order         Int                           @default(0)
+  createdAt     DateTime                      @default(now())
+  updatedAt     DateTime                      @updatedAt
+  orientation   Orientation                   @relation(fields: [orientationId], references: [id], onDelete: Cascade)
+  confirmations OrientationStepConfirmation[]
+
+  @@unique([orientationId, stepNumber])
+  @@index([orientationId, order])
+}
+
+model OrientationStepConfirmation {
+  id          String          @id @default(uuid())
+  userId      String
+  stepId      String
+  confirmedAt DateTime        @default(now())
+  notes       String?
+  responses   Json?
+  step        OrientationStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stepId])
+  @@index([userId])
+  @@index([stepId])
+}
+
+model OrientationCompletion {
+  id             String      @id @default(uuid())
+  userId         String      @unique
+  orientationId  String
+  completedAt    DateTime    @default(now())
+  score          Int?
+  checklistData  Json?
+  certificateUrl String?
+  orientation    Orientation @relation(fields: [orientationId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Policy {
+  id                  String                @id @default(uuid())
+  title               String
+  brief               String
+  complete            String
+  assessment          Json?
+  version             Int                   @default(1)
+  effectiveDate       DateTime
+  owner               String?
+  reviewCycle         Int?
+  isMandatory         Boolean               @default(false)
+  assignedTo          AccessLevel           @default(GLOBAL)
+  assignedRoles       UserRole[]
+  assignedDepartments Department[]
+  assignedCountries   String[]
+  category            String?
+  subcategory         String?
+  tags                String[]
+  fileUrl             String?
+  isActive            Boolean               @default(true)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  bookmarks           Bookmark[]
+  comments            Comment[]
+  certifications      PolicyCertification[]
+  versions            PolicyVersion[]
+
+  @@index([isMandatory, isActive])
+  @@index([category])
+}
+
+model PolicyVersion {
+  id            String   @id @default(uuid())
+  policyId      String
+  version       Int
+  content       String
+  effectiveDate DateTime
+  archivedAt    DateTime @default(now())
+  policy        Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([policyId])
+}
+
+model PolicyCertification {
+  id              String       @id @default(uuid())
+  userId          String
+  policyId        String
+  status          PolicyStatus @default(NOT_ACKNOWLEDGED)
+  acknowledgedAt  DateTime?
+  assessmentScore Int?
+  expiresAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  policy          Policy       @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, policyId])
+  @@index([userId])
+  @@index([policyId])
+  @@index([status, expiresAt])
+}
+
+model LibraryResource {
+  id           String            @id @default(uuid())
+  title        String
+  description  String?
+  content      String?
+  fileUrl      String?
+  resourceType String
+  category     String?
+  subcategory  String?
+  tags         String[]
+  author       String?
+  publishDate  DateTime?
+  language     String            @default("en")
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  bookmarks    Bookmark[]
+  comments     Comment[]
+  versions     DocumentVersion[]
+  accesses     LibraryAccess[]
+
+  @@index([resourceType, category])
+  @@index([tags])
+}
+
+model LibraryAccess {
+  id         String          @id @default(uuid())
+  userId     String
+  resourceId String
+  accessedAt DateTime        @default(now())
+  duration   Int?
+  resource   LibraryResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resourceId])
+  @@index([accessedAt])
+}
+
+model MarketSubmission {
+  id                   String       @id @default(uuid())
+  userId               String
+  fullName             String?
+  jobTitle             String?
+  countryOffice        String?
+  department           String?
+  email                String?
+  phone                String?
+  whatsapp             String?
+  title                String
+  ideaType             String
+  problemNeed          String
+  proposedSolution     String
+  beneficiaries        String[]
+  estimatedImpact      String
+  estimatedCost        String
+  fundingPotential     String
+  urgency              String
+  leadershipInterest   String
+  attachments          String[]
+  declarationConfirmed Boolean      @default(false)
+  status               MarketStatus @default(NEW)
+  assignedReviewer     String?
+  reviewScore          Int?
+  bonusApproved        Boolean      @default(false)
+  bonusAmount          Float?
+  internalNotes        String?
+  problemStatement     String?
+  targetPopulation     String?
+  objective            String?
+  outcomes             String[]
+  activities           String[]
+  budgetRange          String?
+  risks                String?
+  mitigations          String?
+  sustainability       String?
+  implementationPlan   String?
+  alignment            String?
+  reviewerNotes        String?
+  reviewerId           String?
+  reviewedAt           DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([ideaType])
+}
+
+model Template {
+  id             String             @id @default(uuid())
+  title          String
+  description    String?
+  fileUrl        String
+  category       String?
+  subcategory    String?
+  owner          String?
+  version        Int                @default(1)
+  approvalStatus String             @default("approved")
+  lastUpdated    DateTime           @default(now())
+  tags           String[]
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  bookmarks      Bookmark[]
+  comments       Comment[]
+  downloads      TemplateDownload[]
+  versions       TemplateVersion[]
+
+  @@index([category])
+  @@index([approvalStatus])
+}
+
+model TemplateDownload {
+  id           String   @id @default(uuid())
+  userId       String
+  templateId   String
+  downloadedAt DateTime @default(now())
+  template     Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([templateId])
+  @@index([downloadedAt])
+}
+
+model ActivityLog {
+  id           String   @id @default(uuid())
+  userId       String
+  action       String
+  resourceType String?
+  resourceId   String?
+  details      Json?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([resourceType, resourceId])
+}
+
+model BotKnowledge {
+  id         String   @id @default(uuid())
+  question   String
+  answer     String
+  sourceType String
+  sourceId   String?
+  tags       String[]
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tags])
+  @@index([sourceType, sourceId])
+}
+
+model Notification {
+  id           String    @id @default(uuid())
+  userId       String
+  type         String
+  title        String
+  message      String
+  link         String?
+  resourceType String?
+  resourceId   String?
+  isRead       Boolean   @default(false)
+  readAt       DateTime?
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+model Bookmark {
+  id                String           @id @default(uuid())
+  userId            String
+  resourceType      String
+  resourceId        String
+  folder            String?
+  notes             String?
+  createdAt         DateTime         @default(now())
+  trainingId        String?
+  policyId          String?
+  libraryResourceId String?
+  templateId        String?
+  LibraryResource   LibraryResource? @relation(fields: [libraryResourceId], references: [id])
+  Policy            Policy?          @relation(fields: [policyId], references: [id])
+  Template          Template?        @relation(fields: [templateId], references: [id])
+  Training          Training?        @relation(fields: [trainingId], references: [id])
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resourceType, resourceId])
+  @@index([userId])
+  @@index([resourceType, resourceId])
+}
+
+model Comment {
+  id                String           @id @default(uuid())
+  userId            String
+  resourceType      String
+  resourceId        String
+  content           String
+  parentId          String?
+  isEdited          Boolean          @default(false)
+  editedAt          DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  trainingId        String?
+  policyId          String?
+  libraryResourceId String?
+  templateId        String?
+  newsId            String?
+  suggestionId      String?
+  LibraryResource   LibraryResource? @relation(fields: [libraryResourceId], references: [id])
+  News              News?            @relation(fields: [newsId], references: [id])
+  parent            Comment?         @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies           Comment[]        @relation("CommentReplies")
+  Policy            Policy?          @relation(fields: [policyId], references: [id])
+  Suggestion        Suggestion?      @relation(fields: [suggestionId], references: [id])
+  Template          Template?        @relation(fields: [templateId], references: [id])
+  Training          Training?        @relation(fields: [trainingId], references: [id])
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([resourceType, resourceId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model UserAchievement {
+  id              String   @id @default(uuid())
+  userId          String
+  achievementType String
+  title           String
+  description     String?
+  icon            String?
+  earnedAt        DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([achievementType])
+}
+
+model SearchHistory {
+  id          String   @id @default(uuid())
+  userId      String
+  query       String
+  filters     Json?
+  resultCount Int?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model UserPreferences {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  theme           String   @default("dark")
+  language        String   @default("en")
+  timezone        String?
+  emailDigest     Boolean  @default(true)
+  emailFrequency  String   @default("daily")
+  notifications   Json?
+  shortcuts       Json?
+  dashboardLayout Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CalendarEvent {
+  id                  String       @id @default(uuid())
+  title               String
+  description         String?
+  eventType           String
+  startDate           DateTime
+  endDate             DateTime?
+  allDay              Boolean      @default(false)
+  resourceType        String?
+  resourceId          String?
+  assignedTo          AccessLevel  @default(GLOBAL)
+  assignedRoles       UserRole[]
+  assignedDepartments Department[]
+  assignedCountries   String[]
+  userId              String?
+  isRecurring         Boolean      @default(false)
+  recurrenceRule      String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([startDate])
+  @@index([eventType])
+  @@index([resourceType, resourceId])
+}
+
+model DocumentVersion {
+  id                String           @id @default(uuid())
+  resourceType      String
+  resourceId        String
+  version           Int
+  content           String
+  fileUrl           String?
+  changeLog         String?
+  createdBy         String?
+  createdAt         DateTime         @default(now())
+  libraryResourceId String?
+  LibraryResource   LibraryResource? @relation(fields: [libraryResourceId], references: [id])
+
+  @@index([resourceType, resourceId])
+  @@index([version])
+}
+
+model TrainingVersion {
+  id         String   @id @default(uuid())
+  trainingId String
+  version    Int
+  content    String
+  changeLog  String?
+  archivedAt DateTime @default(now())
+  training   Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+
+  @@index([trainingId])
+}
+
+model TemplateVersion {
+  id         String   @id @default(uuid())
+  templateId String
+  version    Int
+  fileUrl    String
+  changeLog  String?
+  archivedAt DateTime @default(now())
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+}
+
+model News {
+  id            String             @id @default(uuid())
+  title         String
+  content       String
+  summary       String?
+  priority      String             @default("normal")
+  isActive      Boolean            @default(true)
+  publishedAt   DateTime           @default(now())
+  expiresAt     DateTime?
+  createdBy     String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  comments      Comment[]
+  confirmations NewsConfirmation[]
+
+  @@index([isActive, publishedAt])
+  @@index([priority])
+}
+
+model NewsConfirmation {
+  id          String   @id @default(uuid())
+  newsId      String
+  userId      String
+  confirmedAt DateTime @default(now())
+  news        News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([newsId, userId])
+  @@index([newsId])
+  @@index([userId])
+}
+
+model Suggestion {
+  id          String           @id @default(uuid())
+  userId      String
+  title       String
+  description String
+  category    String?
+  status      String           @default("submitted")
+  priority    String?
+  adminNotes  String?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  comments    Comment[]
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes       SuggestionVote[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model SuggestionVote {
+  id           String     @id @default(uuid())
+  suggestionId String
+  userId       String
+  voteType     String
+  createdAt    DateTime   @default(now())
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([suggestionId, userId])
+  @@index([suggestionId])
+  @@index([userId])
+}
+
+model Survey {
+  id                  String             @id @default(uuid())
+  title               String
+  description         String?
+  type                String
+  questions           Json
+  isAnonymous         Boolean            @default(false)
+  hasTimeLimit        Boolean            @default(false)
+  timeLimitMinutes    Int?
+  passingScore        Int?
+  maxAttempts         Int?
+  isMandatory         Boolean            @default(false)
+  assignedTo          AccessLevel        @default(GLOBAL)
+  assignedRoles       UserRole[]
+  assignedDepartments Department[]
+  assignedCountries   String[]
+  assignedUserIds     String[]
+  startDate           DateTime?
+  endDate             DateTime?
+  dueDate             DateTime?
+  category            String?
+  tags                String[]
+  isActive            Boolean            @default(true)
+  createdBy           String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  analytics           SurveyAnalytics?
+  submissions         SurveySubmission[]
+
+  @@index([type, isActive])
+  @@index([createdBy])
+  @@index([startDate, endDate])
+}
+
+model SurveySubmission {
+  id               String    @id @default(uuid())
+  surveyId         String
+  userId           String
+  responses        Json
+  totalScore       Int?
+  maxScore         Int?
+  percentageScore  Float?
+  passed           Boolean?
+  startedAt        DateTime  @default(now())
+  submittedAt      DateTime?
+  timeSpentSeconds Int?
+  status           String    @default("in_progress")
+  attemptNumber    Int       @default(1)
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  survey           Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([surveyId, userId, attemptNumber])
+  @@index([surveyId])
+  @@index([userId])
+  @@index([status])
+  @@index([submittedAt])
+}
+
+model SurveyAnalytics {
+  id                   String   @id @default(uuid())
+  surveyId             String   @unique
+  totalSubmissions     Int      @default(0)
+  completedSubmissions Int      @default(0)
+  averageScore         Float?
+  averageTimeSpent     Float?
+  passRate             Float?
+  questionAnalytics    Json?
+  lastCalculatedAt     DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  survey               Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
 }
 
 enum UserRole {
@@ -78,1080 +984,4 @@ enum AccessLevel {
   COUNTRY
   DEPARTMENT
   ROLE
-}
-
-// User & Authentication
-model User {
-  id           String      @id @default(uuid())
-  email        String      @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  phone        String? // Contact information
-  whatsapp     String? // WhatsApp number
-  role         UserRole
-  department   Department?
-  country      String?
-  city         String? // City/Province
-  address      String? // Full address
-  clearance    String? // Additional clearance level
-  isActive     Boolean     @default(true)
-  lastLogin    DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  // Relations
-  trainingCompletions          TrainingCompletion[]
-  policyCertifications         PolicyCertification[]
-  workSystemAccess             WorkSystemAccess[]
-  marketSubmissions            MarketSubmission[]
-  templateDownloads            TemplateDownload[]
-  libraryAccess                LibraryAccess[]
-  orientationCompletion        OrientationCompletion?
-  orientationStepConfirmations OrientationStepConfirmation[]
-  activityLogs                 ActivityLog[]
-  notifications                Notification[]
-  bookmarks                    Bookmark[]
-  comments                     Comment[]
-  achievements                 UserAchievement[]
-  searchHistory                SearchHistory[]
-  userPreferences              UserPreferences?
-  NewsConfirmation             NewsConfirmation[]
-  Suggestion                   Suggestion[]
-  SuggestionVote               SuggestionVote[]
-  surveySubmissions            SurveySubmission[]
-  certificates                 Certificate[]
-
-  @@index([email])
-  @@index([role, department, country])
-}
-
-// System Configuration
-model SystemConfig {
-  id          String   @id @default(uuid())
-  type        String // 'department', 'country', 'city', 'role', etc.
-  key         String // Unique key/name
-  value       String // Display value
-  description String? // Optional description
-  order       Int      @default(0) // Display order
-  isActive    Boolean  @default(true)
-  metadata    Json? // Additional metadata
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([type, key])
-  @@index([type, isActive])
-}
-
-// Work Systems (8 systems)
-model WorkSystem {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  url         String
-  description String?
-  icon        String?
-  isActive    Boolean  @default(true)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Access rules
-  accessRules WorkSystemAccessRule[]
-  userAccess  WorkSystemAccess[]
-
-  @@index([name])
-}
-
-// Access rules for Work Systems
-model WorkSystemAccessRule {
-  id           String     @id @default(uuid())
-  workSystemId String
-  workSystem   WorkSystem @relation(fields: [workSystemId], references: [id], onDelete: Cascade)
-
-  // Prerequisites
-  requiredTrainingIds String[] // Array of training IDs
-  requiredPolicyIds   String[] // Array of policy IDs
-
-  // Role/Department/Country restrictions
-  allowedRoles       UserRole[]
-  allowedDepartments Department[]
-  allowedCountries   String[]
-
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([workSystemId])
-}
-
-// User access to Work Systems
-model WorkSystemAccess {
-  id           String     @id @default(uuid())
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workSystemId String
-  workSystem   WorkSystem @relation(fields: [workSystemId], references: [id], onDelete: Cascade)
-
-  grantedAt    DateTime  @default(now())
-  expiresAt    DateTime?
-  lastAccessed DateTime?
-  accessCount  Int       @default(0)
-
-  @@unique([userId, workSystemId])
-  @@index([userId])
-  @@index([workSystemId])
-}
-
-// Training System - INARA Academy
-model Training {
-  id               String   @id @default(uuid())
-  title            String
-  description      String?
-  content          String // JSON or markdown (legacy)
-  duration         Int // in minutes
-  objectives       String[] // Learning objectives
-  sections         Json // Structured sections (legacy)
-  quiz             Json? // Quiz questions (legacy - final exam)
-  passingScore     Int      @default(70) // Percentage
-  certificateRules Json? // Certificate generation rules
-
-  // INARA Academy - Course Classification
-  courseType       CourseType @default(PROFESSIONAL_COURSE)
-  courseDuration   CourseDuration @default(SHORT_TERM)
-  isMandatory      Boolean  @default(false)
-  isOptional       Boolean  @default(true)
-  
-  // Track assignment (for Diploma/Leadership tracks)
-  trackId          String?
-  track            Track?   @relation(fields: [trackId], references: [id], onDelete: SetNull)
-  trackOrder       Int? // Order within track
-
-  // Assignment
-  assignedTo          AccessLevel  @default(GLOBAL)
-  assignedRoles       UserRole[]
-  assignedDepartments Department[]
-  assignedCountries   String[]
-
-  // Expiry & Recertification
-  validityPeriod  Int? // Days until expiry
-  requiresRenewal Boolean @default(false)
-  expiryDate     DateTime? // Specific expiry date if set
-
-  // Metadata
-  category    String?
-  subcategory String?
-  tags        String[]
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Source file (for auto-conversion)
-  sourceFileUrl String? // Original Word/PDF file
-  autoGenerated Boolean @default(false) // Whether course was auto-generated
-
-  // Relations
-  completions   TrainingCompletion[]
-  trainingPaths TrainingPath[]
-  versions      TrainingVersion[]
-  comments      Comment[]
-  bookmarks     Bookmark[]
-  lessons       Lesson[]
-  certificates  Certificate[]
-  resources     CourseResource[] // Attached PDFs, books, modules
-
-  @@index([isMandatory, isActive])
-  @@index([category])
-  @@index([courseType])
-  @@index([trackId])
-}
-
-// INARA Academy - Course Resources (PDFs, books, modules for download)
-model CourseResource {
-  id          String   @id @default(uuid())
-  trainingId String
-  training   Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
-  
-  title       String
-  description String?
-  fileUrl     String // Path to uploaded file
-  fileName    String // Original filename
-  fileSize    Int? // File size in bytes
-  fileType    String // pdf, doc, docx, etc.
-  resourceType String @default("module") // module, book, reference, handout
-  
-  order       Int      @default(0) // Display order
-  isRequired  Boolean  @default(false) // Whether download is required
-  isActive    Boolean  @default(true)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([trainingId])
-  @@index([trainingId, order])
-}
-
-// Training Paths (Legacy - for backward compatibility)
-model TrainingPath {
-  id          String     @id @default(uuid())
-  name        String
-  description String?
-  trainings   Training[]
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
-// INARA Academy - Tracks (Diploma/Leadership)
-model Track {
-  id          String     @id @default(uuid())
-  name        String
-  description String?
-  type        CourseType // DIPLOMA_TRACK or LEADERSHIP_TRACK
-  courses     Training[] // Courses in this track
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  @@index([type])
-}
-
-// INARA Academy - Lessons (contain slides)
-model Lesson {
-  id          String   @id @default(uuid())
-  trainingId String
-  training   Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
-  title      String
-  order      Int      @default(0)
-  content    String?  // Lesson introduction/overview
-  slides     Slide[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@unique([trainingId, order])
-  @@index([trainingId])
-}
-
-// INARA Academy - Slides
-model Slide {
-  id          String   @id @default(uuid())
-  lessonId   String
-  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  title      String
-  content    String   @db.Text // Slide content (markdown/HTML)
-  order      Int      @default(0)
-  slideType  String   @default("content") // content, video, interactive
-  mediaUrl   String?  // Video/image URL if applicable
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // Micro quiz after this slide (optional)
-  microQuiz  MicroQuiz?
-
-  @@unique([lessonId, order])
-  @@index([lessonId])
-}
-
-// INARA Academy - Micro Quizzes (between slides)
-model MicroQuiz {
-  id          String   @id @default(uuid())
-  slideId     String   @unique
-  slide       Slide    @relation(fields: [slideId], references: [id], onDelete: Cascade)
-  title       String
-  questions   Json     // Array of quiz questions
-  passingScore Int     @default(70)
-  isRequired  Boolean  @default(true) // Must pass to continue
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-// INARA Academy - Certificates
-model Certificate {
-  id              String   @id @default(uuid())
-  trainingId      String
-  training        Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Certificate Details
-  certificateNumber String @unique // Unique certificate ID
-  fullName        String
-  courseTitle     String
-  completionDate  DateTime
-  expiryDate      DateTime?
-  score           Int? // Final exam score
-  passingScore    Int
-  passed          Boolean
-  
-  // Certificate File
-  certificateUrl  String // PDF file URL
-  signedBy        String? // Signatory name
-  signatureDate   DateTime @default(now())
-  
-  // Recertification
-  isRecertified   Boolean @default(false)
-  recertifiedFrom String? // Original certificate ID if recertified
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@unique([userId, trainingId]) // One certificate per user per training
-  @@index([userId])
-  @@index([trainingId])
-  @@index([certificateNumber])
-  @@index([expiryDate])
-}
-
-// Training Completions
-model TrainingCompletion {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trainingId String
-  training   Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
-
-  status         TrainingStatus @default(NOT_STARTED)
-  progress       Int            @default(0) // Percentage
-  score          Int? // Quiz score
-  completedAt    DateTime?
-  expiresAt      DateTime?
-  certificateUrl String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, trainingId])
-  @@index([userId])
-  @@index([trainingId])
-  @@index([status, expiresAt])
-}
-
-// Orientation
-model Orientation {
-  id        String   @id @default(uuid())
-  title     String
-  content   String // Markdown or JSON
-  sections  Json // Structured sections
-  pdfFiles  Json? // Array of PDF file URLs and metadata
-  isActive  Boolean  @default(true)
-  version   Int      @default(1)
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
-
-  completions OrientationCompletion[]
-  steps       OrientationStep[]
-}
-
-// Orientation Steps (for step-by-step onboarding)
-model OrientationStep {
-  id            String      @id @default(uuid())
-  orientationId String
-  orientation   Orientation @relation(fields: [orientationId], references: [id], onDelete: Cascade)
-  stepNumber    Int
-  title         String
-  description   String?
-  content       String? // Markdown content
-  pdfUrl        String? // PDF file URL if this step has a PDF
-  policyId      String? // Link to a policy if this step is about a policy
-  questions     Json? // Array of questions: [{ question: string, type: 'text' | 'multiple_choice' | 'checkbox', options?: string[], required: boolean }]
-  isRequired    Boolean     @default(true)
-  order         Int         @default(0)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  confirmations OrientationStepConfirmation[]
-
-  @@unique([orientationId, stepNumber])
-  @@index([orientationId, order])
-}
-
-// Track which steps each user has confirmed
-model OrientationStepConfirmation {
-  id          String          @id @default(uuid())
-  userId      String
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stepId      String
-  step        OrientationStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  confirmedAt DateTime        @default(now())
-  notes       String? // Optional notes for confirmation
-  responses   Json? // User responses to questions: [{ questionId: string, answer: string | string[] }]
-
-  @@unique([userId, stepId])
-  @@index([userId])
-  @@index([stepId])
-}
-
-model OrientationCompletion {
-  id             String      @id @default(uuid())
-  userId         String      @unique
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orientationId  String
-  orientation    Orientation @relation(fields: [orientationId], references: [id], onDelete: Cascade)
-  completedAt    DateTime    @default(now())
-  score          Int? // Micro-check score
-  checklistData  Json? // Store onboarding checklist data
-  certificateUrl String? // URL to generated certificate PDF
-
-  @@index([userId])
-}
-
-// Policies
-model Policy {
-  id         String @id @default(uuid())
-  title      String
-  brief      String // Brief summary
-  complete   String // Full policy content (markdown)
-  assessment Json? // Assessment questions
-  fileUrl    String? // URL to uploaded policy document (PDF/DOC/DOCX)
-
-  // Version control
-  version       Int      @default(1)
-  effectiveDate DateTime
-  owner         String? // Policy owner
-  reviewCycle   Int? // Days until next review
-
-  // Assignment
-  isMandatory         Boolean      @default(false)
-  assignedTo          AccessLevel  @default(GLOBAL)
-  assignedRoles       UserRole[]
-  assignedDepartments Department[]
-  assignedCountries   String[]
-
-  // Metadata
-  category    String?
-  subcategory String?
-  tags        String[]
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  certifications PolicyCertification[]
-  versions       PolicyVersion[]
-  comments       Comment[]
-  bookmarks      Bookmark[]
-
-  @@index([isMandatory, isActive])
-  @@index([category])
-}
-
-// Policy Versions (for audit trail)
-model PolicyVersion {
-  id            String   @id @default(uuid())
-  policyId      String
-  policy        Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
-  version       Int
-  content       String // Full content snapshot
-  effectiveDate DateTime
-  archivedAt    DateTime @default(now())
-
-  @@index([policyId])
-}
-
-// Policy Certifications
-model PolicyCertification {
-  id       String @id @default(uuid())
-  userId   String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  policyId String
-  policy   Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
-
-  status          PolicyStatus @default(NOT_ACKNOWLEDGED)
-  acknowledgedAt  DateTime?
-  assessmentScore Int?
-  expiresAt       DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, policyId])
-  @@index([userId])
-  @@index([policyId])
-  @@index([status, expiresAt])
-}
-
-// Library
-model LibraryResource {
-  id           String   @id @default(uuid())
-  title        String
-  description  String?
-  content      String? // For text content
-  fileUrl      String? // For file uploads
-  resourceType String // book, sop, guidance, research, case_study
-  category     String?
-  subcategory  String?
-  tags         String[]
-
-  // Metadata
-  author      String?
-  publishDate DateTime?
-  language    String    @default("en")
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  accesses  LibraryAccess[]
-  comments  Comment[]
-  bookmarks Bookmark[]
-  versions  DocumentVersion[]
-
-  @@index([resourceType, category])
-  @@index([tags])
-}
-
-// Library Access Tracking
-model LibraryAccess {
-  id         String          @id @default(uuid())
-  userId     String
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resourceId String
-  resource   LibraryResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  accessedAt DateTime        @default(now())
-  duration   Int? // Seconds spent
-
-  @@index([userId])
-  @@index([resourceId])
-  @@index([accessedAt])
-}
-
-// Market (Innovation Marketplace) - Staff Innovation & Improvement Proposal
-model MarketSubmission {
-  id     String @id @default(uuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // SECTION 1 - Staff Information (auto-filled from user, but can be overridden)
-  fullName      String?
-  jobTitle      String?
-  countryOffice String?
-  department    String?
-  email         String?
-  phone         String?
-  whatsapp      String?
-
-  // SECTION 2 - Idea Title
-  title String
-
-  // SECTION 3 - Idea Type
-  ideaType String // New humanitarian project, Improvement to existing program, etc.
-
-  // SECTION 4 - Problem / Need Identified
-  problemNeed String @db.Text
-
-  // SECTION 5 - Proposed Solution
-  proposedSolution String @db.Text
-
-  // SECTION 6 - Beneficiaries (multi-select stored as array)
-  beneficiaries String[]
-
-  // SECTION 7 - Estimated Impact
-  estimatedImpact String // Low, Medium, High
-
-  // SECTION 8 - Estimated Cost
-  estimatedCost String // Very low / Free, Low, Medium, High, Not sure
-
-  // SECTION 9 - Funding Potential
-  fundingPotential String // Yes, Maybe, Not sure
-
-  // SECTION 10 - Urgency
-  urgency String // Immediate, Within 3 months, Within 6 months, Not urgent
-
-  // SECTION 11 - Leadership Interest
-  leadershipInterest String // I want to lead implementation, I want to support as advisor, I only submit the idea
-
-  // SECTION 12 - Attachments (file URLs)
-  attachments String[]
-
-  // SECTION 13 - Declaration
-  declarationConfirmed Boolean @default(false)
-
-  // ADMIN-ONLY FIELDS
-  status        MarketStatus @default(NEW)
-  assignedReviewer String?
-  reviewScore   Int? // 0-100
-  bonusApproved Boolean      @default(false)
-  bonusAmount   Float?
-  internalNotes String? @db.Text
-
-  // Legacy fields for backward compatibility (can be removed later)
-  problemStatement   String? @db.Text
-  targetPopulation   String?
-  objective          String? @db.Text
-  outcomes           String[]
-  activities         String[]
-  budgetRange        String?
-  risks              String? @db.Text
-  mitigations        String? @db.Text
-  sustainability     String? @db.Text
-  implementationPlan String? @db.Text
-  alignment          String? @db.Text
-
-  // Review tracking
-  reviewerNotes String? @db.Text
-  reviewerId    String?
-  reviewedAt    DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([status])
-  @@index([createdAt])
-  @@index([ideaType])
-}
-
-// Templates
-model Template {
-  id          String  @id @default(uuid())
-  title       String
-  description String?
-  fileUrl     String
-  category    String?
-  subcategory String?
-
-  // Governance
-  owner          String?
-  version        Int      @default(1)
-  approvalStatus String   @default("approved") // draft, pending, approved
-  lastUpdated    DateTime @default(now())
-
-  // Metadata
-  tags      String[]
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  downloads TemplateDownload[]
-  versions  TemplateVersion[]
-  comments  Comment[]
-  bookmarks Bookmark[]
-
-  @@index([category])
-  @@index([approvalStatus])
-}
-
-// Template Downloads
-model TemplateDownload {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  templateId   String
-  template     Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  downloadedAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([templateId])
-  @@index([downloadedAt])
-}
-
-// Activity Logging
-model ActivityLog {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action       String // login, access_system, complete_training, etc.
-  resourceType String? // training, policy, library, etc.
-  resourceId   String?
-  details      Json?
-  ipAddress    String?
-  userAgent    String?
-  createdAt    DateTime @default(now())
-
-  @@index([userId])
-  @@index([action])
-  @@index([createdAt])
-  @@index([resourceType, resourceId])
-}
-
-// INARA Bot Knowledge Base
-model BotKnowledge {
-  id         String   @id @default(uuid())
-  question   String
-  answer     String
-  sourceType String // policy, training, template, library, sop
-  sourceId   String?
-  tags       String[]
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([tags])
-  @@index([sourceType, sourceId])
-}
-
-// Notifications
-model Notification {
-  id           String    @id @default(uuid())
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type         String // training, policy, system, market, general
-  title        String
-  message      String
-  link         String? // URL to related resource
-  resourceType String? // training, policy, etc.
-  resourceId   String?
-  isRead       Boolean   @default(false)
-  readAt       DateTime?
-  createdAt    DateTime  @default(now())
-
-  @@index([userId, isRead])
-  @@index([createdAt])
-}
-
-// Bookmarks/Favorites
-model Bookmark {
-  id                String           @id @default(uuid())
-  userId            String
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resourceType      String // training, policy, library, template
-  resourceId        String
-  folder            String? // Optional folder organization
-  notes             String? // User notes
-  createdAt         DateTime         @default(now())
-  Training          Training?        @relation(fields: [trainingId], references: [id])
-  trainingId        String?
-  Policy            Policy?          @relation(fields: [policyId], references: [id])
-  policyId          String?
-  LibraryResource   LibraryResource? @relation(fields: [libraryResourceId], references: [id])
-  libraryResourceId String?
-  Template          Template?        @relation(fields: [templateId], references: [id])
-  templateId        String?
-
-  @@unique([userId, resourceType, resourceId])
-  @@index([userId])
-  @@index([resourceType, resourceId])
-}
-
-// Comments/Discussions
-model Comment {
-  id                String           @id @default(uuid())
-  userId            String
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resourceType      String // training, policy, library, template
-  resourceId        String
-  content           String
-  parentId          String? // For replies
-  parent            Comment?         @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies           Comment[]        @relation("CommentReplies")
-  isEdited          Boolean          @default(false)
-  editedAt          DateTime?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  Training          Training?        @relation(fields: [trainingId], references: [id])
-  trainingId        String?
-  Policy            Policy?          @relation(fields: [policyId], references: [id])
-  policyId          String?
-  LibraryResource   LibraryResource? @relation(fields: [libraryResourceId], references: [id])
-  libraryResourceId String?
-  Template          Template?        @relation(fields: [templateId], references: [id])
-  templateId        String?
-  News              News?            @relation(fields: [newsId], references: [id])
-  newsId            String?
-  Suggestion        Suggestion?      @relation(fields: [suggestionId], references: [id])
-  suggestionId      String?
-
-  @@index([resourceType, resourceId])
-  @@index([userId])
-  @@index([parentId])
-}
-
-// User Achievements/Badges
-model UserAchievement {
-  id              String   @id @default(uuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievementType String // training_complete, policy_certified, streak, etc.
-  title           String
-  description     String?
-  icon            String?
-  earnedAt        DateTime @default(now())
-
-  @@index([userId])
-  @@index([achievementType])
-}
-
-// Search History
-model SearchHistory {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  query       String
-  filters     Json? // Applied filters
-  resultCount Int?
-  createdAt   DateTime @default(now())
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-// User Preferences
-model UserPreferences {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  theme           String   @default("dark") // dark, light
-  language        String   @default("en")
-  timezone        String?
-  emailDigest     Boolean  @default(true)
-  emailFrequency  String   @default("daily") // realtime, daily, weekly
-  notifications   Json? // Notification preferences
-  shortcuts       Json? // Custom keyboard shortcuts
-  dashboardLayout Json? // Custom dashboard layout
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-}
-
-// Calendar Events
-model CalendarEvent {
-  id                  String       @id @default(uuid())
-  title               String
-  description         String?
-  eventType           String // training_deadline, policy_review, orientation, custom
-  startDate           DateTime
-  endDate             DateTime?
-  allDay              Boolean      @default(false)
-  resourceType        String? // training, policy, etc.
-  resourceId          String?
-  assignedTo          AccessLevel  @default(GLOBAL)
-  assignedRoles       UserRole[]
-  assignedDepartments Department[]
-  assignedCountries   String[]
-  userId              String? // For user-specific events
-  isRecurring         Boolean      @default(false)
-  recurrenceRule      String? // RRULE format
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-
-  @@index([startDate])
-  @@index([eventType])
-  @@index([resourceType, resourceId])
-}
-
-// Document Versions (for Library, Templates)
-model DocumentVersion {
-  id                String           @id @default(uuid())
-  resourceType      String // library, template
-  resourceId        String
-  version           Int
-  content           String // Full content snapshot
-  fileUrl           String? // File URL if applicable
-  changeLog         String? // What changed
-  createdBy         String? // User ID
-  createdAt         DateTime         @default(now())
-  LibraryResource   LibraryResource? @relation(fields: [libraryResourceId], references: [id])
-  libraryResourceId String?
-
-  @@index([resourceType, resourceId])
-  @@index([version])
-}
-
-// Training/Template Versions (extend existing)
-model TrainingVersion {
-  id         String   @id @default(uuid())
-  trainingId String
-  training   Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
-  version    Int
-  content    String // Full content snapshot
-  changeLog  String?
-  archivedAt DateTime @default(now())
-
-  @@index([trainingId])
-}
-
-model TemplateVersion {
-  id         String   @id @default(uuid())
-  templateId String
-  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  version    Int
-  fileUrl    String
-  changeLog  String?
-  archivedAt DateTime @default(now())
-
-  @@index([templateId])
-}
-
-// News/Announcements
-model News {
-  id          String    @id @default(uuid())
-  title       String
-  content     String // Markdown or HTML
-  summary     String? // Brief summary
-  priority    String    @default("normal") // urgent, high, normal, low
-  isActive    Boolean   @default(true)
-  publishedAt DateTime  @default(now())
-  expiresAt   DateTime?
-  createdBy   String? // User ID of creator
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  confirmations NewsConfirmation[]
-  comments      Comment[]
-
-  @@index([isActive, publishedAt])
-  @@index([priority])
-}
-
-// News Confirmations (track who has seen/confirmed)
-model NewsConfirmation {
-  id          String   @id @default(uuid())
-  newsId      String
-  news        News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  confirmedAt DateTime @default(now())
-
-  @@unique([newsId, userId])
-  @@index([newsId])
-  @@index([userId])
-}
-
-// Employee Suggestions
-model Suggestion {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  description String
-  category    String? // improvement, process, system, other
-  status      String    @default("submitted") // submitted, under_review, approved, rejected, implemented
-  priority    String? // high, medium, low
-  adminNotes  String? // Admin response/notes
-  reviewedBy  String? // User ID of reviewer
-  reviewedAt  DateTime?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  comments Comment[]
-  votes    SuggestionVote[]
-
-  @@index([userId])
-  @@index([status])
-  @@index([category])
-  @@index([createdAt])
-}
-
-// Suggestion Votes (upvote/downvote)
-model SuggestionVote {
-  id           String     @id @default(uuid())
-  suggestionId String
-  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  voteType     String // upvote, downvote
-  createdAt    DateTime   @default(now())
-
-  @@unique([suggestionId, userId])
-  @@index([suggestionId])
-  @@index([userId])
-}
-
-// Surveys, Assessments, and Tests
-model Survey {
-  id          String  @id @default(uuid())
-  title       String
-  description String?
-  type        String // 'survey', 'assessment', 'test'
-
-  // Questions structure: [{ id, type, question, options?, required, correctAnswer?, points?, order }]
-  questions Json // Array of question objects
-
-  // Settings
-  isAnonymous      Boolean @default(false) // For surveys - hide respondent identity
-  hasTimeLimit     Boolean @default(false)
-  timeLimitMinutes Int? // Time limit in minutes
-  passingScore     Int? // For assessments/tests (percentage)
-  maxAttempts      Int? // Maximum number of attempts allowed (null = unlimited)
-
-  // Assignment
-  isMandatory         Boolean      @default(false)
-  assignedTo          AccessLevel  @default(GLOBAL)
-  assignedRoles       UserRole[]
-  assignedDepartments Department[]
-  assignedCountries   String[]
-  assignedUserIds     String[] // Specific user IDs
-
-  // Scheduling
-  startDate DateTime? // When survey becomes available
-  endDate   DateTime? // When survey expires
-  dueDate   DateTime? // Deadline for completion
-
-  // Metadata
-  category  String?
-  tags      String[]
-  isActive  Boolean  @default(true)
-  createdBy String? // User ID of creator
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  submissions SurveySubmission[]
-  analytics   SurveyAnalytics?
-
-  @@index([type, isActive])
-  @@index([createdBy])
-  @@index([startDate, endDate])
-}
-
-// Survey/Assessment/Test Submissions
-model SurveySubmission {
-  id       String @id @default(uuid())
-  surveyId String
-  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  userId   String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Responses: [{ questionId, answer, isCorrect?, pointsEarned? }]
-  responses Json // Array of response objects
-
-  // Scoring
-  totalScore      Int? // Total points earned
-  maxScore        Int? // Maximum possible points
-  percentageScore Float? // Percentage score
-  passed          Boolean? // Whether passing score was met
-
-  // Timing
-  startedAt        DateTime  @default(now())
-  submittedAt      DateTime?
-  timeSpentSeconds Int? // Time taken in seconds
-
-  // Status: in_progress, submitted, expired
-  status        String @default("in_progress")
-  attemptNumber Int    @default(1) // Which attempt this is
-
-  // Notes
-  notes String? // Optional notes from respondent
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([surveyId, userId, attemptNumber])
-  @@index([surveyId])
-  @@index([userId])
-  @@index([status])
-  @@index([submittedAt])
-}
-
-// Survey Analytics (aggregated data)
-model SurveyAnalytics {
-  id       String @id @default(uuid())
-  surveyId String @unique
-  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-
-  totalSubmissions     Int    @default(0)
-  completedSubmissions Int    @default(0)
-  averageScore         Float?
-  averageTimeSpent     Float? // Average time in seconds
-  passRate             Float? // Percentage who passed
-
-  // Question-level analytics: [{ questionId, averageScore, correctRate, responses }]
-  questionAnalytics Json?
-
-  lastCalculatedAt DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@index([surveyId])
 }

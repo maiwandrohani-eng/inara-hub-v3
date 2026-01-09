@@ -1112,6 +1112,10 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
     // Get folder paths from request body
     const paths = Array.isArray(req.body.paths) ? req.body.paths : 
                   req.body.paths ? [req.body.paths] : [];
+    
+    // Get category and subcategory from request body (for single file upload)
+    const explicitCategory = req.body.category;
+    const explicitSubcategory = req.body.subcategory;
 
     const results = [];
     const errors = [];
@@ -1134,9 +1138,14 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
         const fileName = file.originalname;
         const title = fileName.replace(/\.[^/.]+$/, ''); // Remove extension
         
-        // Use folder path for categorization if available, otherwise fall back to filename
+        // Use explicit category/subcategory if provided, otherwise detect from path
         let categoryMatch;
-        if (folderPath) {
+        if (explicitCategory && explicitSubcategory) {
+          categoryMatch = {
+            category: explicitCategory,
+            subcategory: explicitSubcategory,
+          };
+        } else if (folderPath) {
           // Extract folder path (remove filename)
           const pathParts = folderPath.split('/');
           if (pathParts.length > 1) {

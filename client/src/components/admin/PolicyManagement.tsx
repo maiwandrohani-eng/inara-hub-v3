@@ -83,6 +83,8 @@ export default function PolicyManagement() {
   const [bulkResults, setBulkResults] = useState<any>(null);
   const [singleFile, setSingleFile] = useState<File | null>(null);
   const [singleFileUploading, setSingleFileUploading] = useState(false);
+  const [singleFileCategory, setSingleFileCategory] = useState('');
+  const [singleFileSubcategory, setSingleFileSubcategory] = useState('');
 
   const bulkImportMutation = useMutation(
     async (files: File[]) => {
@@ -151,10 +153,12 @@ export default function PolicyManagement() {
   };
 
   const singleFileUploadMutation = useMutation(
-    async (file: File) => {
+    async (data: { file: File; category: string; subcategory: string }) => {
       const formData = new FormData();
-      formData.append('files', file);
+      formData.append('files', data.file);
       formData.append('type', 'policy');
+      formData.append('category', data.category);
+      formData.append('subcategory', data.subcategory);
       const res = await api.post('/admin/policies/bulk-import', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -182,9 +186,23 @@ export default function PolicyManagement() {
       alert('Please select a file to upload');
       return;
     }
+    if (!singleFileCategory) {
+      alert('Please select a category');
+      return;
+    }
+    if (!singleFileSubcategory) {
+      alert('Please select a subcategory');
+      return;
+    }
     setSingleFileUploading(true);
-    singleFileUploadMutation.mutate(singleFile);
+    singleFileUploadMutation.mutate({
+      file: singleFile,
+      category: singleFileCategory === 'OTHER' ? 'CUSTOM' : singleFileCategory,
+      subcategory: singleFileSubcategory === 'OTHER' ? 'CUSTOM' : singleFileSubcategory,
+    });
   };
+
+  const singleSubcategories = singleFileCategory && singleFileCategory !== 'OTHER' ? getPolicySubcategories(singleFileCategory) : [];
 
   return (
     <div className="space-y-6">
@@ -219,6 +237,46 @@ export default function PolicyManagement() {
             Upload a single policy document (PDF, DOC, DOCX). The system will extract content and create a policy.
           </p>
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-2">
+                  Category
+                </label>
+                <select
+                  value={singleFileCategory}
+                  onChange={(e) => {
+                    setSingleFileCategory(e.target.value);
+                    setSingleFileSubcategory('');
+                  }}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                >
+                  <option value="">-- Select Category --</option>
+                  {availableCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-2">
+                  Subcategory
+                </label>
+                <select
+                  value={singleFileSubcategory}
+                  onChange={(e) => setSingleFileSubcategory(e.target.value)}
+                  disabled={!singleFileCategory}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg disabled:opacity-50"
+                >
+                  <option value="">-- Select Subcategory --</option>
+                  {singleSubcategories.map((subcat) => (
+                    <option key={subcat} value={subcat}>
+                      {subcat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-200 mb-2">
                 Select File (PDF, DOC, DOCX)
@@ -237,7 +295,7 @@ export default function PolicyManagement() {
             </div>
             <button
               onClick={handleSingleFileUpload}
-              disabled={singleFileUploading || !singleFile}
+              disabled={singleFileUploading || !singleFile || !singleFileCategory || !singleFileSubcategory}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               {singleFileUploading ? 'Uploading...' : 'Upload File'}

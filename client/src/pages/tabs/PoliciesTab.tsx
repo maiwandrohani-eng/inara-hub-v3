@@ -484,18 +484,19 @@ export default function PoliciesTab() {
                   </div>
                 )}
                 {viewMode === 'file' && selectedPolicy.fileUrl && (
-                  <div className="text-center py-8">
-                    <p className="text-gray-300 mb-4">
-                      📄 Policy document is available for download and viewing
-                    </p>
-                    <div className="space-y-2">
+                  <div className="py-4">
+                    <PDFViewer
+                      pdfUrl={selectedPolicy.fileUrl}
+                      title="Policy Document"
+                    />
+                    <div className="mt-4 text-center">
                       <a
                         href={selectedPolicy.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
                       >
-                        Open in New Tab
+                        Download File
                       </a>
                     </div>
                   </div>
