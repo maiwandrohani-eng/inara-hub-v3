@@ -17,6 +17,8 @@ export default function PoliciesTab() {
   const [assessmentAnswers, setAssessmentAnswers] = useState<{ [key: number]: string }>({});
   const [assessmentSubmitted, setAssessmentSubmitted] = useState(false);
   const [assessmentScore, setAssessmentScore] = useState<number | null>(null);
+  const [showAcknowledgmentModal, setShowAcknowledgmentModal] = useState(false);
+  const [acknowledgmentLoading, setAcknowledgmentLoading] = useState(false);
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'COUNTRY_DIRECTOR' || user?.role === 'DEPARTMENT_HEAD';
@@ -47,6 +49,27 @@ export default function PoliciesTab() {
       },
       onError: (error: any) => {
         alert(error.response?.data?.message || 'Failed to submit assessment');
+      },
+    }
+  );
+
+  // Mutation for acknowledging policy
+  const acknowledgmentMutation = useMutation(
+    async (policyId: string) => {
+      const res = await api.post(`/policies/${policyId}/acknowledge`);
+      return res.data;
+    },
+    {
+      onSuccess: (data) => {
+        setShowAcknowledgmentModal(false);
+        queryClient.invalidateQueries('policies');
+        alert('✅ Policy acknowledged successfully!');
+      },
+      onError: (error: any) => {
+        alert(error.response?.data?.message || 'Failed to acknowledge policy');
+      },
+      onSettled: () => {
+        setAcknowledgmentLoading(false);
       },
     }
   );
@@ -300,10 +323,26 @@ export default function PoliciesTab() {
                     <p className="text-gray-200">{policy.brief}</p>
                   )}
                   {viewMode === 'complete' && (
-                    <div
-                      className="prose max-w-none text-gray-200"
-                      dangerouslySetInnerHTML={{ __html: policy.complete }}
-                    />
+                    policy.fileUrl ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-300 mb-4">
+                          📄 Policy document is available for download and viewing
+                        </p>
+                        <a
+                          href={policy.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                        >
+                          View Full Policy
+                        </a>
+                      </div>
+                    ) : (
+                      <div
+                        className="prose max-w-none text-gray-200"
+                        dangerouslySetInnerHTML={{ __html: policy.complete }}
+                      />
+                    )
                   )}
                   {viewMode === 'assessment' && policy.assessment && (
                     <div className="text-gray-200">
@@ -556,16 +595,10 @@ export default function PoliciesTab() {
                 )}
                 {(viewMode === 'brief' || viewMode === 'complete') && (
                   <button
-                    onClick={() => {
-                      assessmentMutation.mutate({
-                        policyId: selectedPolicy.id,
-                        answers: {},
-                      });
-                      setSelectedPolicy(null);
-                    }}
+                    onClick={() => setShowAcknowledgmentModal(true)}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
                   >
-                    ✓ Mark as Acknowledged
+                    ✓ Read & Certify
                   </button>
                 )}
                 {selectedPolicy.fileUrl && (
@@ -608,6 +641,82 @@ export default function PoliciesTab() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Acknowledgment Modal */}
+      {showAcknowledgmentModal && selectedPolicy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+          <div className="bg-gray-900 rounded-lg shadow-xl max-w-md w-full mx-4 p-6 border border-gray-700">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-white mb-2">Policy Acknowledgment</h3>
+              <p className="text-gray-300">
+                <strong>{selectedPolicy.title}</strong>
+              </p>
+            </div>
+
+            {/* Check if assessment is completed */}
+            {assessmentScore !== null && assessmentScore >= 70 ? (
+              <>
+                <div className="bg-green-900/30 border border-green-700 rounded-lg p-4 mb-6">
+                  <p className="text-green-300 text-sm mb-2">
+                    ✅ Assessment completed with score: <strong>{assessmentScore}%</strong>
+                  </p>
+                </div>
+                <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4 mb-6">
+                  <p className="text-blue-200 text-sm">
+                    I have read and understand this policy and certify that I will obey and comply with all its provisions.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setAcknowledgmentLoading(true);
+                      acknowledgmentMutation.mutate(selectedPolicy.id);
+                    }}
+                    disabled={acknowledgmentLoading || acknowledgmentMutation.isLoading}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+                  >
+                    {acknowledgmentLoading ? 'Acknowledging...' : 'I Acknowledge'}
+                  </button>
+                  <button
+                    onClick={() => setShowAcknowledgmentModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4 mb-6">
+                  <p className="text-yellow-300 text-sm font-medium mb-2">⚠️ Assessment Required</p>
+                  <p className="text-yellow-200 text-sm">
+                    You must complete the assessment and score at least <strong>70%</strong> before you can acknowledge this policy.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowAcknowledgmentModal(false);
+                      setViewMode('assessment');
+                      setAssessmentSubmitted(false);
+                      setAssessmentAnswers({});
+                    }}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Go to Assessment
+                  </button>
+                  <button
+                    onClick={() => setShowAcknowledgmentModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
