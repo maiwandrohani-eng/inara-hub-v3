@@ -102,7 +102,7 @@ export default function PolicyManagement() {
       onSuccess: () => {
         queryClient.invalidateQueries('admin-policies');
         setShowForm(false);
-        alert('Policy created! It will automatically appear in Brief, Complete, and Assessment views.');
+        alert('Policy created! It will automatically appear in Brief and Assessment views.');
       },
     }
   );

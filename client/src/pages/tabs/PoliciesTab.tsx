@@ -324,24 +324,19 @@ export default function PoliciesTab() {
                     <p className="text-gray-200">{policy.brief}</p>
                   )}
                   {viewMode === 'complete' && (
-                    policy.fileUrl ? (
-                      <div className="text-center py-8">
-                        <p className="text-gray-300 mb-4">
-                          📄 Policy document is available for download and viewing
-                        </p>
+                    <div className="text-center py-8 space-y-4">
+                      <p className="text-gray-300 mb-4">
+                        📄 View and certify this policy document
+                      </p>
+                      {policy.fileUrl && (
                         <button
                           onClick={() => setQuickViewPolicy(policy)}
-                          className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                          className="block w-full px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
                         >
                           View Full Policy
                         </button>
-                      </div>
-                    ) : (
-                      <div
-                        className="prose max-w-none text-gray-200"
-                        dangerouslySetInnerHTML={{ __html: policy.complete }}
-                      />
-                    )
+                      )}
+                    </div>
                   )}
                   {viewMode === 'assessment' && policy.assessment && (
                     <div className="text-gray-200">
@@ -453,32 +448,24 @@ export default function PoliciesTab() {
               <div className="prose prose-invert max-w-none text-gray-200">
                 {viewMode === 'brief' && <p>{selectedPolicy.brief}</p>}
                 {viewMode === 'complete' && (
-                  selectedPolicy.fileUrl ? (
-                    <div className="py-4">
-                      <PDFViewer
-                        pdfUrl={selectedPolicy.fileUrl}
-                        title="Complete Policy Document"
-                      />
-                      <div className="mt-4 text-center">
-                        <a
-                          href={selectedPolicy.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                  <div className="text-center py-12 space-y-6">
+                    <div className="flex flex-col items-center">
+                      <svg className="w-16 h-16 text-primary-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-gray-300 mb-6 text-lg">
+                        Review the complete policy document and certify your acknowledgment
+                      </p>
+                      {selectedPolicy.fileUrl && (
+                        <button
+                          onClick={() => setQuickViewPolicy(selectedPolicy)}
+                          className="px-8 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium"
                         >
-                          Download PDF
-                        </a>
-                      </div>
+                          📄 View Full Policy
+                        </button>
+                      )}
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-96 bg-gray-900 rounded-lg border border-gray-700">
-                      <div className="text-center">
-                        <p className="text-gray-400 mb-2">📄</p>
-                        <p className="text-gray-300">No policy document available</p>
-                        <p className="text-gray-500 text-sm mt-1">This policy does not have a PDF file attached</p>
-                      </div>
-                    </div>
-                  )
+                  </div>
                 )}
                 {viewMode === 'assessment' && selectedPolicy.assessment && (
                   <div className="space-y-4">
@@ -600,33 +587,7 @@ export default function PoliciesTab() {
                     ✓ Read & Certify
                   </button>
                 )}
-                {selectedPolicy.fileUrl && (
-                  <a
-                    href={selectedPolicy.fileUrl}
-                    download={`${selectedPolicy.title.replace(/[^a-z0-9]/gi, '_')}`}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                  >
-                    Download File
-                  </a>
-                )}
-                <button
-                  onClick={() => {
-                    // Export policy as text
-                    const content = viewMode === 'brief' ? selectedPolicy.brief : viewMode === 'complete' ? selectedPolicy.complete : 'Assessment data';
-                    const blob = new Blob([content], { type: 'text/plain' });
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `${selectedPolicy.title.replace(/[^a-z0-9]/gi, '_')}_${viewMode}.txt`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                  }}
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm"
-                >
-                  Download as Text
-                </button>
+
                 <button
                   onClick={() => {
                     setSelectedPolicy(null);
