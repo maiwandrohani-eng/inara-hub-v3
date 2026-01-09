@@ -384,6 +384,7 @@ export default function PoliciesTab() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedPolicy(policy);
+                        setShowAcknowledgmentModal(true);
                       }}
                       className="text-primary-500 hover:text-primary-700 text-sm font-medium"
                     >
