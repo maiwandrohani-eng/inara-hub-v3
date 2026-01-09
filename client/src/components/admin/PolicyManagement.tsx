@@ -66,10 +66,9 @@ const parseBulkQuestions = (text: string): any[] => {
 export default function PolicyManagement() {
   const [showForm, setShowForm] = useState(false);
   const [showSingleUpload, setShowSingleUpload] = useState(true);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     title: '',
     brief: '',
-    complete: '',
     assessment: { questions: [], passingScore: 70 },
     isMandatory: false,
     category: '',
@@ -126,14 +125,33 @@ export default function PolicyManagement() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const submitData: any = {
-      ...formData,
-      category: isCustomCategory ? formData.customCategory : formData.category,
-      subcategory: isCustomSubcategory ? formData.customSubcategory : formData.subcategory,
-    };
-    delete submitData.customCategory;
-    delete submitData.customSubcategory;
-    createMutation.mutate(submitData);
+    if (!policyPdf) {
+      alert('Please upload a policy PDF document');
+      return;
+    }
+    
+    // Upload PDF first
+    const pdfFormData = new FormData();
+    pdfFormData.append('file', policyPdf);
+    
+    api.post('/upload', pdfFormData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((res) => {
+      const fileUrl = res.data.fileUrl;
+      
+      const submitData: any = {
+        ...formData,
+        complete: '', // Remove the complete field since we're using PDF
+        fileUrl: fileUrl,
+        category: isCustomCategory ? formData.customCategory : formData.category,
+        subcategory: isCustomSubcategory ? formData.customSubcategory : formData.subcategory,
+      };
+      delete submitData.customCategory;
+      delete submitData.customSubcategory;
+      createMutation.mutate(submitData);
+    }).catch((error) => {
+      alert('Failed to upload PDF: ' + (error.response?.data?.message || error.message));
+    });
   };
 
   const [bulkFiles, setBulkFiles] = useState<File[]>([]);
@@ -141,9 +159,11 @@ export default function PolicyManagement() {
   const [bulkImporting, setBulkImporting] = useState(false);
   const [bulkResults, setBulkResults] = useState<any>(null);
   const [singleFile, setSingleFile] = useState<File | null>(null);
+  const [singlePolicyPdf, setSinglePolicyPdf] = useState<File | null>(null);
   const [singleFileUploading, setSingleFileUploading] = useState(false);
   const [singleFileCategory, setSingleFileCategory] = useState('');
   const [singleFileSubcategory, setSingleFileSubcategory] = useState('');
+  const [policyPdf, setPolicyPdf] = useState<File | null>(null);
 
   const bulkImportMutation = useMutation(
     async (files: File[]) => {
@@ -229,7 +249,7 @@ export default function PolicyManagement() {
         setSingleFile(null);
         setSingleFileCategory('');
         setSingleFileSubcategory('');
-        alert(`File uploaded successfully! Title: ${data.results?.[0]?.policyId || 'Policy created'}`);
+        alert(`File uploaded successfully! Policy ID: ${data.results?.[0]?.policyId || 'Created'}`);
       },
       onError: (error: any) => {
         const errorMessage = error.response?.data?.message || 'File upload failed';
@@ -313,7 +333,7 @@ export default function PolicyManagement() {
           {showSingleUpload && (
             <div className="space-y-4">
               <p className="text-sm text-gray-400 mb-4">
-                Upload a single policy document (PDF, DOC, DOCX). The system will extract content and populate the policy tab with the required contents.
+                Upload a single policy PDF document. The system will store it to be displayed in the Complete section of the policy tab.
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -357,11 +377,11 @@ export default function PolicyManagement() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Select File (PDF, DOC, DOCX)
+                  Select File (PDF)
                 </label>
                 <input
                   type="file"
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf"
                   onChange={(e) => setSingleFile(e.target.files?.[0] || null)}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
                 />
@@ -385,13 +405,13 @@ export default function PolicyManagement() {
           {!showSingleUpload && (
             <div className="space-y-4">
               <p className="text-sm text-gray-400 mb-4">
-                Select folders that are already sorted by categories. The folder structure will be used to automatically assign categories and subcategories.
+                Select folders containing PDF policy documents that are already sorted by categories. The folder structure will be used to automatically assign categories and subcategories.
                 <br />
-                <strong className="text-yellow-400">Example:</strong> Select a folder structure like "HR/Recruitment/" or "Finance/Budget/" and all files within will be categorized accordingly.
+                <strong className="text-yellow-400">Example:</strong> Select a folder structure like "HR/Recruitment/" or "Finance/Budget/" and all PDF files within will be categorized accordingly.
               </p>
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Select Folders (containing PDF, DOC, DOCX, etc.)
+                  Select Folders (containing PDF files)
                 </label>
                 <input
                   type="file"
@@ -400,7 +420,7 @@ export default function PolicyManagement() {
                   multiple
                   onChange={handleFolderSelect}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-                  accept=".pdf,.doc,.docx,.txt"
+                  accept=".pdf"
                 />
                 {bulkFiles.length > 0 && (
                   <div className="mt-2 space-y-2">
@@ -478,15 +498,20 @@ export default function PolicyManagement() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">Complete Policy Content *</label>
-                <textarea
-                  value={formData.complete}
-                  onChange={(e) => setFormData({ ...formData, complete: e.target.value })}
+                <label className="block text-sm font-medium text-gray-200 mb-1">Policy PDF Document *</label>
+                <p className="text-xs text-gray-400 mb-2">Upload the PDF document to be displayed in the Complete section</p>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => setPolicyPdf(e.target.files?.[0] || null)}
                   required
-                  rows={10}
-                  placeholder="Full policy content (Markdown/HTML) that appears in the Complete view"
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
                 />
+                {policyPdf && (
+                  <p className="text-sm text-green-400 mt-2">
+                    ✅ PDF selected: {policyPdf.name} ({(policyPdf.size / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -838,7 +863,7 @@ export default function PolicyManagement() {
               </div>
               <button
                 type="submit"
-                disabled={createMutation.isLoading}
+                disabled={createMutation.isLoading || !policyPdf}
                 className="w-full bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 disabled:opacity-50"
               >
                 {createMutation.isLoading ? 'Creating...' : 'Create Policy'}
