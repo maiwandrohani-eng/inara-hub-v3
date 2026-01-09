@@ -65,7 +65,7 @@ const parseBulkQuestions = (text: string): any[] => {
 
 export default function PolicyManagement() {
   const [showForm, setShowForm] = useState(false);
-  const [showSingleUpload, setShowSingleUpload] = useState(false);
+  const [showSingleUpload, setShowSingleUpload] = useState(true);
   const [formData, setFormData] = useState({
     title: '',
     brief: '',
@@ -136,7 +136,6 @@ export default function PolicyManagement() {
     createMutation.mutate(submitData);
   };
 
-  const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkFiles, setBulkFiles] = useState<File[]>([]);
   const [bulkFolders, setBulkFolders] = useState<string[]>([]);
   const [bulkImporting, setBulkImporting] = useState(false);
@@ -148,16 +147,16 @@ export default function PolicyManagement() {
 
   const bulkImportMutation = useMutation(
     async (files: File[]) => {
-      const formData = new FormData();
-      formData.append('type', 'policy');
+      const formDataObj = new FormData();
+      formDataObj.append('type', 'policy');
       files.forEach((file) => {
-        formData.append('files', file);
+        formDataObj.append('files', file);
         // Include folder path if available (webkitRelativePath)
         if ((file as any).webkitRelativePath) {
-          formData.append('paths', (file as any).webkitRelativePath);
+          formDataObj.append('paths', (file as any).webkitRelativePath);
         }
       });
-      const res = await api.post('/admin/policies/bulk-import', formData, {
+      const res = await api.post('/admin/policies/bulk-import', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return res.data;
@@ -214,12 +213,12 @@ export default function PolicyManagement() {
 
   const singleFileUploadMutation = useMutation(
     async (data: { file: File; category: string; subcategory: string }) => {
-      const formData = new FormData();
-      formData.append('files', data.file);
-      formData.append('type', 'policy');
-      formData.append('category', data.category);
-      formData.append('subcategory', data.subcategory);
-      const res = await api.post('/admin/policies/bulk-import', formData, {
+      const formDataObj = new FormData();
+      formDataObj.append('files', data.file);
+      formDataObj.append('type', 'policy');
+      formDataObj.append('category', data.category);
+      formDataObj.append('subcategory', data.subcategory);
+      const res = await api.post('/admin/policies/bulk-import', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return res.data;
@@ -228,7 +227,8 @@ export default function PolicyManagement() {
       onSuccess: (data) => {
         queryClient.invalidateQueries('admin-policies');
         setSingleFile(null);
-        setShowSingleUpload(false);
+        setSingleFileCategory('');
+        setSingleFileSubcategory('');
         alert(`File uploaded successfully! Title: ${data.results?.[0]?.policyId || 'Policy created'}`);
       },
       onError: (error: any) => {
@@ -270,18 +270,6 @@ export default function PolicyManagement() {
         <h2 className="text-2xl font-bold text-white">Policy Management</h2>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowSingleUpload(!showSingleUpload)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            {showSingleUpload ? 'Cancel' : '📄 Single Upload'}
-          </button>
-          <button
-            onClick={() => setShowBulkImport(!showBulkImport)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-          >
-            {showBulkImport ? 'Cancel Bulk Import' : '📦 Bulk Import'}
-          </button>
-          <button
             onClick={() => setShowForm(!showForm)}
             className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600"
           >
@@ -290,422 +278,332 @@ export default function PolicyManagement() {
         </div>
       </div>
 
-      {showSingleUpload && (
+      {showForm && (
         <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">
-          <h3 className="text-xl font-bold text-white mb-4">Single File Upload</h3>
-          <p className="text-sm text-gray-400 mb-4">
-            Upload a single policy document (PDF, DOC, DOCX). The system will extract content and create a policy.
+          <h3 className="text-xl font-bold text-white mb-4">Upload Policy</h3>
+          <p className="text-sm text-gray-400 mb-6">
+            Upload a policy using one of the methods below, or fill in the form to create a policy with assessment questions.
           </p>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Category
-                </label>
-                <select
-                  value={singleFileCategory}
-                  onChange={(e) => {
-                    setSingleFileCategory(e.target.value);
-                    setSingleFileSubcategory('');
-                  }}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-                >
-                  <option value="">-- Select Category --</option>
-                  {availableCategories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-200 mb-2">
-                  Subcategory
-                </label>
-                <select
-                  value={singleFileSubcategory}
-                  onChange={(e) => setSingleFileSubcategory(e.target.value)}
-                  disabled={!singleFileCategory}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg disabled:opacity-50"
-                >
-                  <option value="">-- Select Subcategory --</option>
-                  {singleSubcategories.map((subcat) => (
-                    <option key={subcat} value={subcat}>
-                      {subcat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">
-                Select File (PDF, DOC, DOCX)
-              </label>
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={(e) => setSingleFile(e.target.files?.[0] || null)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-              />
-              {singleFile && (
-                <p className="text-sm text-green-400 mt-2">
-                  ✅ File selected: {singleFile.name} ({(singleFile.size / 1024 / 1024).toFixed(2)} MB)
-                </p>
-              )}
-            </div>
+
+          {/* Upload Methods Tabs */}
+          <div className="flex gap-2 mb-6 border-b border-gray-700">
             <button
-              onClick={handleSingleFileUpload}
-              disabled={singleFileUploading || !singleFile || !singleFileCategory || !singleFileSubcategory}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              onClick={() => setShowSingleUpload(true)}
+              className={`px-4 py-2 font-medium transition-colors ${
+                showSingleUpload
+                  ? 'text-primary-400 border-b-2 border-primary-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
             >
-              {singleFileUploading ? 'Uploading...' : 'Upload File'}
+              📄 Single File Upload
+            </button>
+            <button
+              onClick={() => setShowSingleUpload(false)}
+              className={`px-4 py-2 font-medium transition-colors ${
+                !showSingleUpload
+                  ? 'text-primary-400 border-b-2 border-primary-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              📦 Bulk Import
             </button>
           </div>
-        </div>
-      )}
 
-      {showBulkImport && (
-        <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">
-          <h3 className="text-xl font-bold text-white mb-4">Bulk Import Policies</h3>
-          <p className="text-sm text-gray-400 mb-4">
-            Select folders that are already sorted by categories. The folder structure will be used to automatically assign categories and subcategories.
-            <br />
-            <strong className="text-yellow-400">Example:</strong> Select a folder structure like "HR/Recruitment/" or "Finance/Budget/" and all files within will be categorized accordingly.
-          </p>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">
-                Select Folders (containing PDF, DOC, DOCX, etc.)
-              </label>
-              <input
-                type="file"
-                // @ts-ignore - webkitdirectory is a valid HTML attribute
-                webkitdirectory=""
-                multiple
-                onChange={handleFolderSelect}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-                accept=".pdf,.doc,.docx,.txt"
-              />
-              {bulkFiles.length > 0 && (
-                <div className="mt-2 space-y-2">
-                  <p className="text-sm text-green-400">
-                    ✅ {bulkFiles.length} file(s) selected from {bulkFolders.length} folder(s)
+          {/* Single Upload Section */}
+          {showSingleUpload && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-400 mb-4">
+                Upload a single policy document (PDF, DOC, DOCX). The system will extract content and populate the policy tab with the required contents.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={singleFileCategory}
+                    onChange={(e) => {
+                      setSingleFileCategory(e.target.value);
+                      setSingleFileSubcategory('');
+                    }}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                  >
+                    <option value="">-- Select Category --</option>
+                    {availableCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-2">
+                    Subcategory
+                  </label>
+                  <select
+                    value={singleFileSubcategory}
+                    onChange={(e) => setSingleFileSubcategory(e.target.value)}
+                    disabled={!singleFileCategory}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg disabled:opacity-50"
+                  >
+                    <option value="">-- Select Subcategory --</option>
+                    {singleSubcategories.map((subcat) => (
+                      <option key={subcat} value={subcat}>
+                        {subcat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-2">
+                  Select File (PDF, DOC, DOCX)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={(e) => setSingleFile(e.target.files?.[0] || null)}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                />
+                {singleFile && (
+                  <p className="text-sm text-green-400 mt-2">
+                    ✅ File selected: {singleFile.name} ({(singleFile.size / 1024 / 1024).toFixed(2)} MB)
                   </p>
-                  {bulkFolders.length > 0 && (
-                    <div className="mt-2 p-3 bg-gray-700 rounded-lg">
-                      <p className="text-xs text-gray-300 mb-2">Folder structure detected:</p>
-                      <ul className="text-xs text-gray-400 space-y-1">
-                        {bulkFolders.slice(0, 10).map((folder, idx) => (
-                          <li key={idx}>📁 {folder}</li>
-                        ))}
-                        {bulkFolders.length > 10 && (
-                          <li className="text-gray-500">... and {bulkFolders.length - 10} more folders</li>
-                        )}
-                      </ul>
+                )}
+              </div>
+              <button
+                onClick={handleSingleFileUpload}
+                disabled={singleFileUploading || !singleFile || !singleFileCategory || !singleFileSubcategory}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {singleFileUploading ? 'Uploading...' : 'Upload File'}
+              </button>
+            </div>
+          )}
+
+          {/* Bulk Import Section */}
+          {!showSingleUpload && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-400 mb-4">
+                Select folders that are already sorted by categories. The folder structure will be used to automatically assign categories and subcategories.
+                <br />
+                <strong className="text-yellow-400">Example:</strong> Select a folder structure like "HR/Recruitment/" or "Finance/Budget/" and all files within will be categorized accordingly.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-2">
+                  Select Folders (containing PDF, DOC, DOCX, etc.)
+                </label>
+                <input
+                  type="file"
+                  // @ts-ignore - webkitdirectory is a valid HTML attribute
+                  webkitdirectory=""
+                  multiple
+                  onChange={handleFolderSelect}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                  accept=".pdf,.doc,.docx,.txt"
+                />
+                {bulkFiles.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    <p className="text-sm text-green-400">
+                      ✅ {bulkFiles.length} file(s) selected from {bulkFolders.length} folder(s)
+                    </p>
+                    {bulkFolders.length > 0 && (
+                      <div className="mt-2 p-3 bg-gray-700 rounded-lg">
+                        <p className="text-xs text-gray-300 mb-2">Folder structure detected:</p>
+                        <ul className="text-xs text-gray-400 space-y-1">
+                          {bulkFolders.slice(0, 10).map((folder, idx) => (
+                            <li key={idx}>📁 {folder}</li>
+                          ))}
+                          {bulkFolders.length > 10 && (
+                            <li className="text-gray-500">... and {bulkFolders.length - 10} more folders</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleBulkImport}
+                disabled={bulkImporting || bulkFiles.length === 0}
+                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                {bulkImporting ? 'Importing...' : `Import ${bulkFiles.length} File(s) from ${bulkFolders.length} Folder(s)`}
+              </button>
+              {bulkResults && (
+                <div className="mt-4 p-4 bg-gray-700 rounded-lg">
+                  <h4 className="text-white font-semibold mb-2">Import Results:</h4>
+                  <p className="text-green-400">✅ {bulkResults.imported} imported successfully</p>
+                  {bulkResults.failed > 0 && (
+                    <p className="text-red-400">❌ {bulkResults.failed} failed</p>
+                  )}
+                  {bulkResults.results && bulkResults.results.length > 0 && (
+                    <div className="mt-2 max-h-40 overflow-y-auto">
+                      {bulkResults.results.map((r: any, idx: number) => (
+                        <div key={idx} className="text-sm text-gray-300">
+                          {r.fileName} → {r.category || 'Uncategorized'}
+                          {r.subcategory && ` / ${r.subcategory}`}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               )}
             </div>
-            <button
-              onClick={handleBulkImport}
-              disabled={bulkImporting || bulkFiles.length === 0}
-              className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50"
-            >
-              {bulkImporting ? 'Importing...' : `Import ${bulkFiles.length} File(s) from ${bulkFolders.length} Folder(s)`}
-            </button>
-            {bulkResults && (
-              <div className="mt-4 p-4 bg-gray-700 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">Import Results:</h4>
-                <p className="text-green-400">✅ {bulkResults.imported} imported successfully</p>
-                {bulkResults.failed > 0 && (
-                  <p className="text-red-400">❌ {bulkResults.failed} failed</p>
-                )}
-                {bulkResults.results && bulkResults.results.length > 0 && (
-                  <div className="mt-2 max-h-40 overflow-y-auto">
-                    {bulkResults.results.map((r: any, idx: number) => (
-                      <div key={idx} className="text-sm text-gray-300">
-                        {r.fileName} → {r.category || 'Uncategorized'}
-                        {r.subcategory && ` / ${r.subcategory}`}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+          )}
 
-      {showForm && (
-        <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">
-          <h3 className="text-xl font-bold text-white mb-4">Upload Policy</h3>
-          <p className="text-sm text-gray-400 mb-4">
-            The policy will automatically be structured into Brief, Complete, and Assessment sections.
-          </p>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">Title *</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">Brief Summary *</label>
-              <textarea
-                value={formData.brief}
-                onChange={(e) => setFormData({ ...formData, brief: e.target.value })}
-                required
-                rows={3}
-                placeholder="Brief summary that appears in the Brief view"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">Complete Policy Content *</label>
-              <textarea
-                value={formData.complete}
-                onChange={(e) => setFormData({ ...formData, complete: e.target.value })}
-                required
-                rows={10}
-                placeholder="Full policy content (Markdown/HTML) that appears in the Complete view"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          {/* Manual Form Section */}
+          <div className="mt-8 pt-6 border-t border-gray-700">
+            <h4 className="text-lg font-semibold text-white mb-4">Or Create Policy Manually</h4>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">Category</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value, subcategory: '', customCategory: '', customSubcategory: '' })}
+                <label className="block text-sm font-medium text-gray-200 mb-1">Title *</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-                >
-                  <option value="">Select Category</option>
-                  {availableCategories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                  <option value="OTHER">Other (Custom)</option>
-                </select>
-                {isCustomCategory && (
-                  <input
-                    type="text"
-                    value={formData.customCategory}
-                    onChange={(e) => setFormData({ ...formData, customCategory: e.target.value })}
-                    placeholder="Enter custom category"
-                    className="w-full mt-2 px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-                  />
-                )}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">Subcategory</label>
-                <select
-                  value={formData.subcategory}
-                  onChange={(e) => setFormData({ ...formData, subcategory: e.target.value, customSubcategory: '' })}
-                  disabled={!formData.category}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">Select Subcategory</option>
-                  {availableSubcategories.map((subcat) => (
-                    <option key={subcat} value={subcat}>
-                      {subcat}
-                    </option>
-                  ))}
-                  {formData.category && <option value="OTHER">Other (Custom)</option>}
-                </select>
-                {isCustomSubcategory && (
-                  <input
-                    type="text"
-                    value={formData.customSubcategory}
-                    onChange={(e) => setFormData({ ...formData, customSubcategory: e.target.value })}
-                    placeholder="Enter custom subcategory"
-                    className="w-full mt-2 px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-                  />
-                )}
+                <label className="block text-sm font-medium text-gray-200 mb-1">Brief Summary *</label>
+                <textarea
+                  value={formData.brief}
+                  onChange={(e) => setFormData({ ...formData, brief: e.target.value })}
+                  required
+                  rows={3}
+                  placeholder="Brief summary that appears in the Brief view"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                />
               </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-200">Assessment Questions</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const currentQuestions = Array.isArray(formData.assessment.questions) ? formData.assessment.questions : [];
-                      const newQuestion = {
-                        id: `q-${Date.now()}`,
-                        question: '',
-                        type: 'multiple_choice',
-                        options: ['Option 1', 'Option 2'],
-                        correctAnswer: 'Option 1',
-                        required: true,
-                      };
-                      setFormData({
-                        ...formData,
-                        assessment: {
-                          ...formData.assessment,
-                          questions: [...currentQuestions, newQuestion],
-                        },
-                      });
-                    }}
-                    className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-1">Complete Policy Content *</label>
+                <textarea
+                  value={formData.complete}
+                  onChange={(e) => setFormData({ ...formData, complete: e.target.value })}
+                  required
+                  rows={10}
+                  placeholder="Full policy content (Markdown/HTML) that appears in the Complete view"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-1">Category</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value, subcategory: '', customCategory: '', customSubcategory: '' })}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
                   >
-                    + Add Question
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const bulkText = prompt('Paste bulk questions in this format:\n\nQuestion 1?\nA) Option A\nB) Option B\nC) Option C\nCorrect: A\n\nQuestion 2?\nA) Option A\nB) Option B\nCorrect: B\n\nOpen-ended question?\nType: text');
-                      if (!bulkText) return;
-
-                      const parsedQuestions = parseBulkQuestions(bulkText);
-                      const currentQuestions = Array.isArray(formData.assessment.questions) ? formData.assessment.questions : [];
-                      
-                      setFormData({
-                        ...formData,
-                        assessment: {
-                          ...formData.assessment,
-                          questions: [...currentQuestions, ...parsedQuestions],
-                        },
-                      });
-                      alert(`✅ Added ${parsedQuestions.length} question(s)`);
-                    }}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                    <option value="">Select Category</option>
+                    {availableCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                    <option value="OTHER">Other (Custom)</option>
+                  </select>
+                  {isCustomCategory && (
+                    <input
+                      type="text"
+                      value={formData.customCategory}
+                      onChange={(e) => setFormData({ ...formData, customCategory: e.target.value })}
+                      placeholder="Enter custom category"
+                      className="w-full mt-2 px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-1">Subcategory</label>
+                  <select
+                    value={formData.subcategory}
+                    onChange={(e) => setFormData({ ...formData, subcategory: e.target.value, customSubcategory: '' })}
+                    disabled={!formData.category}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    📋 Bulk Import
-                  </button>
+                    <option value="">Select Subcategory</option>
+                    {availableSubcategories.map((subcat) => (
+                      <option key={subcat} value={subcat}>
+                        {subcat}
+                      </option>
+                    ))}
+                    {formData.category && <option value="OTHER">Other (Custom)</option>}
+                  </select>
+                  {isCustomSubcategory && (
+                    <input
+                      type="text"
+                      value={formData.customSubcategory}
+                      onChange={(e) => setFormData({ ...formData, customSubcategory: e.target.value })}
+                      placeholder="Enter custom subcategory"
+                      className="w-full mt-2 px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                    />
+                  )}
                 </div>
               </div>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-200">Assessment Questions</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentQuestions = Array.isArray(formData.assessment.questions) ? formData.assessment.questions : [];
+                        const newQuestion = {
+                          id: `q-${Date.now()}`,
+                          question: '',
+                          type: 'multiple_choice',
+                          options: ['Option 1', 'Option 2'],
+                          correctAnswer: 'Option 1',
+                          required: true,
+                        };
+                        setFormData({
+                          ...formData,
+                          assessment: {
+                            ...formData.assessment,
+                            questions: [...currentQuestions, newQuestion],
+                          },
+                        });
+                      }}
+                      className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                    >
+                      + Add Question
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const bulkText = prompt('Paste bulk questions in this format:\n\nQuestion 1?\nA) Option A\nB) Option B\nC) Option C\nCorrect: A\n\nQuestion 2?\nA) Option A\nB) Option B\nCorrect: B\n\nOpen-ended question?\nType: text');
+                        if (!bulkText) return;
 
-              {Array.isArray(formData.assessment.questions) && formData.assessment.questions.length > 0 ? (
-                <div className="space-y-3 max-h-96 overflow-y-auto p-3 bg-gray-700 rounded-lg">
-                  {formData.assessment.questions.map((q: any, idx: number) => (
-                    <div key={q.id || idx} className="bg-gray-600 rounded-lg p-4 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <h4 className="text-white font-semibold">Question {idx + 1}</h4>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = formData.assessment.questions.filter((_: any, i: number) => i !== idx);
-                            setFormData({
-                              ...formData,
-                              assessment: {
-                                ...formData.assessment,
-                                questions: updated,
-                              },
-                            });
-                          }}
-                          className="text-red-400 hover:text-red-300 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-xs text-gray-300 mb-1">Question Text *</label>
-                        <input
-                          type="text"
-                          value={q.question || ''}
-                          onChange={(e) => {
-                            const updated = [...formData.assessment.questions];
-                            updated[idx] = { ...updated[idx], question: e.target.value };
-                            setFormData({
-                              ...formData,
-                              assessment: {
-                                ...formData.assessment,
-                                questions: updated,
-                              },
-                            });
-                          }}
-                          className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
-                          placeholder="Enter your question..."
-                        />
-                      </div>
+                        const parsedQuestions = parseBulkQuestions(bulkText);
+                        const currentQuestions = Array.isArray(formData.assessment.questions) ? formData.assessment.questions : [];
+                        
+                        setFormData({
+                          ...formData,
+                          assessment: {
+                            ...formData.assessment,
+                            questions: [...currentQuestions, ...parsedQuestions],
+                          },
+                        });
+                        alert(`✅ Added ${parsedQuestions.length} question(s)`);
+                      }}
+                      className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                    >
+                      📋 Bulk Import
+                    </button>
+                  </div>
+                </div>
 
-                      <div>
-                        <label className="block text-xs text-gray-300 mb-1">Question Type *</label>
-                        <select
-                          value={q.type || 'multiple_choice'}
-                          onChange={(e) => {
-                            const updated = [...formData.assessment.questions];
-                            updated[idx] = {
-                              ...updated[idx],
-                              type: e.target.value,
-                              options: e.target.value === 'multiple_choice' || e.target.value === 'checkbox' 
-                                ? (updated[idx].options || ['Option 1', 'Option 2'])
-                                : undefined,
-                            };
-                            setFormData({
-                              ...formData,
-                              assessment: {
-                                ...formData.assessment,
-                                questions: updated,
-                              },
-                            });
-                          }}
-                          className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
-                        >
-                          <option value="multiple_choice">Multiple Choice</option>
-                          <option value="text">Text Answer</option>
-                          <option value="checkbox">Checkbox (Multiple Answers)</option>
-                        </select>
-                      </div>
-
-                      {(q.type === 'multiple_choice' || q.type === 'checkbox') && (
-                        <div>
-                          <label className="block text-xs text-gray-300 mb-1">Options *</label>
-                          {(q.options || []).map((opt: string, optIdx: number) => (
-                            <div key={optIdx} className="flex gap-2 mb-2">
-                              <input
-                                type="text"
-                                value={opt}
-                                onChange={(e) => {
-                                  const updated = [...formData.assessment.questions];
-                                  const newOptions = [...(updated[idx].options || [])];
-                                  newOptions[optIdx] = e.target.value;
-                                  updated[idx] = { ...updated[idx], options: newOptions };
-                                  setFormData({
-                                    ...formData,
-                                    assessment: {
-                                      ...formData.assessment,
-                                      questions: updated,
-                                    },
-                                  });
-                                }}
-                                className="flex-1 px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
-                                placeholder={`Option ${optIdx + 1}`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...formData.assessment.questions];
-                                  const newOptions = (updated[idx].options || []).filter((_: any, i: number) => i !== optIdx);
-                                  updated[idx] = { ...updated[idx], options: newOptions };
-                                  setFormData({
-                                    ...formData,
-                                    assessment: {
-                                      ...formData.assessment,
-                                      questions: updated,
-                                    },
-                                  });
-                                }}
-                                className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
+                {Array.isArray(formData.assessment.questions) && formData.assessment.questions.length > 0 ? (
+                  <div className="space-y-3 max-h-96 overflow-y-auto p-3 bg-gray-700 rounded-lg">
+                    {formData.assessment.questions.map((q: any, idx: number) => (
+                      <div key={q.id || idx} className="bg-gray-600 rounded-lg p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <h4 className="text-white font-semibold">Question {idx + 1}</h4>
                           <button
                             type="button"
                             onClick={() => {
-                              const updated = [...formData.assessment.questions];
-                              const newOptions = [...(updated[idx].options || []), `Option ${(updated[idx].options || []).length + 1}`];
-                              updated[idx] = { ...updated[idx], options: newOptions };
+                              const updated = formData.assessment.questions.filter((_: any, i: number) => i !== idx);
                               setFormData({
                                 ...formData,
                                 assessment: {
@@ -714,24 +612,20 @@ export default function PolicyManagement() {
                                 },
                               });
                             }}
-                            className="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
+                            className="text-red-400 hover:text-red-300 text-sm"
                           >
-                            + Add Option
+                            Remove
                           </button>
                         </div>
-                      )}
-
-                      <div>
-                        <label className="block text-xs text-gray-300 mb-1">
-                          {q.type === 'text' ? 'Expected Answer' : 'Correct Answer *'}
-                        </label>
-                        {q.type === 'text' ? (
+                        
+                        <div>
+                          <label className="block text-xs text-gray-300 mb-1">Question Text *</label>
                           <input
                             type="text"
-                            value={q.correctAnswer || ''}
+                            value={q.question || ''}
                             onChange={(e) => {
                               const updated = [...formData.assessment.questions];
-                              updated[idx] = { ...updated[idx], correctAnswer: e.target.value };
+                              updated[idx] = { ...updated[idx], question: e.target.value };
                               setFormData({
                                 ...formData,
                                 assessment: {
@@ -741,14 +635,23 @@ export default function PolicyManagement() {
                               });
                             }}
                             className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
-                            placeholder="Expected answer or key concepts..."
+                            placeholder="Enter your question..."
                           />
-                        ) : (
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-300 mb-1">Question Type *</label>
                           <select
-                            value={q.correctAnswer || ''}
+                            value={q.type || 'multiple_choice'}
                             onChange={(e) => {
                               const updated = [...formData.assessment.questions];
-                              updated[idx] = { ...updated[idx], correctAnswer: e.target.value };
+                              updated[idx] = {
+                                ...updated[idx],
+                                type: e.target.value,
+                                options: e.target.value === 'multiple_choice' || e.target.value === 'checkbox' 
+                                  ? (updated[idx].options || ['Option 1', 'Option 2'])
+                                  : undefined,
+                              };
                               setFormData({
                                 ...formData,
                                 assessment: {
@@ -759,79 +662,189 @@ export default function PolicyManagement() {
                             }}
                             className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
                           >
-                            <option value="">Select correct answer</option>
-                            {(q.options || []).map((opt: string, optIdx: number) => (
-                              <option key={optIdx} value={opt}>{opt}</option>
-                            ))}
+                            <option value="multiple_choice">Multiple Choice</option>
+                            <option value="text">Text Answer</option>
+                            <option value="checkbox">Checkbox (Multiple Answers)</option>
                           </select>
+                        </div>
+
+                        {(q.type === 'multiple_choice' || q.type === 'checkbox') && (
+                          <div>
+                            <label className="block text-xs text-gray-300 mb-1">Options *</label>
+                            {(q.options || []).map((opt: string, optIdx: number) => (
+                              <div key={optIdx} className="flex gap-2 mb-2">
+                                <input
+                                  type="text"
+                                  value={opt}
+                                  onChange={(e) => {
+                                    const updated = [...formData.assessment.questions];
+                                    const newOptions = [...(updated[idx].options || [])];
+                                    newOptions[optIdx] = e.target.value;
+                                    updated[idx] = { ...updated[idx], options: newOptions };
+                                    setFormData({
+                                      ...formData,
+                                      assessment: {
+                                        ...formData.assessment,
+                                        questions: updated,
+                                      },
+                                    });
+                                  }}
+                                  className="flex-1 px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                                  placeholder={`Option ${optIdx + 1}`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...formData.assessment.questions];
+                                    const newOptions = (updated[idx].options || []).filter((_: any, i: number) => i !== optIdx);
+                                    updated[idx] = { ...updated[idx], options: newOptions };
+                                    setFormData({
+                                      ...formData,
+                                      assessment: {
+                                        ...formData.assessment,
+                                        questions: updated,
+                                      },
+                                    });
+                                  }}
+                                  className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...formData.assessment.questions];
+                                const newOptions = [...(updated[idx].options || []), `Option ${(updated[idx].options || []).length + 1}`];
+                                updated[idx] = { ...updated[idx], options: newOptions };
+                                setFormData({
+                                  ...formData,
+                                  assessment: {
+                                    ...formData.assessment,
+                                    questions: updated,
+                                  },
+                                });
+                              }}
+                              className="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
+                            >
+                              + Add Option
+                            </button>
+                          </div>
                         )}
-                      </div>
 
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={q.required !== false}
-                          onChange={(e) => {
-                            const updated = [...formData.assessment.questions];
-                            updated[idx] = { ...updated[idx], required: e.target.checked };
-                            setFormData({
-                              ...formData,
-                              assessment: {
-                                ...formData.assessment,
-                                questions: updated,
-                              },
-                            });
-                          }}
-                          className="mr-2"
-                        />
-                        <label className="text-xs text-gray-300">Required Question</label>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 bg-gray-700 rounded-lg text-center text-gray-400 text-sm">
-                  No questions added yet. Click "Add Question" to create one.
-                </div>
-              )}
+                        <div>
+                          <label className="block text-xs text-gray-300 mb-1">
+                            {q.type === 'text' ? 'Expected Answer' : 'Correct Answer *'}
+                          </label>
+                          {q.type === 'text' ? (
+                            <input
+                              type="text"
+                              value={q.correctAnswer || ''}
+                              onChange={(e) => {
+                                const updated = [...formData.assessment.questions];
+                                updated[idx] = { ...updated[idx], correctAnswer: e.target.value };
+                                setFormData({
+                                  ...formData,
+                                  assessment: {
+                                    ...formData.assessment,
+                                    questions: updated,
+                                  },
+                                });
+                              }}
+                              className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                              placeholder="Expected answer or key concepts..."
+                            />
+                          ) : (
+                            <select
+                              value={q.correctAnswer || ''}
+                              onChange={(e) => {
+                                const updated = [...formData.assessment.questions];
+                                updated[idx] = { ...updated[idx], correctAnswer: e.target.value };
+                                setFormData({
+                                  ...formData,
+                                  assessment: {
+                                    ...formData.assessment,
+                                    questions: updated,
+                                  },
+                                });
+                              }}
+                              className="w-full px-3 py-2 bg-gray-500 border border-gray-400 text-white rounded text-sm"
+                            >
+                              <option value="">Select correct answer</option>
+                              {(q.options || []).map((opt: string, optIdx: number) => (
+                                <option key={optIdx} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
 
-              <div className="mt-3">
-                <label className="block text-xs text-gray-300 mb-1">Passing Score (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.assessment.passingScore || 70}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      assessment: {
-                        ...formData.assessment,
-                        passingScore: parseInt(e.target.value) || 70,
-                      },
-                    });
-                  }}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded text-sm"
-                />
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={q.required !== false}
+                            onChange={(e) => {
+                              const updated = [...formData.assessment.questions];
+                              updated[idx] = { ...updated[idx], required: e.target.checked };
+                              setFormData({
+                                ...formData,
+                                assessment: {
+                                  ...formData.assessment,
+                                  questions: updated,
+                                },
+                              });
+                            }}
+                            className="mr-2"
+                          />
+                          <label className="text-xs text-gray-300">Required Question</label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-gray-700 rounded-lg text-center text-gray-400 text-sm">
+                    No questions added yet. Click "Add Question" to create one.
+                  </div>
+                )}
+
+                <div className="mt-3">
+                  <label className="block text-xs text-gray-300 mb-1">Passing Score (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.assessment.passingScore || 70}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        assessment: {
+                          ...formData.assessment,
+                          passingScore: parseInt(e.target.value) || 70,
+                        },
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded text-sm"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={formData.isMandatory}
-                onChange={(e) => setFormData({ ...formData, isMandatory: e.target.checked })}
-                className="text-primary-500"
-              />
-              <label className="text-sm text-gray-200">Mandatory Policy</label>
-            </div>
-            <button
-              type="submit"
-              disabled={createMutation.isLoading}
-              className="w-full bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 disabled:opacity-50"
-            >
-              {createMutation.isLoading ? 'Creating...' : 'Create Policy'}
-            </button>
-          </form>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={formData.isMandatory}
+                  onChange={(e) => setFormData({ ...formData, isMandatory: e.target.checked })}
+                  className="text-primary-500"
+                />
+                <label className="text-sm text-gray-200">Mandatory Policy</label>
+              </div>
+              <button
+                type="submit"
+                disabled={createMutation.isLoading}
+                className="w-full bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 disabled:opacity-50"
+              >
+                {createMutation.isLoading ? 'Creating...' : 'Create Policy'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
