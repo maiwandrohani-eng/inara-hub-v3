@@ -414,9 +414,26 @@ export default function PoliciesTab() {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="prose prose-invert max-w-none text-gray-200">
                 {viewMode === 'brief' && <p>{selectedPolicy.brief}</p>}
-                {viewMode === 'complete' && (
+                {viewMode === 'complete' && selectedPolicy.fileUrl ? (
+                  <div className="py-4">
+                    <PDFViewer
+                      pdfUrl={selectedPolicy.fileUrl}
+                      title="Complete Policy Document"
+                    />
+                    <div className="mt-4 text-center">
+                      <a
+                        href={selectedPolicy.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                      >
+                        Download PDF
+                      </a>
+                    </div>
+                  </div>
+                ) : viewMode === 'complete' ? (
                   <div dangerouslySetInnerHTML={{ __html: selectedPolicy.complete }} />
-                )}
+                ) : null}
                 {viewMode === 'assessment' && selectedPolicy.assessment && (
                   <div className="space-y-4">
                     {!assessmentSubmitted ? (

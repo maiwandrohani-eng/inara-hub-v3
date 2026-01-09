@@ -3,6 +3,66 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../../api/client';
 import { getAllPolicyCategories, getPolicySubcategories } from '../../config/categories';
 
+// Parse bulk questions from text format
+const parseBulkQuestions = (text: string): any[] => {
+  const questions: any[] = [];
+  const blocks = text.split('\n\n').filter(b => b.trim());
+
+  for (const block of blocks) {
+    const lines = block.split('\n').filter(l => l.trim());
+    if (lines.length === 0) continue;
+
+    const questionText = lines[0].trim();
+    
+    // Check if it's a text question
+    if (lines.length === 2 && lines[1].includes('Type: text')) {
+      questions.push({
+        id: `q-${Date.now()}-${Math.random()}`,
+        question: questionText,
+        type: 'text',
+        required: true,
+      });
+      continue;
+    }
+
+    // Parse multiple choice
+    const options: string[] = [];
+    let correctAnswer: string | null = null;
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      if (line.startsWith('Correct:')) {
+        const answer = line.replace('Correct:', '').trim().toUpperCase();
+        // Find the corresponding option (e.g., "A" -> "Option A")
+        if (answer.length === 1) {
+          const optionIndex = answer.charCodeAt(0) - 65; // A=0, B=1, etc.
+          if (optionIndex >= 0 && optionIndex < options.length) {
+            correctAnswer = options[optionIndex];
+          }
+        }
+      } else if (line.match(/^[A-Z]\)/)) {
+        // Extract option text (remove "A) " prefix)
+        const optionText = line.replace(/^[A-Z]\)\s*/, '').trim();
+        options.push(optionText);
+      }
+    }
+
+    if (options.length >= 2) {
+      questions.push({
+        id: `q-${Date.now()}-${Math.random()}`,
+        question: questionText,
+        type: 'multiple_choice',
+        options,
+        correctAnswer: correctAnswer || options[0],
+        required: true,
+      });
+    }
+  }
+
+  return questions;
+};
+
 export default function PolicyManagement() {
   const [showForm, setShowForm] = useState(false);
   const [showSingleUpload, setShowSingleUpload] = useState(false);
@@ -472,30 +532,54 @@ export default function PolicyManagement() {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-medium text-gray-200">Assessment Questions</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentQuestions = Array.isArray(formData.assessment.questions) ? formData.assessment.questions : [];
-                    const newQuestion = {
-                      id: `q-${Date.now()}`,
-                      question: '',
-                      type: 'multiple_choice',
-                      options: ['Option 1', 'Option 2'],
-                      correctAnswer: 'Option 1',
-                      required: true,
-                    };
-                    setFormData({
-                      ...formData,
-                      assessment: {
-                        ...formData.assessment,
-                        questions: [...currentQuestions, newQuestion],
-                      },
-                    });
-                  }}
-                  className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
-                >
-                  + Add Question
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentQuestions = Array.isArray(formData.assessment.questions) ? formData.assessment.questions : [];
+                      const newQuestion = {
+                        id: `q-${Date.now()}`,
+                        question: '',
+                        type: 'multiple_choice',
+                        options: ['Option 1', 'Option 2'],
+                        correctAnswer: 'Option 1',
+                        required: true,
+                      };
+                      setFormData({
+                        ...formData,
+                        assessment: {
+                          ...formData.assessment,
+                          questions: [...currentQuestions, newQuestion],
+                        },
+                      });
+                    }}
+                    className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                  >
+                    + Add Question
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const bulkText = prompt('Paste bulk questions in this format:\n\nQuestion 1?\nA) Option A\nB) Option B\nC) Option C\nCorrect: A\n\nQuestion 2?\nA) Option A\nB) Option B\nCorrect: B\n\nOpen-ended question?\nType: text');
+                      if (!bulkText) return;
+
+                      const parsedQuestions = parseBulkQuestions(bulkText);
+                      const currentQuestions = Array.isArray(formData.assessment.questions) ? formData.assessment.questions : [];
+                      
+                      setFormData({
+                        ...formData,
+                        assessment: {
+                          ...formData.assessment,
+                          questions: [...currentQuestions, ...parsedQuestions],
+                        },
+                      });
+                      alert(`✅ Added ${parsedQuestions.length} question(s)`);
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                  >
+                    📋 Bulk Import
+                  </button>
+                </div>
               </div>
 
               {Array.isArray(formData.assessment.questions) && formData.assessment.questions.length > 0 ? (
