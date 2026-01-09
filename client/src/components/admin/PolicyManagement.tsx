@@ -129,52 +129,48 @@ export default function PolicyManagement() {
       alert('Please upload a policy PDF document');
       return;
     }
+    if (!formData.title.trim()) {
+      alert('Please enter a policy title');
+      return;
+    }
+    if (!formData.brief.trim()) {
+      alert('Please enter a policy brief');
+      return;
+    }
     
     // Use the bulk-import endpoint which handles PDF upload to R2 and policy creation
+    // Pass category, subcategory, title, and brief as body data
     const pdfFormData = new FormData();
     pdfFormData.append('files', policyPdf);
     pdfFormData.append('type', 'policy');
+    pdfFormData.append('category', isCustomCategory ? formData.customCategory : formData.category);
+    pdfFormData.append('subcategory', isCustomSubcategory ? formData.customSubcategory : formData.subcategory);
+    pdfFormData.append('title', formData.title);
+    pdfFormData.append('brief', formData.brief);
+    pdfFormData.append('assessment', JSON.stringify(formData.assessment));
+    pdfFormData.append('isMandatory', formData.isMandatory.toString());
+    pdfFormData.append('tags', JSON.stringify(formData.tags.filter((t: string) => t.trim())));
     
     api.post('/admin/policies/bulk-import', pdfFormData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((res) => {
       if (res.data.results && res.data.results.length > 0) {
-        const createdPolicyId = res.data.results[0].policyId;
-        
-        // Now update the policy with the brief, assessment, and other metadata
-        const submitData: any = {
-          title: formData.title,
-          brief: formData.brief,
-          complete: '', // Keep empty since we're using PDF
-          assessment: formData.assessment,
-          isMandatory: formData.isMandatory,
-          category: isCustomCategory ? formData.customCategory : formData.category,
-          subcategory: isCustomSubcategory ? formData.customSubcategory : formData.subcategory,
-          tags: formData.tags,
-          effectiveDate: formData.effectiveDate,
-        };
-        
-        // Update the created policy with the full details
-        api.put(`/admin/policies/${createdPolicyId}`, submitData).then(() => {
-          queryClient.invalidateQueries('admin-policies');
-          setShowForm(false);
-          setPolicyPdf(null);
-          setFormData({
-            title: '',
-            brief: '',
-            assessment: { questions: [], passingScore: 70 },
-            isMandatory: false,
-            category: '',
-            subcategory: '',
-            customCategory: '',
-            customSubcategory: '',
-            tags: [''],
-            effectiveDate: new Date().toISOString().split('T')[0],
-          });
-          alert('Policy created successfully with PDF document!');
-        }).catch((error) => {
-          alert('Failed to update policy details: ' + (error.response?.data?.message || error.message));
+        queryClient.invalidateQueries('admin-policies');
+        setShowForm(false);
+        setPolicyPdf(null);
+        setFormData({
+          title: '',
+          brief: '',
+          assessment: { questions: [], passingScore: 70 },
+          isMandatory: false,
+          category: '',
+          subcategory: '',
+          customCategory: '',
+          customSubcategory: '',
+          tags: [''],
+          effectiveDate: new Date().toISOString().split('T')[0],
         });
+        alert('Policy created successfully with PDF document!');
       } else {
         alert('Failed to upload PDF: ' + (res.data.errors?.[0]?.error || 'Unknown error'));
       }

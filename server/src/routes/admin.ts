@@ -1116,6 +1116,11 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
     // Get category and subcategory from request body (for single file upload)
     const explicitCategory = req.body.category;
     const explicitSubcategory = req.body.subcategory;
+    const explicitTitle = req.body.title;
+    const explicitBrief = req.body.brief;
+    const explicitAssessment = req.body.assessment ? JSON.parse(req.body.assessment) : null;
+    const explicitIsMandatory = req.body.isMandatory === 'true';
+    const explicitTags = req.body.tags ? JSON.parse(req.body.tags) : [];
 
     const results = [];
     const errors = [];
@@ -1136,7 +1141,7 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
       
       try {
         const fileName = file.originalname;
-        const title = fileName.replace(/\.[^/.]+$/, ''); // Remove extension
+        const title = explicitTitle || fileName.replace(/\.[^/.]+$/, ''); // Use explicit title or filename
         
         // Use explicit category/subcategory if provided, otherwise detect from path
         let categoryMatch;
@@ -1158,27 +1163,22 @@ router.post('/policies/bulk-import', upload.array('files', 50), async (req: Auth
           categoryMatch = detectCategory(fileName, 'policy');
         }
 
-        // Read file content if it's a text file (for brief/complete)
-        let brief = `Policy: ${title}`;
-        let complete = `Full policy content for ${title}. Please review and update.`;
-
-        if (file.mimetype?.includes('text') || file.mimetype?.includes('pdf')) {
-          // For PDFs, we'll just use the file URL
-          brief = `Policy document: ${title}. Please review the attached file.`;
-          complete = `See attached policy document: ${title}`;
-        }
+        // Use explicit brief if provided, otherwise generate from file info
+        let brief = explicitBrief || `Policy document: ${title}. Please review the attached file.`;
+        let complete = `See attached policy document: ${title}`;
 
         const policy = await prisma.policy.create({
           data: {
             title,
             brief,
             complete,
-            assessment: { questions: [], passingScore: 70 },
+            assessment: explicitAssessment || { questions: [], passingScore: 70 },
             version: 1,
             effectiveDate: new Date(),
             category: categoryMatch.category || null,
             subcategory: categoryMatch.subcategory || null,
-            tags: [],
+            tags: explicitTags || [],
+            isMandatory: explicitIsMandatory || false,
             isMandatory: false,
             isActive: true,
             fileUrl: uploadResult.url,
