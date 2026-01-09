@@ -5,7 +5,6 @@ import api from '../../api/client';
 export default function SuggestionManagement() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery('admin-suggestions', async () => {
@@ -14,14 +13,18 @@ export default function SuggestionManagement() {
   });
 
   const updateStatusMutation = useMutation(
-    async ({ id, status, priority, adminNotes }: any) => {
-      const res = await api.put(`/suggestions/${id}`, { status, priority, adminNotes });
+    async ({ id, status }: any) => {
+      const res = await api.put(`/suggestions/${id}`, { status });
       return res.data;
     },
     {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['admin-suggestions'] });
         queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+      },
+      onError: (error: any) => {
+        console.error('Error updating status:', error);
+        alert('Error updating suggestion status');
       },
     }
   );
@@ -35,10 +38,10 @@ export default function SuggestionManagement() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['admin-suggestions'] });
         queryClient.invalidateQueries({ queryKey: ['suggestions'] });
-        alert('Suggestion deleted successfully');
       },
       onError: (error: any) => {
-        alert('Failed to delete suggestion: ' + error.response?.data?.message || error.message);
+        console.error('Error deleting:', error);
+        alert('Error deleting suggestion');
       },
     }
   );
@@ -46,17 +49,14 @@ export default function SuggestionManagement() {
   const allSuggestions = data?.suggestions || [];
 
   // Extract unique statuses and categories
-  const { statuses, categories } = useMemo(() => {
-    const statusSet = new Set<string>();
+  const { categories } = useMemo(() => {
     const categorySet = new Set<string>();
 
     allSuggestions.forEach((s: any) => {
-      if (s.status) statusSet.add(s.status);
       if (s.category) categorySet.add(s.category);
     });
 
     return {
-      statuses: Array.from(statusSet),
       categories: Array.from(categorySet),
     };
   }, [allSuggestions]);
@@ -73,28 +73,15 @@ export default function SuggestionManagement() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
-        return 'bg-green-900/30 text-green-300';
+        return 'bg-green-600';
       case 'rejected':
-        return 'bg-red-900/30 text-red-300';
+        return 'bg-red-600';
       case 'under_review':
-        return 'bg-yellow-900/30 text-yellow-300';
+        return 'bg-yellow-600';
       case 'implemented':
-        return 'bg-blue-900/30 text-blue-300';
+        return 'bg-blue-600';
       default:
-        return 'bg-gray-700 text-gray-300';
-    }
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'improvement':
-        return 'bg-purple-900/30 text-purple-300';
-      case 'process':
-        return 'bg-cyan-900/30 text-cyan-300';
-      case 'system':
-        return 'bg-indigo-900/30 text-indigo-300';
-      default:
-        return 'bg-gray-700 text-gray-300';
+        return 'bg-gray-600';
     }
   };
 
@@ -106,7 +93,7 @@ export default function SuggestionManagement() {
       </div>
 
       {/* Filters */}
-      <div className="bg-gray-800 rounded-lg shadow p-4 space-y-4">
+      <div className="bg-gray-800 rounded-lg shadow p-4 space-y-3">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Filter by Status</label>
@@ -140,7 +127,7 @@ export default function SuggestionManagement() {
         </div>
       </div>
 
-      {/* Suggestions List */}
+      {/* Suggestions Table */}
       {isLoading ? (
         <div className="text-center py-12 text-gray-400">Loading suggestions...</div>
       ) : filteredSuggestions.length === 0 ? (
@@ -148,48 +135,40 @@ export default function SuggestionManagement() {
           <p className="text-gray-400">No suggestions found.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {filteredSuggestions.map((suggestion: any) => (
-            <div key={suggestion.id} className="bg-gray-800 rounded-lg shadow p-6 border border-gray-700">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
+            <div key={suggestion.id} className="bg-gray-800 rounded-lg shadow p-4 border border-gray-700">
+              {/* Main Row */}
+              <div className="flex items-start justify-between gap-4">
+                {/* Left Section - Content */}
                 <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2 flex-wrap gap-2">
+                  <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-bold text-white">{suggestion.title}</h3>
-                    <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(suggestion.status)}`}>
-                      {suggestion.status.replace('_', ' ').toUpperCase()}
+                    <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
+                      {suggestion.category}
                     </span>
-                    {suggestion.category && (
-                      <span className={`px-2 py-1 text-xs font-medium rounded ${getCategoryColor(suggestion.category)}`}>
-                        {suggestion.category}
-                      </span>
-                    )}
                   </div>
-                  <p className="text-gray-300 mb-3">{suggestion.description}</p>
-                  <div className="flex items-center space-x-4 text-xs text-gray-400 flex-wrap gap-2">
+                  <p className="text-gray-300 text-sm mb-2">{suggestion.description}</p>
+                  <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
                     <span>By: {suggestion.user.firstName} {suggestion.user.lastName}</span>
-                    <span>Email: {suggestion.user.email}</span>
                     <span>{new Date(suggestion.createdAt).toLocaleDateString()}</span>
                     <span>👍 {suggestion.upvotes || 0} 👎 {suggestion.downvotes || 0}</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Admin Actions */}
-              <div className="mt-4 pt-4 border-t border-gray-700 space-y-3">
-                <h4 className="text-sm font-medium text-white">Admin Actions</h4>
-                
-                {/* Status Update */}
-                <div className="flex gap-2 flex-wrap">
+                {/* Right Section - Admin Actions */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Status Selector */}
                   <select
-                    value={suggestion.status}
+                    value={suggestion.status || 'submitted'}
                     onChange={(e) =>
                       updateStatusMutation.mutate({
                         id: suggestion.id,
                         status: e.target.value,
                       })
                     }
-                    className="px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded text-sm hover:bg-gray-600"
+                    disabled={updateStatusMutation.isLoading}
+                    className={`px-3 py-1 rounded text-sm text-white border-0 cursor-pointer ${getStatusColor(suggestion.status)} hover:opacity-90 disabled:opacity-50`}
                   >
                     <option value="submitted">Submitted</option>
                     <option value="under_review">Under Review</option>
@@ -198,67 +177,27 @@ export default function SuggestionManagement() {
                     <option value="implemented">Implemented</option>
                   </select>
 
-                  {/* Priority Update */}
-                  <select
-                    defaultValue={suggestion.priority || 'medium'}
-                    onChange={(e) =>
-                      updateStatusMutation.mutate({
-                        id: suggestion.id,
-                        priority: e.target.value,
-                      })
-                    }
-                    className="px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded text-sm hover:bg-gray-600"
-                  >
-                    <option value="">Set Priority</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-
                   {/* Delete Button */}
                   <button
                     onClick={() => {
-                      if (window.confirm('Are you sure you want to delete this suggestion?')) {
+                      if (window.confirm('Delete this suggestion?')) {
                         deleteMutation.mutate(suggestion.id);
                       }
                     }}
                     disabled={deleteMutation.isLoading}
-                    className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
+                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 transition-colors font-medium"
                   >
-                    {deleteMutation.isLoading ? 'Deleting...' : '🗑️ Delete'}
+                    {deleteMutation.isLoading ? '...' : 'Delete'}
                   </button>
                 </div>
-
-                {/* Admin Notes */}
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Add admin notes..."
-                    defaultValue={suggestion.adminNotes || ''}
-                    onBlur={(e) => {
-                      if (e.target.value !== suggestion.adminNotes) {
-                        updateStatusMutation.mutate({
-                          id: suggestion.id,
-                          adminNotes: e.target.value,
-                        });
-                      }
-                    }}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded text-sm"
-                  />
-                </div>
-
-                {suggestion.adminNotes && (
-                  <div className="bg-gray-700/50 p-3 rounded text-sm text-gray-300">
-                    <strong>Admin Notes:</strong> {suggestion.adminNotes}
-                  </div>
-                )}
-
-                {suggestion.reviewedBy && (
-                  <div className="text-xs text-gray-400">
-                    Last reviewed: {new Date(suggestion.reviewedAt).toLocaleString()}
-                  </div>
-                )}
               </div>
+
+              {/* Admin Notes Row - If exists */}
+              {suggestion.adminNotes && (
+                <div className="mt-2 pt-2 border-t border-gray-700 text-xs text-gray-400">
+                  <strong>Notes:</strong> {suggestion.adminNotes}
+                </div>
+              )}
             </div>
           ))}
         </div>

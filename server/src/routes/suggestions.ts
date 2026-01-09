@@ -239,11 +239,8 @@ router.post('/:id/vote', authenticate, async (req: AuthRequest, res) => {
   }
 });
 
-// Admin routes
-router.use(authorize(UserRole.ADMIN, UserRole.COUNTRY_DIRECTOR, UserRole.DEPARTMENT_HEAD));
-
-// Update suggestion status
-router.put('/:id', authenticate, async (req: AuthRequest, res) => {
+// Admin routes - Update suggestion status
+router.put('/:id', authenticate, authorize(UserRole.ADMIN, UserRole.COUNTRY_DIRECTOR, UserRole.DEPARTMENT_HEAD), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const userId = req.user!.id;
@@ -275,12 +272,13 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 
     res.json({ suggestion });
   } catch (error: any) {
+    console.error('Error updating suggestion:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-// Delete suggestion
-router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
+// Admin routes - Delete suggestion
+router.delete('/:id', authenticate, authorize(UserRole.ADMIN, UserRole.COUNTRY_DIRECTOR, UserRole.DEPARTMENT_HEAD), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     await prisma.suggestion.update({
@@ -289,6 +287,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     });
     res.json({ message: 'Suggestion deleted' });
   } catch (error: any) {
+    console.error('Error deleting suggestion:', error);
     res.status(500).json({ message: error.message });
   }
 });
