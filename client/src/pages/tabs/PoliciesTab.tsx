@@ -3,7 +3,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
-import QuickViewModal from '../../components/QuickViewModal';
 import PDFViewer from '../../components/PDFViewer';
 
 export default function PoliciesTab() {
@@ -19,7 +18,6 @@ export default function PoliciesTab() {
   const [assessmentScore, setAssessmentScore] = useState<number | null>(null);
   const [showAcknowledgmentModal, setShowAcknowledgmentModal] = useState(false);
   const [acknowledgmentLoading, setAcknowledgmentLoading] = useState(false);
-  const [quickViewPolicy, setQuickViewPolicy] = useState<any | null>(null);
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'COUNTRY_DIRECTOR' || user?.role === 'DEPARTMENT_HEAD';
@@ -324,18 +322,26 @@ export default function PoliciesTab() {
                     <p className="text-gray-200">{policy.brief}</p>
                   )}
                   {viewMode === 'complete' && (
-                    <div className="text-center py-8 space-y-4">
-                      <p className="text-gray-300 mb-4">
-                        📄 View and certify this policy document
-                      </p>
-                      {policy.fileUrl && (
-                        <button
-                          onClick={() => setQuickViewPolicy(policy)}
-                          className="block w-full px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-                        >
-                          View Full Policy
-                        </button>
-                      )}
+                    <div className="text-center py-12 space-y-6">
+                      <div className="flex flex-col items-center">
+                        <svg className="w-16 h-16 text-primary-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-gray-300 mb-6 text-lg">
+                          Review the complete policy document and certify your acknowledgment
+                        </p>
+                        {policy.fileUrl && (
+                          <button
+                            onClick={() => {
+                              setSelectedPolicy(policy);
+                              setViewMode('file');
+                            }}
+                            className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                          >
+                            View Full Policy
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                   {viewMode === 'assessment' && policy.assessment && (
@@ -687,15 +693,6 @@ export default function PoliciesTab() {
           </div>
         </div>
       )}
-
-      {/* Quick View Modal */}
-      <QuickViewModal
-        isOpen={!!quickViewPolicy}
-        onClose={() => setQuickViewPolicy(null)}
-        fileUrl={quickViewPolicy?.fileUrl || ''}
-        title={quickViewPolicy?.title || ''}
-        fileType="pdf"
-      />
     </div>
   );
 }
