@@ -64,22 +64,6 @@ export default function SuggestionsTab() {
     }
   );
 
-  const deleteMutation = useMutation(
-    async (id: string) => {
-      const res = await api.delete(`/suggestions/${id}`);
-      return res.data;
-    },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['suggestions'] });
-        alert('Suggestion deleted successfully');
-      },
-      onError: (error: any) => {
-        alert('Failed to delete suggestion: ' + error.response?.data?.message || error.message);
-      },
-    }
-  );
-
   const allSuggestions = data?.suggestions || [];
 
   // Extract unique statuses and categories
@@ -403,60 +387,6 @@ export default function SuggestionsTab() {
                   {selectedSuggestion === suggestion.id ? 'Hide Comments' : 'Comments'}
                 </button>
               </div>
-
-              {/* Admin Actions */}
-              {isAdmin && (
-                <div className="mt-4 pt-4 border-t border-gray-700">
-                  <h4 className="text-sm font-medium text-white mb-2">Admin Actions</h4>
-                  <div className="flex flex-wrap gap-2">
-                    <select
-                      value={suggestion.status}
-                      onChange={(e) =>
-                        updateStatusMutation.mutate({
-                          id: suggestion.id,
-                          status: e.target.value,
-                        })
-                      }
-                      className="px-3 py-1 bg-gray-700 border border-gray-600 text-white rounded text-sm"
-                    >
-                      <option value="submitted">Submitted</option>
-                      <option value="under_review">Under Review</option>
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
-                      <option value="implemented">Implemented</option>
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="Admin notes..."
-                      onBlur={(e) => {
-                        if (e.target.value) {
-                          updateStatusMutation.mutate({
-                            id: suggestion.id,
-                            adminNotes: e.target.value,
-                          });
-                        }
-                      }}
-                      className="flex-1 px-3 py-1 bg-gray-700 border border-gray-600 text-white rounded text-sm"
-                    />
-                    <button
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this suggestion?')) {
-                          deleteMutation.mutate(suggestion.id);
-                        }
-                      }}
-                      disabled={deleteMutation.isLoading}
-                      className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
-                    >
-                      {deleteMutation.isLoading ? 'Deleting...' : 'Delete'}
-                    </button>
-                  </div>
-                  {suggestion.adminNotes && (
-                    <p className="text-sm text-gray-400 mt-2">
-                      <strong>Admin Notes:</strong> {suggestion.adminNotes}
-                    </p>
-                  )}
-                </div>
-              )}
 
               {/* Comments Section */}
               {selectedSuggestion === suggestion.id && (

@@ -11,6 +11,7 @@ import UserManagement from '../components/admin/UserManagement';
 import WorkSystemsManagement from '../components/admin/WorkSystemsManagement';
 import NewsManagement from '../components/admin/NewsManagement';
 import SurveyManagement from '../components/admin/SurveyManagement';
+import SuggestionManagement from '../components/admin/SuggestionManagement';
 import EnhancedAnalytics from '../components/admin/EnhancedAnalytics';
 import AcademyAnalytics from '../components/academy/AcademyAnalytics';
 import TrackManagement from '../components/admin/TrackManagement';
@@ -49,6 +50,7 @@ export default function AdminPanel() {
     { id: 'library', label: 'Library' },
     { id: 'news', label: 'News' },
     { id: 'surveys', label: 'Surveys' },
+    { id: 'suggestions', label: 'Suggestions' },
     { id: 'templates', label: 'Templates' },
     { id: 'market', label: 'Market' },
     { id: 'tracks', label: 'Tracks' },
@@ -150,6 +152,7 @@ export default function AdminPanel() {
         {activeTab === 'library' && <LibraryManagement />}
         {activeTab === 'news' && <NewsManagement />}
         {activeTab === 'surveys' && <SurveyManagement />}
+        {activeTab === 'suggestions' && <SuggestionManagement />}
         {activeTab === 'templates' && <TemplateManagement />}
         {activeTab === 'market' && <MarketManagement />}
         {activeTab === 'tracks' && <TrackManagement />}
