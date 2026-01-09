@@ -414,26 +414,34 @@ export default function PoliciesTab() {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="prose prose-invert max-w-none text-gray-200">
                 {viewMode === 'brief' && <p>{selectedPolicy.brief}</p>}
-                {viewMode === 'complete' && selectedPolicy.fileUrl ? (
-                  <div className="py-4">
-                    <PDFViewer
-                      pdfUrl={selectedPolicy.fileUrl}
-                      title="Complete Policy Document"
-                    />
-                    <div className="mt-4 text-center">
-                      <a
-                        href={selectedPolicy.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-                      >
-                        Download PDF
-                      </a>
+                {viewMode === 'complete' && (
+                  selectedPolicy.fileUrl ? (
+                    <div className="py-4">
+                      <PDFViewer
+                        pdfUrl={selectedPolicy.fileUrl}
+                        title="Complete Policy Document"
+                      />
+                      <div className="mt-4 text-center">
+                        <a
+                          href={selectedPolicy.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                        >
+                          Download PDF
+                        </a>
+                      </div>
                     </div>
-                  </div>
-                ) : viewMode === 'complete' ? (
-                  <div dangerouslySetInnerHTML={{ __html: selectedPolicy.complete }} />
-                ) : null}
+                  ) : (
+                    <div className="flex items-center justify-center h-96 bg-gray-900 rounded-lg border border-gray-700">
+                      <div className="text-center">
+                        <p className="text-gray-400 mb-2">📄</p>
+                        <p className="text-gray-300">No policy document available</p>
+                        <p className="text-gray-500 text-sm mt-1">This policy does not have a PDF file attached</p>
+                      </div>
+                    </div>
+                  )
+                )}
                 {viewMode === 'assessment' && selectedPolicy.assessment && (
                   <div className="space-y-4">
                     {!assessmentSubmitted ? (
