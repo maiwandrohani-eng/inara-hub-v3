@@ -7,32 +7,30 @@ import { useAuthStore } from '../../store/authStore';
 import QuickPDFModal from './QuickPDFModal';
 import CertificateGenerator from './CertificateGenerator';
 
-// Helper function to convert R2 URLs to API proxy URLs
+// Helper function to convert R2 URLs to API proxy URLs - standardized to /api/uploads/
 const getProxiedResourceUrl = (fileUrl: string): string => {
   if (!fileUrl) return '';
   
-  // If it already starts with /api/, don't add it again
-  if (fileUrl.startsWith('/api/')) {
-    return fileUrl;
-  }
+  if (fileUrl.startsWith('/api/')) return fileUrl;
   
-  // If it's an R2 URL (full URL), extract the path and use API proxy
   if (fileUrl.startsWith('http')) {
     try {
       const parsedUrl = new URL(fileUrl);
-      const path = parsedUrl.pathname;
-      return `/api${path}`;
+      const parts = parsedUrl.pathname.split('/').filter(p => p);
+      if (parts.length > 1) {
+        const fileKey = parts.slice(-2).join('/');
+        return `/api/uploads/${fileKey}`;
+      }
+      return `/api/uploads/${parts[parts.length - 1]}`;
     } catch {
       return fileUrl;
     }
   }
   
-  // If it's already a path, ensure it goes through API proxy
   if (fileUrl.startsWith('/')) {
-    return `/api${fileUrl}`;
+    return `/api/uploads/${fileUrl.replace(/^\//, '')}`;
   }
   
-  // Otherwise assume it's a relative path and add /api/uploads/
   return `/api/uploads/${fileUrl}`;
 };
 

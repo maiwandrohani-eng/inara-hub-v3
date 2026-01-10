@@ -24,27 +24,31 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  // Convert R2 URLs to API proxy URLs to avoid Vercel routing issues
+  // Convert R2 URLs to API proxy URLs - standardized to /api/uploads/ for all files
   const getProxiedUrl = () => {
-    let url = resource.fileUrl.trim();
+    let url = resource.fileUrl?.trim();
+    if (!url) return '';
     
-    // If it's an R2 URL (full URL), extract the path and use API proxy
+    if (url.startsWith('/api/')) return url;
+    
     if (url.startsWith('http')) {
       try {
         const parsedUrl = new URL(url);
-        const path = parsedUrl.pathname;
-        return `/api${path}`;
+        const parts = parsedUrl.pathname.split('/').filter(p => p);
+        if (parts.length > 1) {
+          const fileKey = parts.slice(-2).join('/');
+          return `/api/uploads/${fileKey}`;
+        }
+        return `/api/uploads/${parts[parts.length - 1]}`;
       } catch {
         return url;
       }
     }
     
-    // If it's already a path, ensure it goes through API proxy
     if (url.startsWith('/')) {
-      return `/api${url}`;
+      return `/api/uploads/${url.replace(/^\//, '')}`;
     }
     
-    // Otherwise assume it's a relative path and add /api/uploads/
     return `/api/uploads/${url}`;
   };
 

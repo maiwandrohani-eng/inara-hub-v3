@@ -99,41 +99,30 @@ export default function QuickViewModal({
     }
   };
 
-  // Convert fileUrl to use API proxy for R2 URLs (same logic as PDFViewer)
+  // Convert fileUrl to use API proxy for R2 URLs - standardized to /api/uploads/
   const getProxiedFileUrl = () => {
     if (!fileUrl) return '';
     
-    // Always use API proxy for R2 URLs to avoid Vercel rewrite issues
+    if (fileUrl.startsWith('/api/')) return fileUrl;
+    
     if (fileUrl.startsWith('http')) {
       try {
-        const url = new URL(fileUrl);
-        // If it's the same origin or R2 public URL, use API proxy
-        if (url.hostname === window.location.hostname || url.hostname.includes('inara.ngo')) {
-          // Extract path (e.g., /templates/1767878369908-79350700.pdf)
-          // Remove leading slash to get the R2 key (e.g., templates/1767878369908-79350700.pdf)
-          const r2Key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
-          // Use API uploads proxy endpoint - it expects the R2 key directly
-          return `${window.location.origin}/api/uploads/${r2Key}`;
+        const parsedUrl = new URL(fileUrl);
+        const parts = parsedUrl.pathname.split('/').filter(p => p);
+        if (parts.length > 1) {
+          const fileKey = parts.slice(-2).join('/');
+          return `/api/uploads/${fileKey}`;
         }
-        // External URL - use directly
-        return fileUrl;
+        return `/api/uploads/${parts[parts.length - 1]}`;
       } catch {
-        // Invalid URL, use as-is
         return fileUrl;
       }
     }
     
-    // If URL already starts with /api/, don't add it again
-    if (fileUrl.startsWith('/api/')) {
-      return fileUrl;
+    if (fileUrl.startsWith('/')) {
+      return `/api/uploads/${fileUrl.replace(/^\//, '')}`;
     }
     
-    // If URL already starts with /uploads, proxy through API
-    if (fileUrl.startsWith('/uploads')) {
-      return `/api${fileUrl}`;
-    }
-    
-    // Otherwise, prepend /api/uploads
     return `/api/uploads/${fileUrl}`;
   };
 

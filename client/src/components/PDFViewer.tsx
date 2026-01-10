@@ -22,35 +22,30 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
     );
   }
 
-  // Convert R2 URLs to API proxy URLs to avoid Vercel routing issues
+  // Convert R2 URLs to API proxy URLs - standardized to /api/uploads/
   const getProxiedUrl = () => {
     let url = pdfUrl.trim();
     
-    // If it's an R2 URL (full URL), extract the path and use API proxy
+    if (url.startsWith('/api/')) return url;
+    
     if (url.startsWith('http')) {
       try {
         const parsedUrl = new URL(url);
-        // Extract path from R2 URL (e.g., /library/file.pdf)
-        const path = parsedUrl.pathname;
-        // Use API proxy to access R2 files
-        return `/api${path}`;
+        const parts = parsedUrl.pathname.split('/').filter(p => p);
+        if (parts.length > 1) {
+          const fileKey = parts.slice(-2).join('/');
+          return `/api/uploads/${fileKey}`;
+        }
+        return `/api/uploads/${parts[parts.length - 1]}`;
       } catch {
-        // Invalid URL, use as-is
         return url;
       }
     }
     
-    // If it already starts with /api/, don't add it again
-    if (url.startsWith('/api/')) {
-      return url;
-    }
-    
-    // If it's already a path, ensure it goes through API proxy
     if (url.startsWith('/')) {
-      return `/api${url}`;
+      return `/api/uploads/${url.replace(/^\//, '')}`;
     }
     
-    // Otherwise assume it's a relative path and add /api/uploads/
     return `/api/uploads/${url}`;
   };
 
