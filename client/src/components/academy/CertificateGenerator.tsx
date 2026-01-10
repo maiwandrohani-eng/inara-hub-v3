@@ -115,24 +115,24 @@ export default function CertificateGenerator({
             }
             
             .logo-section {
-              margin-bottom: 8px;
+              margin-bottom: 16px;
               width: 100%;
               display: flex;
               flex-direction: column;
               align-items: center;
-              gap: 6px;
+              gap: 8px;
             }
             
             .logo-image {
-              width: 80px;
-              height: 80px;
+              width: 140px;
+              height: 140px;
               object-fit: contain;
-              margin-bottom: 2px;
+              margin-bottom: 8px;
             }
             
             .logo-text {
-              font-size: 13px;
-              font-weight: 600;
+              font-size: 18px;
+              font-weight: 700;
               color: #000000;
               letter-spacing: 0.3px;
               line-height: 1.4;
@@ -143,7 +143,7 @@ export default function CertificateGenerator({
               font-weight: 700;
               color: #0066CC;
               margin-bottom: 8px;
-              margin-top: 4px;
+              margin-top: 6px;
               text-transform: uppercase;
               letter-spacing: 0.5px;
             }
@@ -151,7 +151,7 @@ export default function CertificateGenerator({
             .subtitle {
               font-size: 13px;
               color: #475569;
-              margin-bottom: 15px;
+              margin-bottom: 14px;
               font-style: italic;
             }
             
