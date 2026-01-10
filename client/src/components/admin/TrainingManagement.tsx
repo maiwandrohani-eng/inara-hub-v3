@@ -9,6 +9,7 @@ import BulkObjectiveImporter from './BulkObjectiveImporter';
 
 export default function TrainingManagement() {
   const [showForm, setShowForm] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [uploadMode, setUploadMode] = useState<'auto' | 'manual' | 'text'>('auto'); // 'auto' for file upload, 'text' for paste, 'manual' for legacy
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [textContent, setTextContent] = useState('');
@@ -311,7 +312,7 @@ export default function TrainingManagement() {
       return;
     }
 
-    // Prepare data for manual course creation
+    // Prepare data for manual course creation/update
     const submitData: any = {
       title: formData.title,
       description: formData.description || '',
@@ -346,13 +347,25 @@ export default function TrainingManagement() {
       finalExam: formData.finalExam,
     };
 
-    // Send to manual course creation endpoint
+    // Send to manual course creation or update endpoint
     try {
       setUploading(true);
-      const res = await api.post('/admin/academy/create-manual', submitData);
+      let res;
+      
+      if (editingCourseId) {
+        // Update existing course
+        res = await api.patch(`/admin/academy/courses/${editingCourseId}`, submitData);
+        alert('✅ Course updated successfully!');
+      } else {
+        // Create new course
+        res = await api.post('/admin/academy/create-manual', submitData);
+        alert('✅ Course created successfully!');
+      }
+      
       queryClient.invalidateQueries('admin-trainings');
       queryClient.invalidateQueries('academy-courses');
       setShowForm(false);
+      setEditingCourseId(null);
       setFormData({
         title: '',
         description: '',
@@ -1320,11 +1333,14 @@ export default function TrainingManagement() {
                   disabled={!formData.title.trim() || formData.lessons.length === 0}
                   className="flex-1 px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg transition-colors"
                 >
-                  ✅ Create Course
+                  {editingCourseId ? '✏️ Update Course' : '✅ Create Course'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingCourseId(null);
+                  }}
                   className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold transition-colors"
                 >
                   Cancel
@@ -1342,6 +1358,25 @@ export default function TrainingManagement() {
             <CourseResourceManager 
               key={training.id} 
               training={training}
+              onEdit={(course) => {
+                setFormData({
+                  ...formData,
+                  title: course.title || '',
+                  description: course.description || '',
+                  duration: course.duration || 30,
+                  objectives: course.objectives || [''],
+                  category: course.category || '',
+                  subcategory: course.subcategory || '',
+                  isMandatory: course.isMandatory || false,
+                  lessons: course.lessons || [{ title: '', content: '', order: 0, slides: [{ title: '', content: '', order: 0, slideType: 'content', hasMicroQuiz: false, microQuiz: { question: '', options: ['', '', '', ''], correctAnswer: 0, explanation: '' } }] }],
+                  finalExam: course.finalExam || { questions: [{ question: '', options: ['', '', '', ''], correctAnswer: 0, explanation: '' }], passingScore: 70 },
+                  courseType: course.courseType || 'PROFESSIONAL_COURSE',
+                  courseDuration: course.courseDuration || 'SHORT_TERM',
+                });
+                setEditingCourseId(course.id);
+                setUploadMode('manual');
+                setShowForm(true);
+              }}
               onDelete={(id) => deleteMutation.mutate(id)}
             />
           ))}
