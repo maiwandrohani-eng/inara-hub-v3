@@ -155,12 +155,10 @@ app.get('/api/uploads/*', async (req, res) => {
   }
 });
 
-// GENERIC FILE PROXY - Handles all /api/* file requests (academy/resources, library, policies, etc.)
+// GENERIC FILE PROXY - Handles all /api/uploads/* file requests to R2
 // This must come BEFORE /api/health and other routes
-app.get('/api/academy/resources/*', genericFileProxy);
-app.get('/api/library/*', genericFileProxy);
-app.get('/api/policies/*', genericFileProxy);
-app.get('/api/policy/*', genericFileProxy);
+// Only proxy actual file uploads, not data endpoints
+app.get('/api/uploads/*', genericFileProxy);
 
 async function genericFileProxy(req: express.Request, res: express.Response) {
   try {
