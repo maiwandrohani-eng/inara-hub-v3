@@ -387,13 +387,8 @@ export default function TrainingTab() {
                   {/* Action Button */}
                   <button
                     onClick={() => {
-                      if (status === 'NOT_STARTED') {
-                        setSelectedCourseForModal(course);
-                        setShowCourseStartModal(true);
-                      } else {
-                        setSelectedCourse(course.id);
-                        setCourseStartMode('course');
-                      }
+                      setSelectedCourseForModal(course);
+                      setShowCourseStartModal(true);
                     }}
                     disabled={startMutation.isLoading}
                     className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
