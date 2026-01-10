@@ -214,33 +214,15 @@ router.post('/courses/:id/complete', authenticate, async (req: AuthRequest, res)
       },
     });
 
-    // Generate certificate
+    // Generate certificate number and dates
     const certificateNumber = generateCertificateNumber(id, userId);
     const completionDate = new Date();
     const expiryDate = course.validityPeriod
       ? new Date(completionDate.getTime() + course.validityPeriod * 24 * 60 * 60 * 1000)
       : undefined;
 
-    // Generate certificate as buffer
-    const certificateBuffer = await generateAcademyCertificate({
-      fullName: `${user.firstName} ${user.lastName}`,
-      courseTitle: course.title,
-      completionDate,
-      expiryDate,
-      score,
-      passingScore: course.passingScore,
-      passed: true,
-      certificateNumber,
-      signedBy: 'INARA Academy Director',
-    });
-
-    // Upload certificate to R2
-    const { uploadToR2 } = await import('../utils/r2Storage.js');
-    const certificateKey = `certificates/${certificateNumber}.pdf`;
-    const uploadResult = await uploadToR2(certificateBuffer, certificateKey, 'application/pdf');
-    const certificateUrl = uploadResult.url;
-
     // Create or update certificate record (upsert in case of retake)
+    // Store certificate data only - HTML rendering happens on frontend
     const certificate = await prisma.certificate.upsert({
       where: {
         userId_trainingId: {
@@ -259,7 +241,7 @@ router.post('/courses/:id/complete', authenticate, async (req: AuthRequest, res)
         score,
         passingScore: course.passingScore,
         passed: true,
-        certificateUrl,
+        certificateUrl: '', // No PDF file - rendered as HTML on frontend
         signedBy: 'INARA Academy Director',
         signatureDate: new Date(),
       },
@@ -272,17 +254,17 @@ router.post('/courses/:id/complete', authenticate, async (req: AuthRequest, res)
         score,
         passingScore: course.passingScore,
         passed: true,
-        certificateUrl,
+        certificateUrl: '', // No PDF file - rendered as HTML on frontend
         signedBy: 'INARA Academy Director',
         signatureDate: new Date(),
         isRecertified: true,
       },
     });
 
-    // Update completion with certificate URL
+    // Update completion (no certificate URL needed - displayed on frontend)
     await prisma.trainingCompletion.update({
       where: { id: completion.id },
-      data: { certificateUrl },
+      data: { certificateUrl: certificate.certificateNumber },
     });
 
     // Log activity
