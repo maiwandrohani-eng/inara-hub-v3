@@ -36,7 +36,9 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
         const parsedUrl = new URL(url);
         const parts = parsedUrl.pathname.split('/').filter(p => p);
         if (parts.length > 1) {
-          const fileKey = parts.slice(-2).join('/');
+          let fileKey = parts.slice(-2).join('/');
+          // Map 'resources' to 'academy' for course resources
+          fileKey = fileKey.replace(/^resources\//, 'academy/');
           return `/api/uploads/${fileKey}`;
         }
         return `/api/uploads/${parts[parts.length - 1]}`;
@@ -46,7 +48,10 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
     }
     
     if (url.startsWith('/')) {
-      return `/api/uploads/${url.replace(/^\//, '')}`;
+      let cleanPath = url.replace(/^\//, '');
+      // Map 'resources' to 'academy' for course resources
+      cleanPath = cleanPath.replace(/^resources\//, 'academy/');
+      return `/api/uploads/${cleanPath}`;
     }
     
     return `/api/uploads/${url}`;
