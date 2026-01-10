@@ -123,19 +123,18 @@ export default function QuickViewModal({
       }
     }
     
-    // If URL already starts with /uploads, proxy through API
-    if (fileUrl.startsWith('/uploads')) {
-      const apiBase = (import.meta as any).env?.DEV 
-        ? 'http://localhost:5000' 
-        : ((import.meta as any).env?.VITE_API_URL || window.location.origin);
-      return `${apiBase}/api${fileUrl}`;
+    // If URL already starts with /api/, don't add it again
+    if (fileUrl.startsWith('/api/')) {
+      return fileUrl;
     }
     
-    // Otherwise, prepend /uploads and proxy through API
-    const apiBase = (import.meta as any).env?.DEV 
-      ? 'http://localhost:5000' 
-      : ((import.meta as any).env?.VITE_API_URL || window.location.origin);
-    return `${apiBase}/api/uploads/${fileUrl}`;
+    // If URL already starts with /uploads, proxy through API
+    if (fileUrl.startsWith('/uploads')) {
+      return `/api${fileUrl}`;
+    }
+    
+    // Otherwise, prepend /api/uploads
+    return `/api/uploads/${fileUrl}`;
   };
 
   const proxiedFileUrl = getProxiedFileUrl();

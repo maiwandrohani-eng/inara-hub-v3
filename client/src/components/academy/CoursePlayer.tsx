@@ -11,6 +11,11 @@ import CertificateGenerator from './CertificateGenerator';
 const getProxiedResourceUrl = (fileUrl: string): string => {
   if (!fileUrl) return '';
   
+  // If it already starts with /api/, don't add it again
+  if (fileUrl.startsWith('/api/')) {
+    return fileUrl;
+  }
+  
   // If it's an R2 URL (full URL), extract the path and use API proxy
   if (fileUrl.startsWith('http')) {
     try {

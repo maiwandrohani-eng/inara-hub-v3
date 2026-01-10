@@ -40,6 +40,11 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
       }
     }
     
+    // If it already starts with /api/, don't add it again
+    if (url.startsWith('/api/')) {
+      return url;
+    }
+    
     // If it's already a path, ensure it goes through API proxy
     if (url.startsWith('/')) {
       return `/api${url}`;
