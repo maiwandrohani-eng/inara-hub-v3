@@ -7,6 +7,30 @@ import { useAuthStore } from '../../store/authStore';
 import QuickPDFModal from './QuickPDFModal';
 import CertificateGenerator from './CertificateGenerator';
 
+// Helper function to convert R2 URLs to API proxy URLs
+const getProxiedResourceUrl = (fileUrl: string): string => {
+  if (!fileUrl) return '';
+  
+  // If it's an R2 URL (full URL), extract the path and use API proxy
+  if (fileUrl.startsWith('http')) {
+    try {
+      const parsedUrl = new URL(fileUrl);
+      const path = parsedUrl.pathname;
+      return `/api${path}`;
+    } catch {
+      return fileUrl;
+    }
+  }
+  
+  // If it's already a path, ensure it goes through API proxy
+  if (fileUrl.startsWith('/')) {
+    return `/api${fileUrl}`;
+  }
+  
+  // Otherwise assume it's a relative path and add /api/uploads/
+  return `/api/uploads/${fileUrl}`;
+};
+
 interface Slide {
   id: string;
   title: string;
@@ -789,7 +813,7 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
                   </div>
                 </div>
                 <a
-                  href={resource.fileUrl}
+                  href={getProxiedResourceUrl(resource.fileUrl)}
                   download={resource.fileName}
                   target="_blank"
                   rel="noopener noreferrer"

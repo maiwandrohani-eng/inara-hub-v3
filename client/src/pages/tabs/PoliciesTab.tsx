@@ -5,6 +5,30 @@ import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import PDFViewer from '../../components/PDFViewer';
 
+// Helper function to convert R2 URLs to API proxy URLs
+const getProxiedPolicyUrl = (fileUrl: string): string => {
+  if (!fileUrl) return '';
+  
+  // If it's an R2 URL (full URL), extract the path and use API proxy
+  if (fileUrl.startsWith('http')) {
+    try {
+      const parsedUrl = new URL(fileUrl);
+      const path = parsedUrl.pathname;
+      return `/api${path}`;
+    } catch {
+      return fileUrl;
+    }
+  }
+  
+  // If it's already a path, ensure it goes through API proxy
+  if (fileUrl.startsWith('/')) {
+    return `/api${fileUrl}`;
+  }
+  
+  // Otherwise assume it's a relative path and add /api/uploads/
+  return `/api/uploads/${fileUrl}`;
+};
+
 export default function PoliciesTab() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<'all' | 'mandatory' | 'acknowledged' | 'not-acknowledged'>('all');
@@ -355,7 +379,7 @@ export default function PoliciesTab() {
                         📄 Policy document is available for download
                       </p>
                       <a
-                        href={policy.fileUrl}
+                        href={getProxiedPolicyUrl(policy.fileUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
@@ -548,7 +572,7 @@ export default function PoliciesTab() {
                     />
                     <div className="mt-4 text-center">
                       <a
-                        href={selectedPolicy.fileUrl}
+                        href={getProxiedPolicyUrl(selectedPolicy.fileUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
