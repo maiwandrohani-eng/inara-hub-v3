@@ -22,11 +22,7 @@
   "regions": ["fra1"],
   "rewrites": [
     {
-      "source": "/api/uploads/(.*)",
-      "destination": "/api/uploads/[...path]"
-    },
-    {
-      "source": "/api/(.*)",
+      "source": "/api/(?!uploads).*",
       "destination": "/api/index"
     },
     {
