@@ -908,9 +908,24 @@ export default function TrainingManagement() {
                     <BulkLessonImporter
                       onImport={(importedLessons) => {
                         // Replace default lessons with imported ones
+                        // Add missing fields to match form structure
                         const newLessons = importedLessons.map((lesson, idx) => ({
-                          ...lesson,
+                          title: lesson.title,
+                          content: lesson.content,
                           order: idx,
+                          slides: lesson.slides.map((slide: any, slideIdx: number) => ({
+                            title: slide.title,
+                            content: slide.content,
+                            order: slideIdx,
+                            slideType: 'content',
+                            hasMicroQuiz: false,
+                            microQuiz: {
+                              question: '',
+                              options: ['', '', '', ''],
+                              correctAnswer: 0,
+                              explanation: '',
+                            },
+                          })),
                         }));
                         setFormData({ ...formData, lessons: newLessons });
                         setShowBulkLessonImporter(false);
