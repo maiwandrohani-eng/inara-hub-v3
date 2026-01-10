@@ -240,9 +240,15 @@ router.post('/courses/:id/complete', authenticate, async (req: AuthRequest, res)
     const uploadResult = await uploadToR2(certificateBuffer, certificateKey, 'application/pdf');
     const certificateUrl = uploadResult.url;
 
-    // Create certificate record
-    const certificate = await prisma.certificate.create({
-      data: {
+    // Create or update certificate record (upsert in case of retake)
+    const certificate = await prisma.certificate.upsert({
+      where: {
+        userId_trainingId: {
+          userId,
+          trainingId: id,
+        },
+      },
+      create: {
         trainingId: id,
         userId,
         certificateNumber,
@@ -256,6 +262,20 @@ router.post('/courses/:id/complete', authenticate, async (req: AuthRequest, res)
         certificateUrl,
         signedBy: 'INARA Academy Director',
         signatureDate: new Date(),
+      },
+      update: {
+        certificateNumber,
+        fullName: `${user.firstName} ${user.lastName}`,
+        courseTitle: course.title,
+        completionDate,
+        expiryDate,
+        score,
+        passingScore: course.passingScore,
+        passed: true,
+        certificateUrl,
+        signedBy: 'INARA Academy Director',
+        signatureDate: new Date(),
+        isRecertified: true,
       },
     });
 
