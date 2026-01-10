@@ -255,7 +255,8 @@ export default function CertificateGenerator({
           margin: '0 auto',
           padding: '60px',
           background: 'linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%)',
-          border: '3px solid #1e40af',
+          border: '4px solid',
+          borderImage: 'linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%) 1',
           borderRadius: '10px',
           textAlign: 'center',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
@@ -265,12 +266,28 @@ export default function CertificateGenerator({
       >
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <img
+            src="/inara-logo.png"
+            alt="INARA Logo"
+            style={{
+              maxWidth: '120px',
+              height: 'auto',
+              marginBottom: '15px',
+            }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
           <div
             style={{
-              fontSize: '36px',
+              fontSize: '28px',
               fontWeight: 'bold',
-              color: '#1e40af',
-              letterSpacing: '2px',
+              background: 'linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%, #E91E8C 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              letterSpacing: '3px',
+              marginTop: '10px',
             }}
           >
             ⟨ INARA ⟩
@@ -282,7 +299,7 @@ export default function CertificateGenerator({
           style={{
             fontSize: '48px',
             fontWeight: 'bold',
-            color: '#1e40af',
+            color: '#0066CC',
             marginBottom: '20px',
             textTransform: 'uppercase',
             letterSpacing: '2px',
@@ -308,9 +325,13 @@ export default function CertificateGenerator({
           style={{
             fontSize: '36px',
             fontWeight: 'bold',
-            color: '#1e40af',
+            background: 'linear-gradient(135deg, #0066CC 0%, #E91E8C 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
             marginBottom: '20px',
-            borderBottom: '2px solid #7c3aed',
+            borderBottom: '3px solid',
+            borderImage: 'linear-gradient(to right, #FFC627, #E91E8C, #00C9B7, #0066CC) 1',
             paddingBottom: '10px',
           }}
         >
@@ -333,7 +354,10 @@ export default function CertificateGenerator({
           style={{
             fontSize: '24px',
             fontWeight: 'bold',
-            color: '#7c3aed',
+            background: 'linear-gradient(135deg, #E91E8C 0%, #FFC627 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
             marginBottom: '25px',
             fontStyle: 'italic',
           }}
@@ -366,19 +390,20 @@ export default function CertificateGenerator({
             fontSize: '12px',
             color: '#475569',
             marginBottom: '20px',
-            borderTop: '1px solid #e2e8f0',
-            borderBottom: '1px solid #e2e8f0',
+            borderTop: '2px solid',
+            borderBottom: '2px solid',
+            borderImage: 'linear-gradient(to right, #FFC627, #E91E8C, #00C9B7, #0066CC) 1',
             padding: '20px 0',
           }}
         >
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 'bold', color: '#1e40af', marginBottom: '5px' }}>
+            <div style={{ fontWeight: 'bold', background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: '5px' }}>
               Date of Completion
             </div>
             <div style={{ color: '#475569' }}>{formattedDate}</div>
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 'bold', color: '#1e40af', marginBottom: '5px' }}>
+            <div style={{ fontWeight: 'bold', background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: '5px' }}>
               Certificate ID
             </div>
             <div style={{ color: '#475569' }}>{certificateId}</div>
@@ -386,7 +411,7 @@ export default function CertificateGenerator({
           {score !== undefined && passingScore !== undefined && (
             <>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: 'bold', color: '#1e40af', marginBottom: '5px' }}>
+                <div style={{ fontWeight: 'bold', background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: '5px' }}>
                   Assessment Score
                 </div>
                 <div style={{ color: '#16a34a', fontWeight: 'bold' }}>
@@ -394,7 +419,7 @@ export default function CertificateGenerator({
                 </div>
               </div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: 'bold', color: '#1e40af', marginBottom: '5px' }}>
+                <div style={{ fontWeight: 'bold', background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: '5px' }}>
                   Status
                 </div>
                 <div style={{ color: '#16a34a', fontWeight: 'bold' }}>✓ PASSED</div>
@@ -421,7 +446,8 @@ export default function CertificateGenerator({
             display: 'inline-flex',
             width: '80px',
             height: '80px',
-            border: '2px solid #7c3aed',
+            border: '3px solid',
+            borderImage: 'linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%) 1',
             borderRadius: '50%',
             alignItems: 'center',
             justifyContent: 'center',
