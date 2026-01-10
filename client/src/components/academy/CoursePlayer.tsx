@@ -97,6 +97,9 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
   const loadCourse = async () => {
     try {
       const res = await api.get(`/academy/courses/${courseId}`);
+      console.log('📚 Course loaded:', res.data.course);
+      console.log('📚 Lessons count:', res.data.course?.lessons?.length);
+      console.log('📚 Full lessons data:', res.data.course?.lessons);
       setCourse(res.data.course);
     } catch (error) {
       console.error('Failed to load course:', error);
@@ -232,59 +235,97 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
 
   // Lesson Selection View - show list of lessons with play buttons
   if (!showWelcome && viewMode === 'lessons' && !showFinalExam) {
+    const lessonCount = course?.lessons?.length || 0;
+    console.log('Lesson view - Total lessons:', lessonCount, 'Lessons:', course?.lessons);
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
           <div className="flex justify-between items-center mb-8">
-            <div>
+            <div className="flex-1">
               <h1 className="text-4xl font-bold text-white">{course?.title}</h1>
-              <p className="text-gray-400 mt-2">{course?.description}</p>
+              <p className="text-gray-400 mt-2 text-lg">{course?.description}</p>
             </div>
             <button
               onClick={onExit}
-              className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+              className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 whitespace-nowrap"
             >
               ← Back
             </button>
           </div>
 
-          <div className="grid gap-4">
-            {course?.lessons?.map((lesson, idx) => (
-              <div key={lesson.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-primary-500/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white mb-2">
-                      Lesson {idx + 1}: {lesson.title}
-                    </h3>
-                    {lesson.content && (
-                      <p className="text-gray-400 text-sm mb-3">{lesson.content}</p>
-                    )}
-                    <p className="text-sm text-gray-500">
-                      📄 {lesson.slides?.length || 0} slides
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setCurrentLessonIndex(idx);
-                      setCurrentSlideIndex(0);
-                      setViewMode('slides');
-                    }}
-                    className="ml-4 px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-semibold whitespace-nowrap"
-                  >
-                    ▶️ Play
-                  </button>
-                </div>
-              </div>
-            ))}
+          {/* Lessons Count */}
+          <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-blue-300">
+              📚 <strong>{lessonCount} lesson{lessonCount !== 1 ? 's' : ''}</strong> in this course
+            </p>
           </div>
 
+          {/* Lessons Table */}
+          {lessonCount > 0 ? (
+            <div className="space-y-3">
+              {course?.lessons?.map((lesson, idx) => (
+                <div
+                  key={lesson.id || idx}
+                  className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-primary-500/50 transition-all hover:shadow-lg"
+                >
+                  <div className="flex items-center justify-between gap-6">
+                    {/* Lesson Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-sm font-bold bg-primary-500/20 text-primary-300 px-3 py-1 rounded-full">
+                          Lesson {idx + 1}
+                        </span>
+                        <h3 className="text-xl font-bold text-white">{lesson.title}</h3>
+                      </div>
+
+                      {lesson.content && (
+                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">{lesson.content}</p>
+                      )}
+
+                      {lesson.slides && lesson.slides.length > 0 && (
+                        <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                          <div>📄 {lesson.slides.length} slide{lesson.slides.length !== 1 ? 's' : ''}</div>
+                          {lesson.slides.map((slide, sIdx) => (
+                            <div key={sIdx} className="text-gray-600">
+                              • {slide.title}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Play Button */}
+                    <button
+                      onClick={() => {
+                        setCurrentLessonIndex(idx);
+                        setCurrentSlideIndex(0);
+                        setViewMode('slides');
+                      }}
+                      className="px-8 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-semibold whitespace-nowrap flex items-center gap-2 transition-colors"
+                    >
+                      <span>▶️</span>
+                      <span>Play</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-gray-800 rounded-lg p-12 text-center border border-gray-700">
+              <p className="text-gray-400 text-lg">❌ No lessons available in this course</p>
+            </div>
+          )}
+
+          {/* Final Assessment */}
           {course?.finalExam?.questions?.length > 0 && (
             <div className="mt-8 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-yellow-300 mb-2">Final Assessment</h3>
+                  <h3 className="text-lg font-bold text-yellow-300 mb-2">📝 Final Assessment</h3>
                   <p className="text-sm text-gray-400">
-                    {course.finalExam.questions.length} questions • {course.finalExam.passingScore}% required to pass
+                    {course.finalExam.questions.length} question{course.finalExam.questions.length !== 1 ? 's' : ''} • {course.finalExam.passingScore}% required to pass
                   </p>
                 </div>
                 <button
