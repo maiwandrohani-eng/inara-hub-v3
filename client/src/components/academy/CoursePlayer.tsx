@@ -686,7 +686,7 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
               <div
                 className="bg-primary-500 h-2 rounded-full transition-all"
                 style={{
-                  width: `${((currentLessonIndex + (currentSlideIndex / (course?.lessons[currentLessonIndex]?.slides?.length || 1))) / (course?.lessons?.length || 1)) * 100)}%`
+                  width: `${Math.round(((currentLessonIndex + currentSlideIndex / Math.max(course?.lessons[currentLessonIndex]?.slides?.length || 1, 1)) / (course?.lessons?.length || 1)) * 100)}%`
                 }}
               />
             </div>
