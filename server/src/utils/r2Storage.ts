@@ -199,6 +199,7 @@ export function generateFileKey(type: string, filename: string): string {
   const random = Math.round(Math.random() * 1E9);
   const ext = filename.split('.').pop() || '';
   const sanitized = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-  return `${type}/${timestamp}-${random}.${ext}`;
+  // All files stored under inara-data/ directory in R2
+  return `inara-data/${type}/${timestamp}-${random}.${ext}`;
 }
 

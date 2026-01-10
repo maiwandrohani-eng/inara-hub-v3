@@ -585,6 +585,11 @@ router.get('/courses/:id/resources/:resourceId/download', authenticate, async (r
     // Extract key from resource URL
     let key = resource.fileUrl.replace(/^\/uploads\//, '').replace(/^https?:\/\/[^\/]+\//, '');
     
+    // Ensure inara-data prefix for R2 (files stored at inara-data/{type}/... in R2)
+    if (!key.startsWith('inara-data/')) {
+      key = `inara-data/${key}`;
+    }
+    
     if (R2_PUBLIC_URL) {
       // Redirect to public URL
       return res.redirect(302, `${R2_PUBLIC_URL}/${key}`);

@@ -199,9 +199,15 @@ async function genericFileProxy(req: express.Request, res: express.Response) {
     // Import getPresignedUrl
     const { getPresignedUrl } = await import('./utils/r2Storage.js');
     
-    console.log('[Generic File Proxy] Generating presigned URL for:', filePath);
+    // Ensure the key has inara-data prefix (files stored at inara-data/{type}/... in R2)
+    let presignKey = filePath;
+    if (!presignKey.startsWith('inara-data/')) {
+      presignKey = `inara-data/${presignKey}`;
+    }
+    
+    console.log('[Generic File Proxy] Generating presigned URL for:', presignKey);
     // Generate presigned URL and redirect
-    const presignedUrl = await getPresignedUrl(filePath, 3600); // 1 hour expiry
+    const presignedUrl = await getPresignedUrl(presignKey, 3600); // 1 hour expiry
     console.log('[Generic File Proxy] Presigned URL generated, redirecting...');
     
     // Add CORS headers before redirecting to R2
