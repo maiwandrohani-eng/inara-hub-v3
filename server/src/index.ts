@@ -104,6 +104,57 @@ app.options('*', (req, res) => {
   res.sendStatus(200);
 });
 
+// IMPORTANT: File upload routes MUST come BEFORE the main route handlers
+// so they don't get caught by the route mounting below
+// Uploads route - proxy to R2 (handles /api/uploads/*)
+app.get('/api/uploads/*', async (req, res) => {
+  try {
+    // Extract the path after /api/uploads/
+    let filePath = req.path;
+    if (filePath.startsWith('/api/uploads/')) {
+      filePath = filePath.replace('/api/uploads/', '');
+    }
+    
+    if (!filePath || filePath === '/api/uploads' || filePath === '/api/uploads/') {
+      return res.status(400).json({ error: 'File path required' });
+    }
+
+    console.log('[Uploads Route] Request received:', {
+      originalPath: req.path,
+      extractedPath: filePath,
+      method: req.method,
+    });
+
+    // Get R2 configuration
+    const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+    const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+    const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+    const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+
+    if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
+      console.error('[Uploads Route] R2 configuration missing');
+      return res.status(500).json({ error: 'R2 configuration missing' });
+    }
+
+    // Import getPresignedUrl
+    const { getPresignedUrl } = await import('./utils/r2Storage.js');
+    
+    console.log('[Uploads Route] Generating presigned URL for:', filePath);
+    // Generate presigned URL and redirect
+    const presignedUrl = await getPresignedUrl(filePath, 3600); // 1 hour expiry
+    console.log('[Uploads Route] Presigned URL generated, redirecting...');
+    
+    return res.redirect(302, presignedUrl);
+  } catch (error: any) {
+    console.error('[Uploads Route] Error:', {
+      message: error.message,
+      stack: error.stack,
+      path: req.path,
+    });
+    return res.status(500).json({ error: error.message || 'Failed to get file' });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '0b06be8' });
@@ -281,109 +332,6 @@ app.get('/api/auth/diagnostic', async (req, res) => {
       status: 'error',
       error: error.message,
     });
-  }
-});
-
-// Uploads route - proxy to R2 (handles /api/uploads/*)
-app.get('/api/uploads/*', async (req, res) => {
-  try {
-    // Extract the path after /api/uploads/
-    // req.path includes /api/uploads/, so we need to remove that prefix
-    let filePath = req.path;
-    if (filePath.startsWith('/api/uploads/')) {
-      filePath = filePath.replace('/api/uploads/', '');
-    } else if (filePath.startsWith('/uploads/')) {
-      filePath = filePath.replace('/uploads/', '');
-    }
-    
-    if (!filePath || filePath === '/api/uploads' || filePath === '/api/uploads/') {
-      return res.status(400).json({ error: 'File path required' });
-    }
-
-    console.log('[Uploads Route] Request received:', {
-      originalPath: req.path,
-      extractedPath: filePath,
-      method: req.method,
-    });
-
-    // Get R2 configuration
-    const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-    const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
-    const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
-    const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
-
-    if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
-      console.error('[Uploads Route] R2 configuration missing');
-      return res.status(500).json({ error: 'R2 configuration missing' });
-    }
-
-    // Import getPresignedUrl
-    const { getPresignedUrl } = await import('./utils/r2Storage.js');
-    
-    console.log('[Uploads Route] Generating presigned URL for:', filePath);
-    // Generate presigned URL and redirect
-    const presignedUrl = await getPresignedUrl(filePath, 3600); // 1 hour expiry
-    console.log('[Uploads Route] Presigned URL generated, redirecting...');
-    
-    return res.redirect(302, presignedUrl);
-  } catch (error: any) {
-    console.error('[Uploads Route] Error:', {
-      message: error.message,
-      stack: error.stack,
-      path: req.path,
-    });
-    return res.status(500).json({ error: error.message || 'Failed to get file' });
-  }
-});
-
-// Academy resources route - proxy to R2 (handles /academy/resources/*)
-app.get('/academy/resources/*', async (req, res) => {
-  try {
-    // Extract the path after /academy/resources/
-    let filePath = req.path;
-    if (filePath.startsWith('/academy/resources/')) {
-      filePath = filePath.replace('/academy/resources/', '');
-    }
-    
-    if (!filePath) {
-      return res.status(400).json({ error: 'File path required' });
-    }
-
-    console.log('[Academy Resources Route] Request received:', {
-      originalPath: req.path,
-      extractedPath: filePath,
-      method: req.method,
-    });
-
-    // Get R2 configuration
-    const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-    const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
-    const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
-    const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
-
-    if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
-      console.error('[Academy Resources Route] R2 configuration missing');
-      return res.status(500).json({ error: 'R2 configuration missing' });
-    }
-
-    // Import getPresignedUrl
-    const { getPresignedUrl } = await import('./utils/r2Storage.js');
-    
-    // Prepend academy/resources/ to the file path for R2
-    const r2Path = `academy/resources/${filePath}`;
-    console.log('[Academy Resources Route] Generating presigned URL for:', r2Path);
-    
-    const presignedUrl = await getPresignedUrl(r2Path, 3600); // 1 hour expiry
-    console.log('[Academy Resources Route] Presigned URL generated, redirecting...');
-    
-    return res.redirect(302, presignedUrl);
-  } catch (error: any) {
-    console.error('[Academy Resources Route] Error:', {
-      message: error.message,
-      stack: error.stack,
-      path: req.path,
-    });
-    return res.status(500).json({ error: error.message || 'Failed to get file' });
   }
 });
 
