@@ -67,11 +67,12 @@ interface Course {
 
 interface CoursePlayerProps {
   courseId: string;
+  courseStartMode?: 'course' | 'assessment' | null;
   onComplete: () => void;
   onExit: () => void;
 }
 
-export default function CoursePlayer({ courseId, onComplete, onExit }: CoursePlayerProps) {
+export default function CoursePlayer({ courseId, courseStartMode = 'course', onComplete, onExit }: CoursePlayerProps) {
   const [course, setCourse] = useState<Course | null>(null);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -223,6 +224,70 @@ export default function CoursePlayer({ courseId, onComplete, onExit }: CoursePla
           <button onClick={onExit} className="mt-4 px-4 py-2 bg-primary-500 text-white rounded">
             Go Back
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If assessment-only mode, skip welcome and go directly to final exam
+  if (courseStartMode === 'assessment' && showWelcome) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Final Exam Section - directly show assessment */}
+          <div className="bg-gray-800 rounded-lg shadow-2xl p-8 border border-gray-700">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">
+                📝 {course.title} - Assessment
+              </h2>
+              <button
+                onClick={onExit}
+                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+              >
+                Exit
+              </button>
+            </div>
+
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
+              <p className="text-yellow-300 text-sm">
+                💡 You are taking the assessment only. Answer all questions to complete the evaluation.
+              </p>
+            </div>
+
+            {course.finalExam?.questions?.length > 0 ? (
+              <div className="space-y-6">
+                {course.finalExam.questions.map((question, qIdx) => (
+                  <div key={qIdx} className="bg-gray-700 rounded-lg p-6">
+                    <h4 className="text-white font-semibold mb-4">
+                      Question {qIdx + 1} of {course.finalExam.questions.length}
+                    </h4>
+                    <p className="text-gray-200 mb-4">{question.question}</p>
+                    <div className="space-y-2">
+                      {question.options.map((option, oIdx) => (
+                        <label key={oIdx} className="flex items-center p-3 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                          <input
+                            type="radio"
+                            name={`exam-q${qIdx}`}
+                            value={oIdx}
+                            className="mr-3"
+                          />
+                          <span className="text-gray-200">{option}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setShowWelcome(false)}
+                  className="w-full px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-semibold"
+                >
+                  Submit Assessment
+                </button>
+              </div>
+            ) : (
+              <p className="text-gray-400 text-center py-8">No assessment available for this course.</p>
+            )}
+          </div>
         </div>
       </div>
     );

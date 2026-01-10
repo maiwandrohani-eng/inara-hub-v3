@@ -4,12 +4,16 @@ import { useState, useMemo } from 'react';
 import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import CoursePlayer from '../../components/academy/CoursePlayer';
+import CourseStartModal from '../../components/academy/CourseStartModal';
 
 export default function TrainingTab() {
   const [filter, setFilter] = useState<'all' | 'mandatory' | 'completed' | 'in-progress' | 'tracks'>('all');
   const [courseTypeFilter, setCourseTypeFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [courseStartMode, setCourseStartMode] = useState<'course' | 'assessment' | null>(null);
+  const [showCourseStartModal, setShowCourseStartModal] = useState(false);
+  const [selectedCourseForModal, setSelectedCourseForModal] = useState<any>(null);
   const [showCertificates, setShowCertificates] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -34,6 +38,7 @@ export default function TrainingTab() {
     {
       onSuccess: (data, courseId) => {
         setSelectedCourse(courseId);
+        setShowCourseStartModal(false);
         queryClient.invalidateQueries('academy-courses');
       },
     }
@@ -103,13 +108,18 @@ export default function TrainingTab() {
     return (
       <CoursePlayer
         courseId={selectedCourse}
+        courseStartMode={courseStartMode}
         onComplete={() => {
           setSelectedCourse(null);
+          setCourseStartMode(null);
           queryClient.invalidateQueries('academy-courses');
           queryClient.invalidateQueries('my-certificates');
           alert('🎉 Course completed! Your certificate has been generated.');
         }}
-        onExit={() => setSelectedCourse(null)}
+        onExit={() => {
+          setSelectedCourse(null);
+          setCourseStartMode(null);
+        }}
       />
     );
   }
@@ -331,7 +341,7 @@ export default function TrainingTab() {
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <div className="flex flex-wrap gap-2 mb-3">
                       <span className={`text-xs px-2 py-1 rounded ${getCourseTypeColor(course.courseType)}`}>
                         {getCourseTypeLabel(course.courseType)}
                       </span>
@@ -346,9 +356,6 @@ export default function TrainingTab() {
                         </span>
                       )}
                     </div>
-                    {course.description && (
-                      <p className="text-sm text-gray-400 line-clamp-2">{course.description}</p>
-                    )}
                   </div>
 
                   {/* Progress Bar */}
@@ -381,9 +388,11 @@ export default function TrainingTab() {
                   <button
                     onClick={() => {
                       if (status === 'NOT_STARTED') {
-                        startMutation.mutate(course.id);
+                        setSelectedCourseForModal(course);
+                        setShowCourseStartModal(true);
                       } else {
                         setSelectedCourse(course.id);
+                        setCourseStartMode('course');
                       }
                     }}
                     disabled={startMutation.isLoading}
@@ -421,6 +430,27 @@ export default function TrainingTab() {
           </div>
         )}
       </div>
+
+      {/* Course Start Modal */}
+      {showCourseStartModal && selectedCourseForModal && (
+        <CourseStartModal
+          course={selectedCourseForModal}
+          onTakeCourse={() => {
+            startMutation.mutate(selectedCourseForModal.id);
+            setCourseStartMode('course');
+          }}
+          onTakeAssessment={() => {
+            setSelectedCourse(selectedCourseForModal.id);
+            setCourseStartMode('assessment');
+            setShowCourseStartModal(false);
+          }}
+          onClose={() => {
+            setShowCourseStartModal(false);
+            setSelectedCourseForModal(null);
+          }}
+          isLoading={startMutation.isLoading}
+        />
+      )}
     </div>
   );
 }
