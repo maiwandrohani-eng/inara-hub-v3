@@ -77,6 +77,7 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [viewMode, setViewMode] = useState<'lessons' | 'slides' | 'exam'>('lessons'); // lessons = lesson list, slides = slide viewer, exam = final exam
   const [showMicroQuiz, setShowMicroQuiz] = useState(false);
   const [showFinalExam, setShowFinalExam] = useState(false);
   const [microQuizAnswers, setMicroQuizAnswers] = useState<{ [key: string]: number }>({});
@@ -224,6 +225,77 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
           <button onClick={onExit} className="mt-4 px-4 py-2 bg-primary-500 text-white rounded">
             Go Back
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Lesson Selection View - show list of lessons with play buttons
+  if (!showWelcome && viewMode === 'lessons' && !showFinalExam) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-white">{course?.title}</h1>
+              <p className="text-gray-400 mt-2">{course?.description}</p>
+            </div>
+            <button
+              onClick={onExit}
+              className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+            >
+              ← Back
+            </button>
+          </div>
+
+          <div className="grid gap-4">
+            {course?.lessons?.map((lesson, idx) => (
+              <div key={lesson.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-primary-500/50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      Lesson {idx + 1}: {lesson.title}
+                    </h3>
+                    {lesson.content && (
+                      <p className="text-gray-400 text-sm mb-3">{lesson.content}</p>
+                    )}
+                    <p className="text-sm text-gray-500">
+                      📄 {lesson.slides?.length || 0} slides
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setCurrentLessonIndex(idx);
+                      setCurrentSlideIndex(0);
+                      setViewMode('slides');
+                    }}
+                    className="ml-4 px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-semibold whitespace-nowrap"
+                  >
+                    ▶️ Play
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {course?.finalExam?.questions?.length > 0 && (
+            <div className="mt-8 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-yellow-300 mb-2">Final Assessment</h3>
+                  <p className="text-sm text-gray-400">
+                    {course.finalExam.questions.length} questions • {course.finalExam.passingScore}% required to pass
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowFinalExam(true)}
+                  className="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-semibold whitespace-nowrap"
+                >
+                  ✍️ Start Assessment
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -517,6 +589,9 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
 
   return (
     <div className="min-h-screen bg-gray-900 flex">
+      {/* Only show slides viewer when in slides mode */}
+      {viewMode === 'slides' && (
+        <>
       {/* Main Content Area */}
       <div className={`flex-1 transition-all ${showSidebar && resources.length > 0 ? 'mr-80' : ''}`}>
         {/* Progress Bar */}
@@ -565,20 +640,56 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
           </div>
 
           {/* Navigation */}
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-4">
             <button
-              onClick={handlePreviousSlide}
-              disabled={currentLessonIndex === 0 && currentSlideIndex === 0}
-              className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50"
+              onClick={() => setViewMode('lessons')}
+              className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 font-medium"
             >
-              ← Previous
+              ← Back to Lessons
             </button>
-            <button
-              onClick={handleNextSlide}
-              className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-            >
-              Next →
-            </button>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handlePreviousSlide}
+                disabled={currentLessonIndex === 0 && currentSlideIndex === 0}
+                className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 font-medium"
+              >
+                ← Previous Slide
+              </button>
+
+              {/* Next Button or Continue */}
+              {currentLessonIndex === course?.lessons?.length - 1 && currentSlideIndex === course?.lessons[currentLessonIndex]?.slides?.length - 1 ? (
+                <button
+                  onClick={() => setShowFinalExam(true)}
+                  className="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium"
+                >
+                  Proceed to Assessment ✍️
+                </button>
+              ) : (
+                <button
+                  onClick={handleNextSlide}
+                  className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium"
+                >
+                  Next Slide →
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Lesson Progress */}
+          <div className="mt-6 bg-gray-700 rounded-lg p-4">
+            <div className="flex justify-between text-sm text-gray-300 mb-2">
+              <span>Lesson {currentLessonIndex + 1} of {course?.lessons?.length}</span>
+              <span>Slide {currentSlideIndex + 1} of {course?.lessons[currentLessonIndex]?.slides?.length}</span>
+            </div>
+            <div className="w-full bg-gray-600 rounded-full h-2">
+              <div
+                className="bg-primary-500 h-2 rounded-full transition-all"
+                style={{
+                  width: `${((currentLessonIndex + (currentSlideIndex / (course?.lessons[currentLessonIndex]?.slides?.length || 1))) / (course?.lessons?.length || 1)) * 100)}%`
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -651,6 +762,8 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
           resource={selectedResource}
           onClose={() => setSelectedResource(null)}
         />
+      )}
+        </>
       )}
     </div>
   );
