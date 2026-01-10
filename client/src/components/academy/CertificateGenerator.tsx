@@ -63,14 +63,14 @@ export default function CertificateGenerator({
             }
             
             @page {
-              size: A4;
+              size: letter;
               margin: 0;
             }
             
             .certificate-container {
-              width: 210mm;
-              height: 297mm;
-              padding: 35px 45px;
+              width: 8.5in;
+              height: 11in;
+              padding: 50px 55px;
               background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
               border: 3px solid #0066CC;
               border-radius: 8px;
@@ -80,27 +80,37 @@ export default function CertificateGenerator({
               print-color-adjust: exact;
               flex-shrink: 0;
               box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-              display: flex;
-              flex-direction: column;
-              justify-content: flex-start;
+              position: relative;
+              overflow: hidden;
+            }
+            
+            .certificate-container::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background-image: url('/inara-logo.png');
+              background-size: 350px;
+              background-position: center;
+              background-repeat: no-repeat;
+              opacity: 0.08;
+              pointer-events: none;
+              z-index: 0;
+            }
+            
+            .certificate-content {
+              position: relative;
+              z-index: 1;
             }
             
             .logo-section {
               margin-bottom: 15px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 8px;
-            }
-            
-            .logo-image {
-              width: 50px;
-              height: 50px;
-              object-fit: contain;
             }
             
             .logo-text {
-              font-size: 20px;
+              font-size: 24px;
               font-weight: bold;
               background: linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%);
               -webkit-background-clip: text;
@@ -112,36 +122,36 @@ export default function CertificateGenerator({
             }
             
             .title {
-              font-size: 38px;
+              font-size: 44px;
               font-weight: bold;
               color: #0066CC;
-              margin-bottom: 12px;
+              margin-bottom: 15px;
               text-transform: uppercase;
               letter-spacing: 1px;
             }
             
             .subtitle {
-              font-size: 14px;
+              font-size: 15px;
               color: #475569;
-              margin-bottom: 18px;
+              margin-bottom: 20px;
               font-style: italic;
             }
             
             .awarded-to {
-              font-size: 12px;
+              font-size: 13px;
               color: #475569;
               margin-bottom: 10px;
               text-transform: uppercase;
             }
             
             .participant-name {
-              font-size: 28px;
+              font-size: 32px;
               font-weight: bold;
               background: linear-gradient(135deg, #0066CC 0%, #E91E8C 100%);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
-              margin-bottom: 12px;
+              margin-bottom: 15px;
               border-bottom: 3px solid;
               border-image: linear-gradient(to right, #FFC627, #E91E8C, #00C9B7, #0066CC) 1;
               padding-bottom: 8px;
@@ -150,19 +160,19 @@ export default function CertificateGenerator({
             }
             
             .in-recognition {
-              font-size: 12px;
+              font-size: 13px;
               color: #475569;
               margin-bottom: 8px;
             }
             
             .course-title {
-              font-size: 18px;
+              font-size: 20px;
               font-weight: bold;
               background: linear-gradient(135deg, #E91E8C 0%, #FFC627 100%);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
-              margin-bottom: 15px;
+              margin-bottom: 18px;
               font-style: italic;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
@@ -172,8 +182,8 @@ export default function CertificateGenerator({
               font-size: 11px;
               color: #64748b;
               line-height: 1.5;
-              margin-bottom: 15px;
-              max-width: 500px;
+              margin-bottom: 16px;
+              max-width: 550px;
               margin-left: auto;
               margin-right: auto;
             }
@@ -181,13 +191,13 @@ export default function CertificateGenerator({
             .details {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 12px;
+              gap: 14px;
               font-size: 10px;
-              margin-bottom: 12px;
+              margin-bottom: 14px;
               border-top: 2px solid;
               border-bottom: 2px solid;
               border-image: linear-gradient(to right, #FFC627, #E91E8C, #00C9B7, #0066CC) 1;
-              padding: 12px 0;
+              padding: 14px 0;
             }
             
             .detail-item {
@@ -200,8 +210,8 @@ export default function CertificateGenerator({
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
-              margin-bottom: 3px;
-              font-size: 9px;
+              margin-bottom: 4px;
+              font-size: 10px;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
             }
@@ -217,24 +227,24 @@ export default function CertificateGenerator({
             }
             
             .footer {
-              font-size: 9px;
+              font-size: 10px;
               color: #94a3b8;
-              margin-top: 10px;
+              margin-top: 12px;
               margin-bottom: 8px;
               font-style: italic;
             }
             
             .seal {
               display: inline-flex;
-              width: 60px;
-              height: 60px;
+              width: 70px;
+              height: 70px;
               border: 2px solid;
               border-image: linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%) 1;
               border-radius: 50%;
               align-items: center;
               justify-content: center;
-              margin-top: 5px;
-              font-size: 32px;
+              margin-top: 8px;
+              font-size: 36px;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
             }
@@ -255,14 +265,10 @@ export default function CertificateGenerator({
         </head>
         <body>
           <div class="certificate-container">
-            <div class="logo-section">
-              <svg class="logo-image" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="50" cy="50" r="45" fill="none" stroke="#0066CC" stroke-width="2"/>
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#E91E8C" stroke-width="1"/>
-                <text x="50" y="60" font-size="48" font-weight="bold" text-anchor="middle" fill="#0066CC">◆</text>
-              </svg>
-              <div class="logo-text">⟨ INARA ⟩</div>
-            </div>
+            <div class="certificate-content">
+              <div class="logo-section">
+                <div class="logo-text">⟨ INARA ⟩</div>
+              </div>
             
             <div class="title">Certificate of Completion</div>
             
@@ -305,6 +311,7 @@ export default function CertificateGenerator({
             
             <div style="text-align: center;">
               <div class="seal">✓</div>
+            </div>
             </div>
           </div>
         </body>
