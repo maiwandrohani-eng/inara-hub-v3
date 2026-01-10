@@ -33,7 +33,6 @@ export default function CertificateGenerator({
       <!DOCTYPE html>
       <html>
         <head>
-          <meta charset="UTF-8">
           <title>Certificate of Completion - ${courseTitle}</title>
           <style>
             * {
@@ -45,42 +44,34 @@ export default function CertificateGenerator({
             html, body {
               width: 100%;
               height: 100%;
-              margin: 0;
-              padding: 0;
               background: white;
               font-family: 'Georgia', serif;
             }
             
             body {
+              padding: 0;
               display: flex;
               align-items: center;
               justify-content: center;
               min-height: 100vh;
-              padding: 20px;
-              color-adjust: exact;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
             }
             
             @page {
-              size: 8.5in 11in;
+              size: letter;
               margin: 0;
-              padding: 0;
             }
             
-            .certificate-container {
+            .certificate {
               width: 8.5in;
               height: 11in;
               padding: 60px;
               background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
               border: 4px solid #0066CC;
-              border-radius: 10px;
               text-align: center;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
               flex-shrink: 0;
-              box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             }
             
             .logo-section {
@@ -88,7 +79,7 @@ export default function CertificateGenerator({
             }
             
             .logo-text {
-              font-size: 26px;
+              font-size: 28px;
               font-weight: bold;
               background: linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%);
               -webkit-background-clip: text;
@@ -100,57 +91,50 @@ export default function CertificateGenerator({
             }
             
             .title {
-              font-size: 48px;
+              font-size: 42px;
               font-weight: bold;
               color: #0066CC;
-              margin-bottom: 20px;
+              margin-bottom: 18px;
               text-transform: uppercase;
-              letter-spacing: 2px;
-            }
-            
-            .subtitle {
-              font-size: 18px;
-              color: #475569;
-              margin-bottom: 30px;
-              font-style: italic;
+              letter-spacing: 1px;
             }
             
             .awarded-to {
               font-size: 14px;
               color: #475569;
               margin-bottom: 15px;
-              text-transform: uppercase;
+              font-style: italic;
             }
             
             .participant-name {
-              font-size: 36px;
+              font-size: 32px;
               font-weight: bold;
               background: linear-gradient(135deg, #0066CC 0%, #E91E8C 100%);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
-              margin-bottom: 20px;
+              margin-bottom: 15px;
               border-bottom: 3px solid;
               border-image: linear-gradient(to right, #FFC627, #E91E8C, #00C9B7, #0066CC) 1;
-              padding-bottom: 10px;
+              padding-bottom: 12px;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
             }
             
             .in-recognition {
-              font-size: 14px;
+              font-size: 13px;
               color: #475569;
               margin-bottom: 10px;
             }
             
             .course-title {
-              font-size: 24px;
+              font-size: 22px;
               font-weight: bold;
               background: linear-gradient(135deg, #E91E8C 0%, #FFC627 100%);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
-              margin-bottom: 25px;
+              margin-bottom: 20px;
               font-style: italic;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
@@ -159,23 +143,20 @@ export default function CertificateGenerator({
             .description {
               font-size: 12px;
               color: #64748b;
-              line-height: 1.6;
-              margin-bottom: 30px;
-              max-width: 600px;
-              margin-left: auto;
-              margin-right: auto;
+              line-height: 1.5;
+              margin-bottom: 20px;
             }
             
             .details {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 20px;
-              font-size: 12px;
+              gap: 18px;
+              font-size: 11px;
               margin-bottom: 20px;
               border-top: 2px solid;
               border-bottom: 2px solid;
               border-image: linear-gradient(to right, #FFC627, #E91E8C, #00C9B7, #0066CC) 1;
-              padding: 20px 0;
+              padding: 18px 0;
             }
             
             .detail-item {
@@ -188,40 +169,34 @@ export default function CertificateGenerator({
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
-              margin-bottom: 5px;
-              font-size: 11px;
+              margin-bottom: 4px;
+              font-size: 10px;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
             }
             
             .detail-value {
               color: #475569;
-              font-size: 12px;
-            }
-            
-            .score-value {
-              color: #16a34a;
-              font-weight: bold;
+              font-size: 11px;
             }
             
             .footer {
-              font-size: 11px;
+              font-size: 10px;
               color: #94a3b8;
-              margin-top: 20px;
+              margin-bottom: 15px;
               font-style: italic;
             }
             
             .seal {
               display: inline-flex;
-              width: 80px;
-              height: 80px;
+              width: 70px;
+              height: 70px;
               border: 3px solid;
               border-image: linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%) 1;
               border-radius: 50%;
               align-items: center;
               justify-content: center;
-              margin-top: 10px;
-              font-size: 40px;
+              font-size: 36px;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
             }
@@ -231,24 +206,22 @@ export default function CertificateGenerator({
                 margin: 0;
                 padding: 0;
               }
-              .certificate-container {
+              .certificate {
                 margin: 0;
                 box-shadow: none;
-                page-break-after: avoid;
-                page-break-inside: avoid;
               }
             }
           </style>
         </head>
         <body>
-          <div class="certificate-container">
+          <div class="certificate">
             <div class="logo-section">
               <div class="logo-text">⟨ INARA ⟩</div>
             </div>
             
             <div class="title">Certificate of Completion</div>
             
-            <div class="subtitle">This certificate is awarded to</div>
+            <div class="awarded-to">This certificate is awarded to</div>
             
             <div class="participant-name">${participantName}</div>
             
@@ -272,11 +245,11 @@ export default function CertificateGenerator({
               ${score !== undefined && passingScore !== undefined ? `
               <div class="detail-item">
                 <div class="detail-label">Assessment Score</div>
-                <div class="detail-value score-value">${score}% (${passingScore}% required)</div>
+                <div class="detail-value">${score}% (${passingScore}% required)</div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">Status</div>
-                <div class="detail-value score-value">✓ PASSED</div>
+                <div class="detail-value">✓ PASSED</div>
               </div>
               ` : ''}
             </div>
@@ -321,29 +294,27 @@ export default function CertificateGenerator({
         ref={certificateRef}
         className="certificate"
         style={{
-          width: '8.5in',
-          height: '11in',
+          width: '100%',
+          maxWidth: '900px',
           margin: '0 auto',
           padding: '60px',
           background: 'linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%)',
-          border: '4px solid',
-          borderImage: 'linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%) 1',
+          border: '4px solid #0066CC',
           borderRadius: '10px',
           textAlign: 'center',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
           position: 'relative',
-          overflow: 'hidden',
         }}
       >
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '25px' }}>
           <img
             src="/inara-logo.png"
             alt="INARA Logo"
             style={{
-              maxWidth: '120px',
+              maxWidth: '100px',
               height: 'auto',
-              marginBottom: '15px',
+              marginBottom: '10px',
             }}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
@@ -351,14 +322,13 @@ export default function CertificateGenerator({
           />
           <div
             style={{
-              fontSize: '28px',
+              fontSize: '26px',
               fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%, #E91E8C 100%)',
+              background: 'linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
               letterSpacing: '3px',
-              marginTop: '10px',
             }}
           >
             ⟨ INARA ⟩
@@ -368,12 +338,12 @@ export default function CertificateGenerator({
         {/* Title */}
         <div
           style={{
-            fontSize: '48px',
+            fontSize: '42px',
             fontWeight: 'bold',
             color: '#0066CC',
-            marginBottom: '20px',
+            marginBottom: '18px',
             textTransform: 'uppercase',
-            letterSpacing: '2px',
+            letterSpacing: '1px',
           }}
         >
           Certificate of Completion
@@ -382,9 +352,9 @@ export default function CertificateGenerator({
         {/* Subtitle */}
         <div
           style={{
-            fontSize: '18px',
+            fontSize: '14px',
             color: '#475569',
-            marginBottom: '30px',
+            marginBottom: '15px',
             fontStyle: 'italic',
           }}
         >
@@ -394,16 +364,16 @@ export default function CertificateGenerator({
         {/* Participant Name */}
         <div
           style={{
-            fontSize: '36px',
+            fontSize: '32px',
             fontWeight: 'bold',
             background: 'linear-gradient(135deg, #0066CC 0%, #E91E8C 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            marginBottom: '20px',
+            marginBottom: '15px',
             borderBottom: '3px solid',
             borderImage: 'linear-gradient(to right, #FFC627, #E91E8C, #00C9B7, #0066CC) 1',
-            paddingBottom: '10px',
+            paddingBottom: '12px',
           }}
         >
           {participantName}
@@ -412,7 +382,7 @@ export default function CertificateGenerator({
         {/* In Recognition */}
         <div
           style={{
-            fontSize: '14px',
+            fontSize: '13px',
             color: '#475569',
             marginBottom: '10px',
           }}
@@ -423,13 +393,13 @@ export default function CertificateGenerator({
         {/* Course Title */}
         <div
           style={{
-            fontSize: '24px',
+            fontSize: '22px',
             fontWeight: 'bold',
             background: 'linear-gradient(135deg, #E91E8C 0%, #FFC627 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            marginBottom: '25px',
+            marginBottom: '20px',
             fontStyle: 'italic',
           }}
         >
@@ -441,11 +411,8 @@ export default function CertificateGenerator({
           style={{
             fontSize: '12px',
             color: '#64748b',
-            lineHeight: '1.6',
-            marginBottom: '30px',
-            maxWidth: '600px',
-            marginLeft: 'auto',
-            marginRight: 'auto',
+            lineHeight: '1.5',
+            marginBottom: '20px',
           }}
         >
           The participant has fulfilled all course requirements and demonstrated the expected level
@@ -457,24 +424,44 @@ export default function CertificateGenerator({
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '20px',
-            fontSize: '12px',
+            gap: '18px',
+            fontSize: '11px',
             color: '#475569',
             marginBottom: '20px',
             borderTop: '2px solid',
             borderBottom: '2px solid',
             borderImage: 'linear-gradient(to right, #FFC627, #E91E8C, #00C9B7, #0066CC) 1',
-            padding: '20px 0',
+            padding: '18px 0',
           }}
         >
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 'bold', background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: '5px' }}>
+            <div
+              style={{
+                fontWeight: 'bold',
+                background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginBottom: '4px',
+                fontSize: '10px',
+              }}
+            >
               Date of Completion
             </div>
             <div style={{ color: '#475569' }}>{formattedDate}</div>
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 'bold', background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: '5px' }}>
+            <div
+              style={{
+                fontWeight: 'bold',
+                background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                marginBottom: '4px',
+                fontSize: '10px',
+              }}
+            >
               Certificate ID
             </div>
             <div style={{ color: '#475569' }}>{certificateId}</div>
@@ -482,7 +469,17 @@ export default function CertificateGenerator({
           {score !== undefined && passingScore !== undefined && (
             <>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: 'bold', background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: '5px' }}>
+                <div
+                  style={{
+                    fontWeight: 'bold',
+                    background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    marginBottom: '4px',
+                    fontSize: '10px',
+                  }}
+                >
                   Assessment Score
                 </div>
                 <div style={{ color: '#16a34a', fontWeight: 'bold' }}>
@@ -490,7 +487,17 @@ export default function CertificateGenerator({
                 </div>
               </div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontWeight: 'bold', background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', marginBottom: '5px' }}>
+                <div
+                  style={{
+                    fontWeight: 'bold',
+                    background: 'linear-gradient(135deg, #0066CC 0%, #00C9B7 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    marginBottom: '4px',
+                    fontSize: '10px',
+                  }}
+                >
                   Status
                 </div>
                 <div style={{ color: '#16a34a', fontWeight: 'bold' }}>✓ PASSED</div>
@@ -502,9 +509,9 @@ export default function CertificateGenerator({
         {/* Footer */}
         <div
           style={{
-            fontSize: '11px',
+            fontSize: '10px',
             color: '#94a3b8',
-            marginTop: '20px',
+            marginBottom: '15px',
             fontStyle: 'italic',
           }}
         >
@@ -515,15 +522,15 @@ export default function CertificateGenerator({
         <div
           style={{
             display: 'inline-flex',
-            width: '80px',
-            height: '80px',
+            width: '70px',
+            height: '70px',
             border: '3px solid',
             borderImage: 'linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%) 1',
             borderRadius: '50%',
             alignItems: 'center',
             justifyContent: 'center',
             marginTop: '10px',
-            fontSize: '40px',
+            fontSize: '36px',
           }}
         >
           ✓
