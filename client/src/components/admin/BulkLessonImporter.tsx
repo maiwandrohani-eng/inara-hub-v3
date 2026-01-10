@@ -129,9 +129,14 @@ SLIDE: Change Management
           i--; // Back up one line since the loop will increment
 
           if (slideTitle && slideContent.length > 0) {
+            // Format content as HTML with bullet points and proper line breaks
+            const formattedContent = slideContent
+              .map(item => `<li>${item}</li>`)
+              .join('');
+            const htmlContent = `<ul>${formattedContent}</ul>`;
             slides.push({
               title: slideTitle,
-              content: slideContent.join('\n'),
+              content: htmlContent,
             });
           }
         }
