@@ -5,9 +5,10 @@ import api from '../../api/client';
 
 interface CourseResourceManagerProps {
   training: any;
+  onDelete?: (id: string) => void;
 }
 
-export default function CourseResourceManager({ training }: CourseResourceManagerProps) {
+export default function CourseResourceManager({ training, onDelete }: CourseResourceManagerProps) {
   const [showResources, setShowResources] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -107,6 +108,18 @@ export default function CourseResourceManager({ training }: CourseResourceManage
           <span className={`text-xs px-2 py-1 rounded ${training.isActive ? 'bg-green-900/30 text-green-300' : 'bg-gray-600 text-gray-400'}`}>
             {training.isActive ? 'Active' : 'Inactive'}
           </span>
+          {onDelete && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to delete the course "${training.title}"? This action cannot be undone.`)) {
+                  onDelete(training.id);
+                }
+              }}
+              className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+            >
+              🗑️ Delete
+            </button>
+          )}
         </div>
       </div>
 

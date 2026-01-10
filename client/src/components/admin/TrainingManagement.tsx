@@ -1339,7 +1339,11 @@ export default function TrainingManagement() {
         <h3 className="text-lg font-bold text-white mb-4">All Trainings</h3>
         <div className="space-y-2">
           {trainings?.trainings?.map((training: any) => (
-            <CourseResourceManager key={training.id} training={training} />
+            <CourseResourceManager 
+              key={training.id} 
+              training={training}
+              onDelete={(id) => deleteMutation.mutate(id)}
+            />
           ))}
         </div>
       </div>
