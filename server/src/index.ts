@@ -160,6 +160,7 @@ app.get('/api/uploads/*', async (req, res) => {
 app.get('/api/academy/resources/*', genericFileProxy);
 app.get('/api/library/*', genericFileProxy);
 app.get('/api/policies/*', genericFileProxy);
+app.get('/api/policy/*', genericFileProxy);
 
 async function genericFileProxy(req: express.Request, res: express.Response) {
   try {
