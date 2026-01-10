@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import QuickPDFModal from './QuickPDFModal';
+import CertificateGenerator from './CertificateGenerator';
 
 interface Slide {
   id: string;
@@ -88,6 +89,7 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
   const [submitting, setSubmitting] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [selectedResource, setSelectedResource] = useState<any>(null);
+  const [showCertificate, setShowCertificate] = useState(false);
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -196,9 +198,8 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
       });
 
       if (res.data.passed) {
-        // Show certificate generation form
-        // This will be handled by parent component
-        onComplete();
+        // Show certificate
+        setShowCertificate(true);
       } else {
         alert(`You scored ${score.toFixed(0)}%. You need ${course.finalExam.passingScore}% to pass. Please review and try again.`);
       }
@@ -584,6 +585,19 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
                   ? '✓ Congratulations! You passed!'
                   : `✗ You need ${course.finalExam.passingScore}% to pass. Please review and try again.`}
               </p>
+            </div>
+          )}
+
+          {showCertificate && finalExamScore !== null && finalExamScore >= course.finalExam.passingScore && (
+            <div className="mb-6">
+              <CertificateGenerator
+                participantName={`${user?.firstName} ${user?.lastName}`}
+                courseTitle={course.title}
+                completionDate={new Date()}
+                certificateId={`CERT-${courseId}-${Date.now()}`}
+                score={finalExamScore}
+                passingScore={course.finalExam.passingScore}
+              />
             </div>
           )}
 
