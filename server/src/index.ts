@@ -155,6 +155,60 @@ app.get('/api/uploads/*', async (req, res) => {
   }
 });
 
+// GENERIC FILE PROXY - Handles all /api/* file requests (academy/resources, library, policies, etc.)
+// This must come BEFORE /api/health and other routes
+app.get('/api/academy/resources/*', genericFileProxy);
+app.get('/api/library/*', genericFileProxy);
+app.get('/api/policies/*', genericFileProxy);
+
+async function genericFileProxy(req: express.Request, res: express.Response) {
+  try {
+    // Extract the path after /api/
+    let filePath = req.path;
+    if (filePath.startsWith('/api/')) {
+      filePath = filePath.replace('/api/', '');
+    }
+    
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path required' });
+    }
+
+    console.log('[Generic File Proxy] Request received:', {
+      originalPath: req.path,
+      extractedPath: filePath,
+      method: req.method,
+    });
+
+    // Get R2 configuration
+    const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+    const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+    const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+    const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+
+    if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
+      console.error('[Generic File Proxy] R2 configuration missing');
+      return res.status(500).json({ error: 'R2 configuration missing' });
+    }
+
+    // Import getPresignedUrl
+    const { getPresignedUrl } = await import('./utils/r2Storage.js');
+    
+    console.log('[Generic File Proxy] Generating presigned URL for:', filePath);
+    // Generate presigned URL and redirect
+    const presignedUrl = await getPresignedUrl(filePath, 3600); // 1 hour expiry
+    console.log('[Generic File Proxy] Presigned URL generated, redirecting...');
+    
+    return res.redirect(302, presignedUrl);
+  } catch (error: any) {
+    console.error('[Generic File Proxy] Error:', {
+      message: error.message,
+      stack: error.stack,
+      path: req.path,
+    });
+    return res.status(500).json({ error: error.message || 'Failed to get file' });
+  }
+}
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '0b06be8' });
