@@ -39,10 +39,6 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
           let fileKey = parts.slice(-2).join('/');
           // Map 'resources' to 'academy' for course resources
           fileKey = fileKey.replace(/^resources\//, 'academy/');
-          // Ensure inara-data prefix for training files
-          if (!fileKey.startsWith('inara-data/')) {
-            fileKey = `inara-data/${fileKey}`;
-          }
           return `/api/uploads/${fileKey}`;
         }
         return `/api/uploads/${parts[parts.length - 1]}`;
@@ -55,10 +51,6 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
       let cleanPath = url.replace(/^\//, '');
       // Map 'resources' to 'academy' for course resources
       cleanPath = cleanPath.replace(/^resources\//, 'academy/');
-      // Ensure inara-data prefix for training files
-      if (!cleanPath.startsWith('inara-data/')) {
-        cleanPath = `inara-data/${cleanPath}`;
-      }
       return `/api/uploads/${cleanPath}`;
     }
     
