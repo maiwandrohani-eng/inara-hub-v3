@@ -374,21 +374,12 @@ export default function PoliciesTab() {
                     </div>
                   )}
                   {viewMode === 'file' && policy.fileUrl && (
-                    <div>
-                      <PDFViewer
-                        pdfUrl={policy.fileUrl}
+                    <div className="w-full h-96 bg-gray-900 rounded-lg overflow-hidden">
+                      <iframe
+                        src={`${getProxiedPolicyUrl(policy.fileUrl)}#toolbar=0`}
+                        className="w-full h-full border-none"
                         title="Policy Document"
                       />
-                      <div className="mt-4 text-center">
-                        <a
-                          href={getProxiedPolicyUrl(policy.fileUrl)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-                        >
-                          Download File
-                        </a>
-                      </div>
                     </div>
                   )}
                 </div>
