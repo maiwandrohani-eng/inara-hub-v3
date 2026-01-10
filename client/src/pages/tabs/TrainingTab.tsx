@@ -27,7 +27,7 @@ export default function TrainingTab() {
     return res.data;
   });
 
-  const { data: certificatesData } = useQuery('my-certificates', async () => {
+  const { data: certificatesData, refetch: refetchCertificates } = useQuery('my-certificates', async () => {
     const res = await api.get('/academy/certificates');
     return res.data;
   });
@@ -267,7 +267,12 @@ export default function TrainingTab() {
             <strong className="text-white">{allCourses.length}</strong> courses
           </div>
           <button
-            onClick={() => setShowCertificates(!showCertificates)}
+            onClick={() => {
+              setShowCertificates(!showCertificates);
+              if (!showCertificates) {
+                refetchCertificates();
+              }
+            }}
             className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm"
           >
             {showCertificates ? 'Hide' : 'View'} My Certificates ({certificates.length})
@@ -278,7 +283,16 @@ export default function TrainingTab() {
       {/* Certificates View */}
       {showCertificates && (
         <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6">
-          <h2 className="text-2xl font-bold text-white mb-4">My Certificates</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-white">My Certificates</h2>
+            <button
+              onClick={() => refetchCertificates()}
+              className="px-3 py-1 bg-gray-700 text-white rounded text-xs hover:bg-gray-600"
+              title="Refresh certificate data"
+            >
+              🔄 Refresh
+            </button>
+          </div>
           {certificates.length === 0 ? (
             <p className="text-gray-400 text-center py-8">No certificates yet. Complete a course to earn your first certificate!</p>
           ) : (
