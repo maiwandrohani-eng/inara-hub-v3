@@ -587,6 +587,155 @@ router.post('/academy/create-manual', async (req: AuthRequest, res) => {
   }
 });
 
+// Update course (PATCH endpoint for editing existing courses)
+router.patch('/academy/courses/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      description,
+      content,
+      objectives,
+      duration,
+      passingScore,
+      quiz,
+      isMandatory,
+      isOptional,
+      category,
+      subcategory,
+      tags,
+      sections,
+      validityPeriod,
+      courseType,
+      courseDuration,
+      lessons,
+      finalExam,
+    } = req.body;
+
+    // Verify course exists
+    const existingCourse = await prisma.training.findUnique({
+      where: { id },
+      include: { lessons: { include: { slides: true } } },
+    });
+
+    if (!existingCourse) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Update main training record
+    const training = await prisma.training.update({
+      where: { id },
+      data: {
+        title: title || existingCourse.title,
+        description: description !== undefined ? description : existingCourse.description,
+        content: content || JSON.stringify({ lessons, finalExam }),
+        objectives: objectives || existingCourse.objectives,
+        duration: duration || existingCourse.duration,
+        passingScore: passingScore || finalExam?.passingScore || existingCourse.passingScore,
+        quiz: finalExam || quiz || existingCourse.quiz,
+        isMandatory: isMandatory !== undefined ? isMandatory : existingCourse.isMandatory,
+        isOptional: isOptional !== undefined ? isOptional : existingCourse.isOptional,
+        category: category !== undefined ? category : existingCourse.category,
+        subcategory: subcategory !== undefined ? subcategory : existingCourse.subcategory,
+        tags: tags || existingCourse.tags,
+        sections: sections || existingCourse.sections,
+        validityPeriod: validityPeriod !== undefined ? (validityPeriod ? parseInt(validityPeriod) : null) : existingCourse.validityPeriod,
+        courseType: courseType || existingCourse.courseType,
+        courseDuration: courseDuration || existingCourse.courseDuration,
+        updatedAt: new Date(),
+      },
+    });
+
+    // If lessons are provided, update them
+    if (lessons && lessons.length > 0) {
+      // Delete all existing lessons for this course
+      await prisma.lesson.deleteMany({
+        where: { trainingId: id },
+      });
+
+      // Create new lessons
+      for (const lessonData of lessons) {
+        if (!lessonData.title || !lessonData.slides || lessonData.slides.length === 0) {
+          continue; // Skip invalid lessons
+        }
+
+        const lesson = await prisma.lesson.create({
+          data: {
+            trainingId: training.id,
+            title: lessonData.title,
+            content: lessonData.content || null,
+            order: lessonData.order || 0,
+          },
+        });
+
+        // Create slides for this lesson
+        for (const slideData of lessonData.slides) {
+          if (!slideData.title || !slideData.content) {
+            continue; // Skip invalid slides
+          }
+
+          const slide = await prisma.slide.create({
+            data: {
+              lessonId: lesson.id,
+              title: slideData.title,
+              content: slideData.content,
+              order: slideData.order || 0,
+              slideType: slideData.slideType || 'content',
+              mediaUrl: slideData.mediaUrl || null,
+            },
+          });
+
+          // Create micro quiz if provided
+          if (slideData.microQuiz && slideData.microQuiz.question) {
+            await prisma.microQuiz.create({
+              data: {
+                slideId: slide.id,
+                title: slideData.microQuiz.question,
+                questions: [{
+                  question: slideData.microQuiz.question,
+                  options: slideData.microQuiz.options || ['', '', '', ''],
+                  correctAnswer: slideData.microQuiz.correctAnswer || 0,
+                  explanation: slideData.microQuiz.explanation || null,
+                }],
+                passingScore: 70,
+                isRequired: true,
+              },
+            });
+          }
+        }
+      }
+    }
+
+    // Fetch updated course with all relations
+    const updatedCourse = await prisma.training.findUnique({
+      where: { id },
+      include: {
+        lessons: {
+          include: {
+            slides: {
+              include: {
+                microQuiz: true,
+              },
+              orderBy: { order: 'asc' },
+            },
+          },
+          orderBy: { order: 'asc' },
+        },
+      },
+    });
+
+    console.log('✅ Course updated successfully:', id);
+
+    res.json({
+      training: updatedCourse,
+      message: `Course "${title}" updated successfully with ${lessons?.length || 0} lesson(s)`,
+    });
+  } catch (error: any) {
+    console.error('❌ Course update error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.post('/trainings', async (req: AuthRequest, res) => {
   try {
     const training = await prisma.training.create({
