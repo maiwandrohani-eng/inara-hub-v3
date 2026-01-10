@@ -63,6 +63,9 @@ export default function CertificateGenerator({
               box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
               position: relative;
               overflow: hidden;
+              color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
             
             .certificate::before {
@@ -206,14 +209,42 @@ export default function CertificateGenerator({
             }
 
             @media print {
-              body {
-                background: white;
-              }
-              .certificate {
-                box-shadow: none;
+              * {
                 margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              html, body {
                 width: 100%;
                 height: 100%;
+                background: white;
+                margin: 0;
+                padding: 0;
+              }
+              body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              .certificate {
+                width: 8.5in !important;
+                height: 11in !important;
+                margin: 0 !important;
+                padding: 60px !important;
+                box-shadow: none !important;
+                border: 3px solid !important;
+                border-image: linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%) 1 !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+              }
+              .certificate::before,
+              .certificate::after {
+                display: none !important;
+              }
+              @page {
+                size: letter;
+                margin: 0;
+                padding: 0;
               }
             }
           </style>
