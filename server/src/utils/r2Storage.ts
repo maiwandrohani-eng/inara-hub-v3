@@ -159,6 +159,12 @@ export async function getPresignedUrl(key: string, expiresIn: number = 3600): Pr
     const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY!;
     const bucketName = process.env.R2_BUCKET_NAME!;
     
+    console.log('🔗 Presigner Request:', {
+      key,
+      bucket: bucketName,
+      endpoint,
+    });
+    
     // Use path-style for presigned URLs to avoid signature issues
     const presignClient = new S3Client({
       region: 'auto',
@@ -178,6 +184,7 @@ export async function getPresignedUrl(key: string, expiresIn: number = 3600): Pr
     const presignedUrl = await getSignedUrl(presignClient, command, { expiresIn });
     
     console.log('✅ Generated presigned URL for:', key);
+    console.log('🔗 Presigned URL includes key:', key);
     return presignedUrl;
   } catch (error: any) {
     console.error('❌ Error generating presigned URL:', {
