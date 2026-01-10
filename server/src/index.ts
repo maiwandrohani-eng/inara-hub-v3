@@ -336,6 +336,57 @@ app.get('/api/uploads/*', async (req, res) => {
   }
 });
 
+// Academy resources route - proxy to R2 (handles /academy/resources/*)
+app.get('/academy/resources/*', async (req, res) => {
+  try {
+    // Extract the path after /academy/resources/
+    let filePath = req.path;
+    if (filePath.startsWith('/academy/resources/')) {
+      filePath = filePath.replace('/academy/resources/', '');
+    }
+    
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path required' });
+    }
+
+    console.log('[Academy Resources Route] Request received:', {
+      originalPath: req.path,
+      extractedPath: filePath,
+      method: req.method,
+    });
+
+    // Get R2 configuration
+    const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+    const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+    const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+    const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+
+    if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
+      console.error('[Academy Resources Route] R2 configuration missing');
+      return res.status(500).json({ error: 'R2 configuration missing' });
+    }
+
+    // Import getPresignedUrl
+    const { getPresignedUrl } = await import('./utils/r2Storage.js');
+    
+    // Prepend academy/resources/ to the file path for R2
+    const r2Path = `academy/resources/${filePath}`;
+    console.log('[Academy Resources Route] Generating presigned URL for:', r2Path);
+    
+    const presignedUrl = await getPresignedUrl(r2Path, 3600); // 1 hour expiry
+    console.log('[Academy Resources Route] Presigned URL generated, redirecting...');
+    
+    return res.redirect(302, presignedUrl);
+  } catch (error: any) {
+    console.error('[Academy Resources Route] Error:', {
+      message: error.message,
+      stack: error.stack,
+      path: req.path,
+    });
+    return res.status(500).json({ error: error.message || 'Failed to get file' });
+  }
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
