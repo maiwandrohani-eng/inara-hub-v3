@@ -175,13 +175,6 @@ async function genericFileProxy(req: express.Request, res: express.Response) {
       filePath = filePath.replace('uploads/', '');
     }
     
-    // Ensure the key has the inara-data prefix for backward compatibility
-    // Old paths: academy/filename.pdf → inara-data/academy/filename.pdf
-    // New paths: inara-data/academy/filename.pdf → inara-data/academy/filename.pdf
-    if (!filePath.startsWith('inara-data/')) {
-      filePath = `inara-data/${filePath}`;
-    }
-    
     if (!filePath) {
       return res.status(400).json({ error: 'File path required' });
     }

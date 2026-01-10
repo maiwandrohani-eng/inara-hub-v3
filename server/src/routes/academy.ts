@@ -582,15 +582,8 @@ router.get('/courses/:id/resources/:resourceId/download', authenticate, async (r
     const { getPresignedUrl } = await import('../utils/r2Storage.js');
     const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
     
-    // Extract key from resource URL and normalize to inara-data structure
+    // Extract key from resource URL
     let key = resource.fileUrl.replace(/^\/uploads\//, '').replace(/^https?:\/\/[^\/]+\//, '');
-    
-    // Ensure the key has the inara-data prefix for existing files
-    // Old URLs: academy/filename.pdf → inara-data/academy/filename.pdf
-    // New URLs: inara-data/academy/filename.pdf → inara-data/academy/filename.pdf
-    if (!key.startsWith('inara-data/')) {
-      key = `inara-data/${key}`;
-    }
     
     if (R2_PUBLIC_URL) {
       // Redirect to public URL
