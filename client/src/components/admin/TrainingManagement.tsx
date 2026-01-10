@@ -5,6 +5,7 @@ import { getAllTrainingCategories, getTrainingSubcategories } from '../../config
 import CourseResourceManager from './CourseResourceManager';
 import BulkLessonImporter from './BulkLessonImporter';
 import BulkQuestionImporter from './BulkQuestionImporter';
+import BulkObjectiveImporter from './BulkObjectiveImporter';
 
 export default function TrainingManagement() {
   const [showForm, setShowForm] = useState(false);
@@ -14,6 +15,7 @@ export default function TrainingManagement() {
   const [uploading, setUploading] = useState(false);
   const [showBulkLessonImporter, setShowBulkLessonImporter] = useState(false);
   const [showBulkQuestionImporter, setShowBulkQuestionImporter] = useState(false);
+  const [showBulkObjectiveImporter, setShowBulkObjectiveImporter] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({
     stage: '',
     percentage: 0,
@@ -71,6 +73,7 @@ export default function TrainingManagement() {
     },
     courseType: 'PROFESSIONAL_COURSE',
     courseDuration: 'SHORT_TERM',
+    resources: [],
   });
   
   const availableCategories = getAllTrainingCategories();
@@ -768,6 +771,31 @@ export default function TrainingManagement() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-200 mb-1">Learning Objectives</label>
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkObjectiveImporter(true)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+                    >
+                      📦 Bulk Import
+                    </button>
+                  </div>
+
+                  {showBulkObjectiveImporter && (
+                    <div className="bg-gray-800 border border-green-500/30 rounded-lg p-4 mb-4">
+                      <BulkObjectiveImporter
+                        onImport={(importedObjectives) => {
+                          setFormData({
+                            ...formData,
+                            objectives: importedObjectives,
+                          });
+                          setShowBulkObjectiveImporter(false);
+                        }}
+                        onCancel={() => setShowBulkObjectiveImporter(false)}
+                      />
+                    </div>
+                  )}
+
                   {formData.objectives.map((obj, idx) => (
                     <div key={idx} className="flex gap-2 mb-2">
                       <input
@@ -1062,6 +1090,72 @@ export default function TrainingManagement() {
                 ))}
               </div>
 
+              {/* Course Resources - Document Upload */}
+              <div className="bg-gray-700 rounded-lg p-4 space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-3">📄 Course Resources</h3>
+                  <p className="text-sm text-gray-300 mb-4">Upload reference documents (PDFs, guides, materials) for trainees to download during the course.</p>
+                  
+                  <div className="border-2 border-dashed border-gray-500 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
+                    <input
+                      type="file"
+                      id="resourceUpload"
+                      multiple
+                      accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
+                      onChange={(e) => {
+                        if (e.target.files) {
+                          const newResources = [...formData.resources];
+                          for (let i = 0; i < e.target.files.length; i++) {
+                            const file = e.target.files[i];
+                            // Check file size (max 4MB per file)
+                            if (file.size > 4 * 1024 * 1024) {
+                              alert(`File "${file.name}" exceeds 4MB limit. Please use a smaller file.`);
+                              continue;
+                            }
+                            newResources.push({
+                              name: file.name,
+                              size: file.size,
+                              file: file,
+                            });
+                          }
+                          setFormData({ ...formData, resources: newResources });
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <label htmlFor="resourceUpload" className="cursor-pointer block">
+                      <p className="text-primary-400 font-semibold mb-2">📁 Click to upload resources</p>
+                      <p className="text-xs text-gray-400">or drag and drop (PDF, DOC, XLSX, TXT)</p>
+                      <p className="text-xs text-gray-500 mt-1">Max 4MB per file</p>
+                    </label>
+                  </div>
+
+                  {formData.resources.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <h4 className="text-white font-semibold text-sm">Uploaded Resources ({formData.resources.length})</h4>
+                      {formData.resources.map((resource: any, idx: number) => (
+                        <div key={idx} className="bg-gray-600 rounded-lg p-3 flex justify-between items-center">
+                          <div className="flex-1">
+                            <p className="text-white text-sm font-medium">{resource.name || resource.fileName}</p>
+                            <p className="text-gray-400 text-xs">{((resource.size || 0) / 1024).toFixed(2)} KB</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newResources = formData.resources.filter((_: any, i: number) => i !== idx);
+                              setFormData({ ...formData, resources: newResources });
+                            }}
+                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Final Exam */}
               <div className="bg-gray-700 rounded-lg p-4 space-y-4">
                 <div className="flex justify-between items-center">
@@ -1218,7 +1312,25 @@ export default function TrainingManagement() {
                   </div>
                 ))}
               </div>
-          </form>
+
+              {/* Submit Button */}
+              <div className="flex gap-4 pt-4 border-t border-gray-600">
+                <button
+                  type="submit"
+                  disabled={!formData.title.trim() || formData.lessons.length === 0}
+                  className="flex-1 px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg transition-colors"
+                >
+                  ✅ Create Course
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           )}
         </div>
       )}
