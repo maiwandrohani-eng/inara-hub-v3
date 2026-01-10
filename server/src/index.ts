@@ -199,6 +199,11 @@ async function genericFileProxy(req: express.Request, res: express.Response) {
     const presignedUrl = await getPresignedUrl(filePath, 3600); // 1 hour expiry
     console.log('[Generic File Proxy] Presigned URL generated, redirecting...');
     
+    // Add CORS headers before redirecting to R2
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
     return res.redirect(302, presignedUrl);
   } catch (error: any) {
     console.error('[Generic File Proxy] Error:', {
