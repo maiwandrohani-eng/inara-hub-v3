@@ -85,7 +85,7 @@ export default function CertificateGenerator({
               overflow: hidden;
               display: flex;
               flex-direction: column;
-              justify-content: center;
+              justify-content: flex-start;
               align-items: center;
             }
             
@@ -115,15 +115,26 @@ export default function CertificateGenerator({
             }
             
             .logo-section {
-              margin-bottom: 12px;
+              margin-bottom: 8px;
               width: 100%;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 6px;
+            }
+            
+            .logo-image {
+              width: 80px;
+              height: 80px;
+              object-fit: contain;
+              margin-bottom: 2px;
             }
             
             .logo-text {
-              font-size: 12px;
+              font-size: 13px;
               font-weight: 600;
               color: #000000;
-              letter-spacing: 0.5px;
+              letter-spacing: 0.3px;
               line-height: 1.4;
             }
             
@@ -131,7 +142,8 @@ export default function CertificateGenerator({
               font-size: 40px;
               font-weight: 700;
               color: #0066CC;
-              margin-bottom: 12px;
+              margin-bottom: 8px;
+              margin-top: 4px;
               text-transform: uppercase;
               letter-spacing: 0.5px;
             }
@@ -139,7 +151,7 @@ export default function CertificateGenerator({
             .subtitle {
               font-size: 13px;
               color: #475569;
-              margin-bottom: 18px;
+              margin-bottom: 15px;
               font-style: italic;
             }
             
@@ -275,6 +287,7 @@ export default function CertificateGenerator({
           <div class="certificate-container">
             <div class="certificate-content">
               <div class="logo-section">
+                <img src="/inara-logo.png" alt="INARA Logo" class="logo-image">
                 <div class="logo-text">International Network for Aid, Relief and Assistance</div>
               </div>
             
