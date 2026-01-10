@@ -5,6 +5,7 @@ import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import CoursePlayer from '../../components/academy/CoursePlayer';
 import CourseStartModal from '../../components/academy/CourseStartModal';
+import CertificateGenerator from '../../components/academy/CertificateGenerator';
 
 export default function TrainingTab() {
   const [filter, setFilter] = useState<'all' | 'mandatory' | 'completed' | 'in-progress' | 'tracks'>('all');
@@ -15,6 +16,7 @@ export default function TrainingTab() {
   const [showCourseStartModal, setShowCourseStartModal] = useState(false);
   const [selectedCourseForModal, setSelectedCourseForModal] = useState<any>(null);
   const [showCertificates, setShowCertificates] = useState(false);
+  const [selectedCertificate, setSelectedCertificate] = useState<any>(null);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'COUNTRY_DIRECTOR' || user?.role === 'DEPARTMENT_HEAD';
@@ -295,14 +297,12 @@ export default function TrainingTab() {
                   {cert.score !== null && (
                     <p className="text-sm text-gray-300 mb-3">Score: {cert.score}%</p>
                   )}
-                  <a
-                    href={cert.certificateUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => setSelectedCertificate(cert)}
                     className="block w-full text-center px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm"
                   >
-                    Download Certificate
-                  </a>
+                    View Certificate
+                  </button>
                 </div>
               ))}
             </div>
@@ -445,6 +445,33 @@ export default function TrainingTab() {
           }}
           isLoading={startMutation.isLoading}
         />
+      )}
+
+      {/* Certificate Modal */}
+      {selectedCertificate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 overflow-y-auto">
+          <div className="bg-gray-900 rounded-lg shadow-xl max-w-3xl w-full my-8">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+              <h2 className="text-2xl font-bold text-white">Certificate of Completion</h2>
+              <button
+                onClick={() => setSelectedCertificate(null)}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(100vh-150px)]">
+              <CertificateGenerator
+                participantName={selectedCertificate.fullName}
+                courseTitle={selectedCertificate.courseTitle}
+                completionDate={new Date(selectedCertificate.completionDate)}
+                certificateId={selectedCertificate.certificateNumber}
+                score={selectedCertificate.score}
+                passingScore={selectedCertificate.passingScore}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
