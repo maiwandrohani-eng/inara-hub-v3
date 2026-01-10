@@ -1,11 +1,10 @@
 /**
  * PDFViewer Component - Unified PDF viewing solution
  * 
- * DESIGN PRINCIPLE: Never attempt inline PDF rendering
- * - No iframes, object, or embed tags
- * - Always use window.open() for viewing
- * - Always use direct download links
- * - Works with R2 URLs and local URLs
+ * KEY INSIGHT: R2 URLs need to go through the /api/uploads/ endpoint
+ * - Vercel rewrites R2 URLs to HTML (routing issue)
+ * - API proxy handles this correctly
+ * - Always use /api/uploads/[...path] for file access
  */
 
 interface PDFViewerProps {
@@ -23,16 +22,37 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
     );
   }
 
-  // Ensure we have a usable URL
-  let finalUrl = pdfUrl.trim();
-  
-  // If it's a relative path, make it absolute
-  if (!finalUrl.startsWith('http') && !finalUrl.startsWith('/')) {
-    finalUrl = `/uploads/${finalUrl}`;
-  }
+  // Convert R2 URLs to API proxy URLs to avoid Vercel routing issues
+  const getProxiedUrl = () => {
+    let url = pdfUrl.trim();
+    
+    // If it's an R2 URL (full URL), extract the path and use API proxy
+    if (url.startsWith('http')) {
+      try {
+        const parsedUrl = new URL(url);
+        // Extract path from R2 URL (e.g., /library/file.pdf)
+        const path = parsedUrl.pathname;
+        // Use API proxy to access R2 files
+        return `/api${path}`;
+      } catch {
+        // Invalid URL, use as-is
+        return url;
+      }
+    }
+    
+    // If it's already a path, ensure it goes through API proxy
+    if (url.startsWith('/')) {
+      return `/api${url}`;
+    }
+    
+    // Otherwise assume it's a relative path and add /api/uploads/
+    return `/api/uploads/${url}`;
+  };
+
+  const proxiedUrl = getProxiedUrl();
 
   const handleOpenPDF = () => {
-    window.open(finalUrl, '_blank', 'noopener,noreferrer');
+    window.open(proxiedUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -58,7 +78,7 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
               </button>
               
               <a
-                href={finalUrl}
+                href={proxiedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -68,7 +88,7 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
               </a>
               
               <a
-                href={finalUrl}
+                href={proxiedUrl}
                 download
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
                 title="Download PDF file"
