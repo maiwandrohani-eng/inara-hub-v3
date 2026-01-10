@@ -63,105 +63,117 @@ export default function CertificateGenerator({
             }
             
             @page {
-              size: 8.5in 11in;
+              size: A4;
               margin: 0;
-              padding: 0;
             }
             
             .certificate-container {
-              width: 8.5in;
-              height: 11in;
-              padding: 60px;
+              width: 210mm;
+              height: 297mm;
+              padding: 35px 45px;
               background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
-              border: 4px solid #0066CC;
-              border-radius: 10px;
+              border: 3px solid #0066CC;
+              border-radius: 8px;
               text-align: center;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
               flex-shrink: 0;
               box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-start;
             }
             
             .logo-section {
-              margin-bottom: 25px;
+              margin-bottom: 15px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+            }
+            
+            .logo-image {
+              width: 50px;
+              height: 50px;
+              object-fit: contain;
             }
             
             .logo-text {
-              font-size: 26px;
+              font-size: 20px;
               font-weight: bold;
               background: linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
-              letter-spacing: 3px;
+              letter-spacing: 2px;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
             }
             
             .title {
-              font-size: 48px;
+              font-size: 38px;
               font-weight: bold;
               color: #0066CC;
-              margin-bottom: 20px;
+              margin-bottom: 12px;
               text-transform: uppercase;
-              letter-spacing: 2px;
+              letter-spacing: 1px;
             }
             
             .subtitle {
-              font-size: 18px;
+              font-size: 14px;
               color: #475569;
-              margin-bottom: 30px;
+              margin-bottom: 18px;
               font-style: italic;
             }
             
             .awarded-to {
-              font-size: 14px;
+              font-size: 12px;
               color: #475569;
-              margin-bottom: 15px;
+              margin-bottom: 10px;
               text-transform: uppercase;
             }
             
             .participant-name {
-              font-size: 36px;
+              font-size: 28px;
               font-weight: bold;
               background: linear-gradient(135deg, #0066CC 0%, #E91E8C 100%);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
-              margin-bottom: 20px;
+              margin-bottom: 12px;
               border-bottom: 3px solid;
               border-image: linear-gradient(to right, #FFC627, #E91E8C, #00C9B7, #0066CC) 1;
-              padding-bottom: 10px;
+              padding-bottom: 8px;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
             }
             
             .in-recognition {
-              font-size: 14px;
+              font-size: 12px;
               color: #475569;
-              margin-bottom: 10px;
+              margin-bottom: 8px;
             }
             
             .course-title {
-              font-size: 24px;
+              font-size: 18px;
               font-weight: bold;
               background: linear-gradient(135deg, #E91E8C 0%, #FFC627 100%);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
-              margin-bottom: 25px;
+              margin-bottom: 15px;
               font-style: italic;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
             }
             
             .description {
-              font-size: 12px;
+              font-size: 11px;
               color: #64748b;
-              line-height: 1.6;
-              margin-bottom: 30px;
-              max-width: 600px;
+              line-height: 1.5;
+              margin-bottom: 15px;
+              max-width: 500px;
               margin-left: auto;
               margin-right: auto;
             }
@@ -169,13 +181,13 @@ export default function CertificateGenerator({
             .details {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 20px;
-              font-size: 12px;
-              margin-bottom: 20px;
+              gap: 12px;
+              font-size: 10px;
+              margin-bottom: 12px;
               border-top: 2px solid;
               border-bottom: 2px solid;
               border-image: linear-gradient(to right, #FFC627, #E91E8C, #00C9B7, #0066CC) 1;
-              padding: 20px 0;
+              padding: 12px 0;
             }
             
             .detail-item {
@@ -188,15 +200,15 @@ export default function CertificateGenerator({
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
-              margin-bottom: 5px;
-              font-size: 11px;
+              margin-bottom: 3px;
+              font-size: 9px;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
             }
             
             .detail-value {
               color: #475569;
-              font-size: 12px;
+              font-size: 10px;
             }
             
             .score-value {
@@ -205,23 +217,24 @@ export default function CertificateGenerator({
             }
             
             .footer {
-              font-size: 11px;
+              font-size: 9px;
               color: #94a3b8;
-              margin-top: 20px;
+              margin-top: 10px;
+              margin-bottom: 8px;
               font-style: italic;
             }
             
             .seal {
               display: inline-flex;
-              width: 80px;
-              height: 80px;
-              border: 3px solid;
+              width: 60px;
+              height: 60px;
+              border: 2px solid;
               border-image: linear-gradient(135deg, #FFC627 0%, #E91E8C 25%, #00C9B7 50%, #0066CC 75%) 1;
               border-radius: 50%;
               align-items: center;
               justify-content: center;
-              margin-top: 10px;
-              font-size: 40px;
+              margin-top: 5px;
+              font-size: 32px;
               color-adjust: exact;
               -webkit-print-color-adjust: exact;
             }
@@ -243,6 +256,11 @@ export default function CertificateGenerator({
         <body>
           <div class="certificate-container">
             <div class="logo-section">
+              <svg class="logo-image" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#0066CC" stroke-width="2"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#E91E8C" stroke-width="1"/>
+                <text x="50" y="60" font-size="48" font-weight="bold" text-anchor="middle" fill="#0066CC">◆</text>
+              </svg>
               <div class="logo-text">⟨ INARA ⟩</div>
             </div>
             
