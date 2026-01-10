@@ -11,48 +11,23 @@ export default function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
 
   // Convert relative URL to absolute if needed
   // Handle different URL formats:
-  // - Full URLs (http://...): Check if it's R2 public URL or needs proxy
-  // - URLs starting with /uploads: proxy through API
-  // - Relative paths: prepend /uploads and proxy through API
+  // - Full URLs (http://...): Use directly or proxy depending on origin
+  // - URLs starting with /uploads or /academy/resources: Use directly
+  // - Relative paths: prepend /api/uploads and use directly
   const getFullPdfUrl = () => {
-    // Always use API proxy for R2 URLs to avoid Vercel rewrite issues
-    // R2 public URLs might be caught by Vercel rewrites and return HTML instead of PDF
-    
     if (pdfUrl.startsWith('http')) {
-      // If it's an R2 public URL (hub.inara.ngo), extract the path and use API proxy
-      // This prevents Vercel from catching it and returning HTML
-      try {
-        const url = new URL(pdfUrl);
-        // If it's the same origin or R2 public URL, use API proxy
-        if (url.hostname === window.location.hostname || url.hostname.includes('inara.ngo')) {
-          // Extract path (e.g., /library/1767878369908-79350700.pdf)
-          // Remove leading slash to get the R2 key (e.g., library/1767878369908-79350700.pdf)
-          const r2Key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
-          // Use API uploads proxy endpoint - it expects the R2 key directly
-          return `${window.location.origin}/api/uploads/${r2Key}`;
-        }
-        // External URL - use directly
-        return pdfUrl;
-      } catch {
-        // Invalid URL, use as-is
-        return pdfUrl;
-      }
+      // Full URL - use directly
+      // The browser will handle CORS and the server should allow PDF access
+      return pdfUrl;
     }
     
-    // If URL already starts with /uploads, proxy through API
-    if (pdfUrl.startsWith('/uploads')) {
-      // Use API proxy endpoint to handle CORS and authentication
-      const apiBase = (import.meta as any).env?.DEV 
-        ? 'http://localhost:5000' 
-        : ((import.meta as any).env?.VITE_API_URL || window.location.origin);
-      return `${apiBase}/api${pdfUrl}`;
+    // If URL starts with /uploads or /academy/resources, it's already a valid path
+    if (pdfUrl.startsWith('/uploads') || pdfUrl.startsWith('/academy/resources')) {
+      return pdfUrl;
     }
     
-    // Otherwise, prepend /uploads and proxy through API
-    const apiBase = (import.meta as any).env?.DEV 
-      ? 'http://localhost:5000' 
-      : ((import.meta as any).env?.VITE_API_URL || window.location.origin);
-    return `${apiBase}/api/uploads/${pdfUrl}`;
+    // Otherwise, prepend /uploads
+    return `/uploads/${pdfUrl}`;
   };
 
   const fullPdfUrl = getFullPdfUrl();
