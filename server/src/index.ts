@@ -162,10 +162,17 @@ app.get('/api/uploads/*', genericFileProxy);
 
 async function genericFileProxy(req: express.Request, res: express.Response) {
   try {
-    // Extract the path after /api/
+    // Extract the path after /api/uploads/
     let filePath = req.path;
-    if (filePath.startsWith('/api/')) {
+    if (filePath.startsWith('/api/uploads/')) {
+      filePath = filePath.replace('/api/uploads/', '');
+    } else if (filePath.startsWith('/api/')) {
       filePath = filePath.replace('/api/', '');
+    }
+    
+    // Clean up any leading 'uploads/' prefix if present
+    if (filePath.startsWith('uploads/')) {
+      filePath = filePath.replace('uploads/', '');
     }
     
     if (!filePath) {
