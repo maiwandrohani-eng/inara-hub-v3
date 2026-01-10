@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../../api/client';
 import { getAllTrainingCategories, getTrainingSubcategories } from '../../config/categories';
 import CourseResourceManager from './CourseResourceManager';
+import BulkLessonImporter from './BulkLessonImporter';
+import BulkQuestionImporter from './BulkQuestionImporter';
 
 export default function TrainingManagement() {
   const [showForm, setShowForm] = useState(false);
@@ -10,6 +12,8 @@ export default function TrainingManagement() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [textContent, setTextContent] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [showBulkLessonImporter, setShowBulkLessonImporter] = useState(false);
+  const [showBulkQuestionImporter, setShowBulkQuestionImporter] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({
     stage: '',
     percentage: 0,
@@ -805,34 +809,62 @@ export default function TrainingManagement() {
               <div className="bg-gray-700 rounded-lg p-4 space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-bold text-white">Lessons & Slides</h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newLessons = [...formData.lessons, {
-                        title: '',
-                        content: '',
-                        order: formData.lessons.length,
-                        slides: [{
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkLessonImporter(true)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                    >
+                      📦 Bulk Import Lessons
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newLessons = [...formData.lessons, {
                           title: '',
                           content: '',
-                          order: 0,
-                          slideType: 'content',
-                          hasMicroQuiz: false,
-                          microQuiz: {
-                            question: '',
-                            options: ['', '', '', ''],
-                            correctAnswer: 0,
-                            explanation: '',
-                          },
-                        }],
-                      }];
-                      setFormData({ ...formData, lessons: newLessons });
-                    }}
-                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm"
-                  >
-                    + Add Lesson
-                  </button>
+                          order: formData.lessons.length,
+                          slides: [{
+                            title: '',
+                            content: '',
+                            order: 0,
+                            slideType: 'content',
+                            hasMicroQuiz: false,
+                            microQuiz: {
+                              question: '',
+                              options: ['', '', '', ''],
+                              correctAnswer: 0,
+                              explanation: '',
+                            },
+                          }],
+                        }];
+                        setFormData({ ...formData, lessons: newLessons });
+                      }}
+                      className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm"
+                    >
+                      + Add Lesson
+                    </button>
+                  </div>
                 </div>
+
+                {showBulkLessonImporter && (
+                  <div className="bg-gray-800 border border-green-500/30 rounded-lg p-4">
+                    <BulkLessonImporter
+                      onImport={(importedLessons) => {
+                        const newLessons = [
+                          ...formData.lessons,
+                          ...importedLessons.map((lesson, idx) => ({
+                            ...lesson,
+                            order: formData.lessons.length + idx,
+                          })),
+                        ];
+                        setFormData({ ...formData, lessons: newLessons });
+                        setShowBulkLessonImporter(false);
+                      }}
+                      onCancel={() => setShowBulkLessonImporter(false)}
+                    />
+                  </div>
+                )}
 
                 {formData.lessons.map((lesson, lessonIdx) => (
                   <div key={lessonIdx} className="bg-gray-600 rounded-lg p-4 space-y-3 border border-gray-500">
@@ -1052,6 +1084,13 @@ export default function TrainingManagement() {
                     </div>
                     <button
                       type="button"
+                      onClick={() => setShowBulkQuestionImporter(true)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                    >
+                      📦 Bulk Import
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         const newQuestions = [...formData.finalExam.questions, {
                           question: '',
@@ -1070,6 +1109,25 @@ export default function TrainingManagement() {
                     </button>
                   </div>
                 </div>
+
+                {showBulkQuestionImporter && (
+                  <div className="bg-gray-800 border border-green-500/30 rounded-lg p-4">
+                    <BulkQuestionImporter
+                      onImport={(importedQuestions) => {
+                        const newQuestions = [
+                          ...formData.finalExam.questions,
+                          ...importedQuestions,
+                        ];
+                        setFormData({
+                          ...formData,
+                          finalExam: { ...formData.finalExam, questions: newQuestions },
+                        });
+                        setShowBulkQuestionImporter(false);
+                      }}
+                      onCancel={() => setShowBulkQuestionImporter(false)}
+                    />
+                  </div>
+                )}
 
                 {formData.finalExam.questions.map((question, qIdx) => (
                   <div key={qIdx} className="bg-gray-600 rounded-lg p-4 space-y-3 border border-gray-500">

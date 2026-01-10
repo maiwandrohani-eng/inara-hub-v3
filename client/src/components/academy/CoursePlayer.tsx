@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
+import QuickPDFModal from './QuickPDFModal';
 
 interface Slide {
   id: string;
@@ -84,6 +85,7 @@ export default function CoursePlayer({ courseId, onComplete, onExit }: CoursePla
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [selectedResource, setSelectedResource] = useState<any>(null);
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -564,10 +566,26 @@ export default function CoursePlayer({ courseId, onComplete, onExit }: CoursePla
                 >
                   📥 Download
                 </a>
+                {resource.fileType.toLowerCase() === 'pdf' && (
+                  <button
+                    onClick={() => setSelectedResource(resource)}
+                    className="block w-full mt-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 text-center transition-colors"
+                  >
+                    👁️ Quick View
+                  </button>
+                )}
               </div>
             ))}
           </div>
         </div>
+      )}
+
+      {/* Quick PDF Modal */}
+      {selectedResource && (
+        <QuickPDFModal
+          resource={selectedResource}
+          onClose={() => setSelectedResource(null)}
+        />
       )}
     </div>
   );
