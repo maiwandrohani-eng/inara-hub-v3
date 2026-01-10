@@ -24,10 +24,36 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  // Convert R2 URLs to API proxy URLs to avoid Vercel routing issues
+  const getProxiedUrl = () => {
+    let url = resource.fileUrl.trim();
+    
+    // If it's an R2 URL (full URL), extract the path and use API proxy
+    if (url.startsWith('http')) {
+      try {
+        const parsedUrl = new URL(url);
+        const path = parsedUrl.pathname;
+        return `/api${path}`;
+      } catch {
+        return url;
+      }
+    }
+    
+    // If it's already a path, ensure it goes through API proxy
+    if (url.startsWith('/')) {
+      return `/api${url}`;
+    }
+    
+    // Otherwise assume it's a relative path and add /api/uploads/
+    return `/api/uploads/${url}`;
+  };
+
+  const proxiedUrl = getProxiedUrl();
+
   const handlePrint = () => {
     if (resource.fileType.toLowerCase() === 'pdf') {
       // For PDFs, open in new window to print
-      const printWindow = window.open(resource.fileUrl, '_blank');
+      const printWindow = window.open(proxiedUrl, '_blank');
       if (printWindow) {
         printWindow.addEventListener('load', () => {
           setTimeout(() => {
@@ -37,7 +63,7 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
       }
     } else {
       // For other files, open in new tab
-      window.open(resource.fileUrl, '_blank');
+      window.open(proxiedUrl, '_blank');
     }
   };
 
@@ -74,7 +100,7 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
               🖨️ Print
             </button>
             <a
-              href={resource.fileUrl}
+              href={proxiedUrl}
               download={resource.fileName}
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
               title="Download file"
@@ -82,7 +108,7 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
               ⬇️
             </a>
             <a
-              href={resource.fileUrl}
+              href={proxiedUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
@@ -105,7 +131,7 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
           {resource.fileType.toLowerCase() === 'pdf' ? (
             <div className="w-full h-full">
               <iframe
-                src={`${resource.fileUrl}#toolbar=1`}
+                src={`${proxiedUrl}#toolbar=1`}
                 className="w-full h-full border-none"
                 title={resource.title}
               />
@@ -118,7 +144,7 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
               </div>
               <div className="flex gap-3 justify-center flex-wrap">
                 <a
-                  href={resource.fileUrl}
+                  href={proxiedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium"
@@ -126,7 +152,7 @@ export default function QuickPDFModal({ resource, onClose }: QuickPDFModalProps)
                   📂 Open in Browser
                 </a>
                 <a
-                  href={resource.fileUrl}
+                  href={proxiedUrl}
                   download={resource.fileName}
                   className="inline-block px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 text-sm font-medium"
                 >
