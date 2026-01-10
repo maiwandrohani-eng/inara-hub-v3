@@ -798,9 +798,11 @@ export default function TrainingManagement() {
                     <div className="bg-gray-800 border border-green-500/30 rounded-lg p-4 mb-4">
                       <BulkObjectiveImporter
                         onImport={(importedObjectives) => {
+                          // Filter out empty strings from imported objectives
+                          const cleanedObjectives = importedObjectives.filter((obj: string) => obj.trim());
                           setFormData({
                             ...formData,
-                            objectives: importedObjectives,
+                            objectives: cleanedObjectives.length > 0 ? cleanedObjectives : [''],
                           });
                           setShowBulkObjectiveImporter(false);
                         }}
@@ -892,13 +894,11 @@ export default function TrainingManagement() {
                   <div className="bg-gray-800 border border-green-500/30 rounded-lg p-4">
                     <BulkLessonImporter
                       onImport={(importedLessons) => {
-                        const newLessons = [
-                          ...formData.lessons,
-                          ...importedLessons.map((lesson, idx) => ({
-                            ...lesson,
-                            order: formData.lessons.length + idx,
-                          })),
-                        ];
+                        // Replace default lessons with imported ones
+                        const newLessons = importedLessons.map((lesson, idx) => ({
+                          ...lesson,
+                          order: idx,
+                        }));
                         setFormData({ ...formData, lessons: newLessons });
                         setShowBulkLessonImporter(false);
                       }}
@@ -1221,13 +1221,11 @@ export default function TrainingManagement() {
                   <div className="bg-gray-800 border border-green-500/30 rounded-lg p-4">
                     <BulkQuestionImporter
                       onImport={(importedQuestions) => {
-                        const newQuestions = [
-                          ...formData.finalExam.questions,
-                          ...importedQuestions,
-                        ];
+                        // Replace default questions with imported ones
+                        const cleanedQuestions = importedQuestions.filter((q: any) => q.question && q.question.trim());
                         setFormData({
                           ...formData,
-                          finalExam: { ...formData.finalExam, questions: newQuestions },
+                          finalExam: { ...formData.finalExam, questions: cleanedQuestions.length > 0 ? cleanedQuestions : [{ question: '', options: ['', '', '', ''], correctAnswer: 0, explanation: '' }] },
                         });
                         setShowBulkQuestionImporter(false);
                       }}
