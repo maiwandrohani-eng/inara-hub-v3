@@ -360,7 +360,7 @@ export default function LibraryTab() {
           fileUrl={selectedResource.fileUrl || ''}
           title={selectedResource.title}
           fileType={selectedResource.fileUrl?.split('.').pop()?.toLowerCase()}
-          downloadEndpoint={selectedResource.fileUrl?.startsWith('/uploads/') ? `/api${selectedResource.fileUrl}` : undefined}
+          downloadEndpoint={selectedResource.fileUrl?.startsWith('/uploads/') ? selectedResource.fileUrl : undefined}
           resourceId={selectedResource.id}
         />
       )}
