@@ -735,7 +735,7 @@ export default function TrainingManagement() {
               </button>
             </form>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
                 <p className="text-blue-300 text-sm">
                   📝 <strong>Manual Course Creation:</strong> Build your course step-by-step with lessons, slides, and assessments.
