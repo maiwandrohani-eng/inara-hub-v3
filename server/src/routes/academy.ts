@@ -283,7 +283,6 @@ router.post('/courses/:id/complete', authenticate, async (req: AuthRequest, res)
       passed: true,
       score,
       certificate: certificate,
-      certificateUrl,
       message: 'Congratulations! Course completed successfully.',
     });
   } catch (error: any) {
