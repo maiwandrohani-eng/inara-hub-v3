@@ -142,7 +142,7 @@ export default function LibraryManagement() {
     e.preventDefault();
     
     if (uploadMode === 'multiple' && selectedFiles.length > 0) {
-      // Handle multiple file upload with category/subcategory
+      // Handle multiple file upload with category/subcategory only (no title needed)
       const submitData: any = {
         ...formData,
         category: isCustomCategory ? formData.customCategory : formData.category,
@@ -157,6 +157,12 @@ export default function LibraryManagement() {
       return;
     }
     
+    // Handle single file upload (requires title)
+    if (uploadMode === 'single' && !formData.title) {
+      alert('Please enter a title');
+      return;
+    }
+
     const submitData: any = {
       ...formData,
       category: isCustomCategory ? formData.customCategory : formData.category,
@@ -443,16 +449,18 @@ export default function LibraryManagement() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">Title *</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-              />
-            </div>
+            {uploadMode === 'single' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-1">Title *</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-200 mb-1">Resource Type *</label>
               <select
