@@ -3,11 +3,14 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import CommentsSection from '../../components/CommentsSection';
+import ViewToggle from '../../components/ViewToggle';
+import { useViewMode } from '../../hooks/useViewMode';
 
 export default function NewsTab() {
   const [selectedNews, setSelectedNews] = useState<string | null>(null);
   const [showConfirmations, setShowConfirmations] = useState<string | null>(null);
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [listViewMode, handleListViewModeChange] = useViewMode('news', 'grid');
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'COUNTRY_DIRECTOR' || user?.role === 'DEPARTMENT_HEAD';
@@ -79,6 +82,7 @@ export default function NewsTab() {
           <h1 className="text-3xl font-bold text-white">News & Announcements</h1>
           <p className="text-gray-400 mt-2">Stay updated with INARA announcements</p>
         </div>
+        <ViewToggle viewMode={listViewMode} onViewModeChange={handleListViewModeChange} />
       </div>
 
       {/* Enhanced Filters */}
@@ -129,18 +133,64 @@ export default function NewsTab() {
         <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 text-center">
           <p className="text-gray-400">No announcements at this time.</p>
         </div>
-      ) : (
-        <div className="space-y-4">
+      ) : listViewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredNews.map((item: any) => (
             <div
               key={item.id}
-              className={`bg-gray-800 rounded-lg shadow border-l-4 ${
+              className={`bg-gray-800 rounded-lg shadow border-l-4 cursor-pointer hover:shadow-lg transition-shadow ${
                 item.priority === 'urgent'
                   ? 'border-red-500'
                   : item.priority === 'high'
                   ? 'border-orange-500'
                   : 'border-blue-500'
               }`}
+              onClick={() => setSelectedNews(item.id)}
+            >
+              <div className="p-6 flex flex-col h-full">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="text-lg font-bold text-white flex-1 line-clamp-2">{item.title}</h3>
+                  <span
+                    className={`px-2 py-1 text-xs font-medium rounded border whitespace-nowrap ml-2 ${getPriorityColor(
+                      item.priority
+                    )}`}
+                  >
+                    {item.priority.toUpperCase()}
+                  </span>
+                </div>
+                {item.summary && (
+                  <p className="text-gray-300 mb-3 line-clamp-2 text-sm">{item.summary}</p>
+                )}
+                <div className="text-gray-400 text-xs mb-3 line-clamp-2">
+                  {item.content?.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                </div>
+                <div className="mt-auto pt-3 border-t border-gray-700 text-xs text-gray-400">
+                  <div className="flex justify-between">
+                    <span>
+                      {new Date(item.publishedAt).toLocaleDateString()}
+                    </span>
+                    <span>
+                      {item.confirmationCount || 0} confirmed
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredNews.map((item: any) => (
+            <div
+              key={item.id}
+              className={`bg-gray-800 rounded-lg shadow border-l-4 cursor-pointer hover:shadow-lg transition-shadow ${
+                item.priority === 'urgent'
+                  ? 'border-red-500'
+                  : item.priority === 'high'
+                  ? 'border-orange-500'
+                  : 'border-blue-500'
+              }`}
+              onClick={() => setSelectedNews(item.id)}
             >
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">

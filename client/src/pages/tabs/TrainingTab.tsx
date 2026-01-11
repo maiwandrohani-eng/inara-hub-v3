@@ -6,11 +6,14 @@ import { useAuthStore } from '../../store/authStore';
 import CoursePlayer from '../../components/academy/CoursePlayer';
 import CourseStartModal from '../../components/academy/CourseStartModal';
 import CertificateGenerator from '../../components/academy/CertificateGenerator';
+import ViewToggle from '../../components/ViewToggle';
+import { useViewMode } from '../../hooks/useViewMode';
 
 export default function TrainingTab() {
   const [filter, setFilter] = useState<'all' | 'mandatory' | 'completed' | 'in-progress' | 'tracks'>('all');
   const [courseTypeFilter, setCourseTypeFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [listViewMode, handleListViewModeChange] = useViewMode('training', 'grid');
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [courseStartMode, setCourseStartMode] = useState<'course' | 'assessment' | null>(null);
   const [showCourseStartModal, setShowCourseStartModal] = useState(false);
@@ -266,17 +269,20 @@ export default function TrainingTab() {
             Showing <strong className="text-white">{filteredCourses.length}</strong> of{' '}
             <strong className="text-white">{allCourses.length}</strong> courses
           </div>
-          <button
-            onClick={() => {
-              setShowCertificates(!showCertificates);
-              if (!showCertificates) {
-                refetchCertificates();
-              }
-            }}
-            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm"
-          >
-            {showCertificates ? 'Hide' : 'View'} My Certificates ({certificates.length})
-          </button>
+          <div className="flex items-center gap-4">
+            <ViewToggle viewMode={listViewMode} onViewModeChange={handleListViewModeChange} />
+            <button
+              onClick={() => {
+                setShowCertificates(!showCertificates);
+                if (!showCertificates) {
+                  refetchCertificates();
+                }
+              }}
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm whitespace-nowrap"
+            >
+              {showCertificates ? 'Hide' : 'View'} My Certificates ({certificates.length})
+            </button>
+          </div>
         </div>
       </div>
 
@@ -324,7 +330,7 @@ export default function TrainingTab() {
         </div>
       )}
 
-      {/* Courses Grid */}
+      {/* Courses Grid/List */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-4">Available Courses</h2>
         {isLoading ? (
@@ -333,7 +339,7 @@ export default function TrainingTab() {
           <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 text-center">
             <p className="text-gray-400">No courses found matching your filters.</p>
           </div>
-        ) : (
+        ) : listViewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCourses.map((course: any) => {
               const completion = course.completions?.[0];
@@ -433,6 +439,86 @@ export default function TrainingTab() {
                       📜 View Certificate
                     </a>
                   )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredCourses.map((course: any) => {
+              const completion = course.completions?.[0];
+              const progress = completion?.progress || 0;
+              const status = completion?.status || 'NOT_STARTED';
+
+              return (
+                <div
+                  key={course.id}
+                  className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-white mb-1 truncate">{course.title}</h3>
+                      <p className="text-sm text-gray-400 mb-2 line-clamp-2">{course.description}</p>
+                      <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                        <span>{course.lessons?.length || 0} lessons</span>
+                        <span>{course.duration || 0} min</span>
+                        {completion?.score !== null && completion?.score !== undefined && (
+                          <span className="text-primary-400">Score: {completion.score}%</span>
+                        )}
+                      </div>
+
+                      {/* Progress Bar */}
+                      {status !== 'NOT_STARTED' && (
+                        <div className="mb-2">
+                          <div className="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>Progress</span>
+                            <span>{progress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-primary-500 h-2 rounded-full transition-all"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2 whitespace-nowrap">
+                      <button
+                        onClick={() => {
+                          setSelectedCourseForModal(course);
+                          setShowCourseStartModal(true);
+                        }}
+                        disabled={startMutation.isLoading}
+                        className={`py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                          status === 'COMPLETED'
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : status === 'IN_PROGRESS'
+                            ? 'bg-primary-500 text-white hover:bg-primary-600'
+                            : 'bg-primary-500 text-white hover:bg-primary-600'
+                        }`}
+                      >
+                        {startMutation.isLoading
+                          ? 'Starting...'
+                          : status === 'COMPLETED'
+                          ? 'View Cert'
+                          : status === 'IN_PROGRESS'
+                          ? 'Continue'
+                          : 'Start'}
+                      </button>
+                      {completion?.certificateUrl && (
+                        <a
+                          href={completion.certificateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-center text-xs text-primary-400 hover:text-primary-300 py-1"
+                        >
+                          📜 Cert
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}

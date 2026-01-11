@@ -4,6 +4,8 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import PDFViewer from '../../components/PDFViewer';
+import ViewToggle from '../../components/ViewToggle';
+import { useViewMode } from '../../hooks/useViewMode';
 
 // Helper function to convert R2 URLs to API proxy URLs - standardized to /api/uploads/
 const getProxiedPolicyUrl = (fileUrl: string): string => {
@@ -37,6 +39,7 @@ export default function PoliciesTab() {
   const [filter, setFilter] = useState<'all' | 'mandatory' | 'acknowledged' | 'not-acknowledged'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'brief' | 'complete' | 'assessment' | 'file'>('brief');
+  const [listViewMode, handleListViewModeChange] = useViewMode('policies', 'grid');
   const [selectedPolicy, setSelectedPolicy] = useState<any | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [takingAssessment, setTakingAssessment] = useState(false);
@@ -262,15 +265,70 @@ export default function PoliciesTab() {
         )}
 
         {/* Results Count */}
-        <div className="text-sm text-gray-400">
-          Showing <strong className="text-white">{filteredPolicies.length}</strong> of{' '}
-          <strong className="text-white">{allPolicies.length}</strong> policies
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-gray-400">
+            Showing <strong className="text-white">{filteredPolicies.length}</strong> of{' '}
+            <strong className="text-white">{allPolicies.length}</strong> policies
+          </div>
+          <ViewToggle viewMode={listViewMode} onViewModeChange={handleListViewModeChange} />
         </div>
       </div>
 
-      {/* Policy List */}
+      {/* Policy List/Grid */}
       {isLoading ? (
         <div className="text-center py-12">Loading policies...</div>
+      ) : listViewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPolicies.map((policy: any) => {
+            const cert = policy.certifications?.[0];
+            const status = cert?.status || 'NOT_ACKNOWLEDGED';
+
+            return (
+              <div
+                key={policy.id}
+                className="bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => setSelectedPolicy(policy)}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">
+                      {policy.title}
+                    </h3>
+                    {policy.isMandatory && (
+                      <span className="inline-block bg-red-900/30 text-red-300 text-xs font-medium px-2 py-1 rounded mt-1 mr-1">
+                        Mandatory
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs font-medium px-2 py-1 rounded whitespace-nowrap ${
+                      status === 'ACKNOWLEDGED'
+                        ? 'bg-green-900/30 text-green-300'
+                        : 'bg-yellow-100 text-yellow-300'
+                    }`}
+                  >
+                    {status.replace('_', ' ')}
+                  </span>
+                </div>
+                {policy.category && (
+                  <p className="text-xs text-gray-400 mb-2">📁 {policy.category}</p>
+                )}
+                <p className="text-sm text-gray-300 mb-3 line-clamp-2">
+                  {policy.brief}
+                </p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedPolicy(policy);
+                  }}
+                  className="w-full px-3 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"
+                >
+                  View Policy
+                </button>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div className="space-y-4">
           {filteredPolicies.map((policy: any) => {
