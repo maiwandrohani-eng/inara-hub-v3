@@ -36,12 +36,42 @@ const getProxiedResourceUrl = (fileUrl: string): string => {
 
 // Helper function to format slide content as bullet points
 const formatSlideContent = (content: string): React.ReactNode => {
-  // Check if content is already HTML (contains HTML tags)
+  // Check if content contains HTML paragraph tags
+  if (/<p[^>]*>.*?<\/p>/gi.test(content)) {
+    // Extract text from paragraph tags and convert to bullets
+    const paragraphRegex = /<p[^>]*>(.*?)<\/p>/gi;
+    const lines: string[] = [];
+    let match;
+    
+    while ((match = paragraphRegex.exec(content)) !== null) {
+      const text = match[1].trim();
+      // Remove any remaining HTML tags from the paragraph content
+      const cleanText = text.replace(/<[^>]*>/g, '').trim();
+      if (cleanText.length > 0) {
+        lines.push(cleanText);
+      }
+    }
+    
+    // If we extracted paragraphs, render as bullet list
+    if (lines.length > 0) {
+      return (
+        <ul className="list-disc list-inside space-y-2 text-gray-200">
+          {lines.map((line, index) => (
+            <li key={index} className="leading-relaxed">
+              {line}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+  }
+  
+  // Check if content is other HTML (preserve as-is)
   if (/<[^>]*>/g.test(content)) {
     return <div dangerouslySetInnerHTML={{ __html: content }} />;
   }
   
-  // Split by newlines and filter empty lines
+  // Plain text: Split by newlines and filter empty lines
   const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   
   // If only one line, return as is
