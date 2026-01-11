@@ -34,63 +34,6 @@ const getProxiedResourceUrl = (fileUrl: string): string => {
   return `/api/uploads/${fileUrl}`;
 };
 
-// Helper function to format slide content as bullet points
-const formatSlideContent = (content: string): React.ReactNode => {
-  // Check if content contains HTML paragraph tags
-  if (/<p[^>]*>.*?<\/p>/gi.test(content)) {
-    // Extract text from paragraph tags and convert to bullets
-    const paragraphRegex = /<p[^>]*>(.*?)<\/p>/gi;
-    const lines: string[] = [];
-    let match;
-    
-    while ((match = paragraphRegex.exec(content)) !== null) {
-      const text = match[1].trim();
-      // Remove any remaining HTML tags from the paragraph content
-      const cleanText = text.replace(/<[^>]*>/g, '').trim();
-      if (cleanText.length > 0) {
-        lines.push(cleanText);
-      }
-    }
-    
-    // If we extracted paragraphs, render as bullet list
-    if (lines.length > 0) {
-      return (
-        <ul className="list-disc list-inside space-y-2 text-gray-200">
-          {lines.map((line, index) => (
-            <li key={index} className="leading-relaxed">
-              {line}
-            </li>
-          ))}
-        </ul>
-      );
-    }
-  }
-  
-  // Check if content is other HTML (preserve as-is)
-  if (/<[^>]*>/g.test(content)) {
-    return <div dangerouslySetInnerHTML={{ __html: content }} />;
-  }
-  
-  // Plain text: Split by newlines and filter empty lines
-  const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  
-  // If only one line, return as is
-  if (lines.length <= 1) {
-    return <p className="text-gray-200">{content}</p>;
-  }
-  
-  // Return as bullet list
-  return (
-    <ul className="list-disc list-inside space-y-2 text-gray-200">
-      {lines.map((line, index) => (
-        <li key={index} className="leading-relaxed">
-          {line}
-        </li>
-      ))}
-    </ul>
-  );
-};
-
 interface Slide {
   id: string;
   title: string;
@@ -777,9 +720,12 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
         <div className="max-w-5xl mx-auto p-8">
           <div className="bg-gray-800 rounded-lg shadow-xl p-8 mb-6">
             <h2 className="text-3xl font-bold text-white mb-6">{currentSlide.title}</h2>
-            <div className="prose prose-invert max-w-none">
-              {formatSlideContent(currentSlide.content)}
-            </div>
+            <div
+              className="prose prose-invert max-w-none text-gray-200 
+                [&_p]:ml-6 [&_p]:before:content-['•'] [&_p]:before:mr-3 
+                [&_p]:before:text-primary-400 [&_p]:mb-2"
+              dangerouslySetInnerHTML={{ __html: currentSlide.content }}
+            />
             {currentSlide.mediaUrl && (
               <div className="mt-6">
                 <img src={currentSlide.mediaUrl} alt={currentSlide.title} className="rounded-lg" />
