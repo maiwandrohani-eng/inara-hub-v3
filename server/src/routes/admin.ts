@@ -2441,6 +2441,11 @@ router.put('/orientations/:id/steps/:stepId', upload.single('pdf'), async (req: 
     const { id, stepId } = req.params;
     const { stepNumber, title, description, content, policyId, questions, isRequired, order, removePdf } = req.body;
 
+    // Validate required fields
+    if (!title || title.trim() === '') {
+      return res.status(400).json({ message: 'Step title is required' });
+    }
+
     // Handle PDF upload or removal
     let pdfUrl = undefined;
     if (req.file) {
@@ -2460,24 +2465,33 @@ router.put('/orientations/:id/steps/:stepId', upload.single('pdf'), async (req: 
       }
     }
 
+    console.log('📝 Updating step:', { stepId, title, stepNumber, content, hasDescription: !!description, hasPolicyId: !!policyId, hasQuestions: !!parsedQuestions });
+
     const step = await prisma.orientationStep.update({
       where: { id: stepId },
       data: {
+        // Always update title (already validated above)
+        title,
+        // Conditionally update other fields only if provided
         ...(stepNumber && { stepNumber: parseInt(stepNumber) }),
-        ...(title && { title }),
-        ...(description !== undefined && { description }),
-        ...(content !== undefined && { content }),
+        ...(description !== undefined && { description: description || null }),
+        ...(content !== undefined && { content: content || null }),
         ...(pdfUrl !== undefined && { pdfUrl }),
         ...(policyId !== undefined && { policyId: policyId || null }),
         ...(parsedQuestions !== undefined && { questions: parsedQuestions }),
-        ...(isRequired !== undefined && { isRequired }),
+        ...(isRequired !== undefined && { isRequired: isRequired === 'true' || isRequired === true }),
         ...(order !== undefined && { order: parseInt(order) }),
       },
     });
 
+    console.log('✅ Step updated successfully:', step);
     res.json({ step });
   } catch (error: any) {
-    console.error('Update orientation step error:', error);
+    console.error('❌ Update orientation step error:', {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+    });
     res.status(500).json({ message: error.message });
   }
 });

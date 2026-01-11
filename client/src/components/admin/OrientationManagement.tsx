@@ -244,13 +244,16 @@ export default function OrientationManagement() {
         formData.append('questionMode', questionMode);
       }
 
+      console.log('📤 Sending update request:', { orientationId, stepId, stepData });
       const res = await api.put(`/admin/orientations/${orientationId}/steps/${stepId}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      console.log('✅ Update response:', res.data);
       return res.data;
     },
     {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        console.log('✅ Step updated successfully:', data);
         queryClient.invalidateQueries('admin-orientations');
         setShowStepForm(false);
         setEditingStep(null);
@@ -267,6 +270,12 @@ export default function OrientationManagement() {
         });
         setStepPdfFile(null);
         alert('Step updated successfully!');
+      },
+      onError: (error: any) => {
+        console.error('❌ Error updating step:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+        const errorDetails = error.response?.data?.details;
+        alert(`Error updating step: ${errorMessage}\n\n${errorDetails ? `Details: ${errorDetails.substring(0, 200)}` : ''}\n\nCheck the browser console (F12) for full error details.`);
       },
     }
   );
