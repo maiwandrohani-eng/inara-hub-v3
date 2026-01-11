@@ -504,7 +504,7 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
           {quiz.questions.map((q, qIdx) => (
             <div key={qIdx} className="mb-6">
               <p className="text-lg text-white mb-4">{q.question}</p>
-              <div className="space-y-2">
+              <div className="space-y-2 mb-4">
                 {q.options.map((option, optIdx) => (
                   <label
                     key={optIdx}
@@ -528,6 +528,11 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
                   </label>
                 ))}
               </div>
+              {q.explanation && (
+                <div className="p-3 bg-blue-900/30 border border-blue-500/30 rounded-lg">
+                  <p className="text-sm text-blue-300"><span className="font-semibold">💡 Hint:</span> {q.explanation}</p>
+                </div>
+              )}
             </div>
           ))}
 
@@ -577,7 +582,7 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
               <p className="text-lg text-white mb-4">
                 {qIdx + 1}. {q.question}
               </p>
-              <div className="space-y-2">
+              <div className="space-y-2 mb-4">
                 {q.options.map((option, optIdx) => (
                   <label
                     key={optIdx}
@@ -599,6 +604,11 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
                   </label>
                 ))}
               </div>
+              {q.explanation && (
+                <div className="p-3 bg-blue-900/30 border border-blue-500/30 rounded-lg">
+                  <p className="text-sm text-blue-300"><span className="font-semibold">💡 Hint:</span> {q.explanation}</p>
+                </div>
+              )}
             </div>
           ))}
 
