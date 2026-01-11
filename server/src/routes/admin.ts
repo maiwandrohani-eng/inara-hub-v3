@@ -196,8 +196,8 @@ router.post('/academy/courses/:id/resources', upload.array('files', 10), async (
       return res.status(400).json({ message: 'No files uploaded' });
     }
 
-    // Upload files to R2
-    const uploadedFiles = await uploadFilesToR2(files, 'academy/resources');
+    // Upload files to R2 at /academy/ root level (not academy/resources/)
+    const uploadedFiles = await uploadFilesToR2(files, 'academy');
 
     // Filter out failed uploads
     const successfulUploads = uploadedFiles.filter((f) => f.success && f.url);
