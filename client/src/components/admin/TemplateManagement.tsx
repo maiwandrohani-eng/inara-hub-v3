@@ -120,7 +120,7 @@ export default function TemplateManagement() {
     e.preventDefault();
     
     if (uploadMode === 'multiple' && selectedFiles.length > 0) {
-      // Handle multiple file upload with category/subcategory
+      // Handle multiple file upload with category/subcategory only (no title needed)
       multipleUploadMutation.mutate({
         files: selectedFiles,
         category: formData.category || undefined,
@@ -129,7 +129,12 @@ export default function TemplateManagement() {
       return;
     }
     
-    // Handle single file upload or URL
+    // Handle single file upload or URL (requires title)
+    if (uploadMode === 'single' && !formData.title) {
+      alert('Please enter a title');
+      return;
+    }
+    
     createMutation.mutate({ formData, file: selectedFile });
   };
 
@@ -412,16 +417,18 @@ export default function TemplateManagement() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">Title *</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
-              />
-            </div>
+            {uploadMode === 'single' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-1">Title *</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg"
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-200 mb-1">Category</label>
