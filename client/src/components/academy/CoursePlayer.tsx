@@ -721,9 +721,7 @@ export default function CoursePlayer({ courseId, courseStartMode = 'course', onC
           <div className="bg-gray-800 rounded-lg shadow-xl p-8 mb-6">
             <h2 className="text-3xl font-bold text-white mb-6">{currentSlide.title}</h2>
             <div
-              className="prose prose-invert max-w-none text-gray-200 
-                [&_p]:ml-6 [&_p]:before:content-['•'] [&_p]:before:mr-3 
-                [&_p]:before:text-primary-400 [&_p]:mb-2"
+              className="prose prose-invert max-w-none text-gray-200"
               dangerouslySetInnerHTML={{ __html: currentSlide.content }}
             />
             {currentSlide.mediaUrl && (
