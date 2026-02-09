@@ -64,7 +64,7 @@ export default function OrientationTab() {
   const completed = data?.completed;
   const certificateUrl = data?.certificateUrl;
   const checklistData = data?.checklistData;
-  const stepConfirmations = data?.stepConfirmations || new Set();
+  const stepConfirmations = new Set(Array.isArray(data?.stepConfirmations) ? data.stepConfirmations : []);
 
   // Pre-calculate values needed by useEffect hooks
   const useSteps = orientationSteps.length > 0;
@@ -167,6 +167,8 @@ export default function OrientationTab() {
       onSuccess: () => {
         queryClient.invalidateQueries('orientation');
         queryClient.invalidateQueries('policies');
+        queryClient.invalidateQueries('my-policies');
+        queryClient.invalidateQueries('all-policies');
       },
     }
   );

@@ -70,6 +70,8 @@ export default function PoliciesTab() {
         setAssessmentScore(data.score);
         setAssessmentSubmitted(true);
         queryClient.invalidateQueries('policies');
+        queryClient.invalidateQueries('my-policies');
+        queryClient.invalidateQueries('all-policies');
         if (data.passed) {
           alert(`✅ Assessment passed! Score: ${data.score}%`);
         } else {
@@ -92,6 +94,8 @@ export default function PoliciesTab() {
       onSuccess: (data) => {
         setShowAcknowledgmentModal(false);
         queryClient.invalidateQueries('policies');
+        queryClient.invalidateQueries('my-policies');
+        queryClient.invalidateQueries('all-policies');
         alert('✅ Policy acknowledged successfully!');
       },
       onError: (error: any) => {

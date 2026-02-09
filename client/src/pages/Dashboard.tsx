@@ -9,10 +9,11 @@ export default function Dashboard() {
   console.log('Dashboard component: Rendering...');
   const { user } = useAuthStore();
 
+  // Queries that drive "Action Required" - refetch when window gains focus so banner updates after user takes action in another tab
   const { data: trainingData } = useQuery('my-trainings', async () => {
     const res = await api.get('/training?mandatory=true&status=NOT_STARTED');
     return res.data;
-  });
+  }, { refetchOnWindowFocus: true });
 
   const { data: allTrainingData } = useQuery('all-trainings', async () => {
     try {
@@ -26,7 +27,7 @@ export default function Dashboard() {
   const { data: policyData } = useQuery('my-policies', async () => {
     const res = await api.get('/policies?mandatory=true&status=NOT_ACKNOWLEDGED');
     return res.data;
-  });
+  }, { refetchOnWindowFocus: true });
 
   const { data: allPolicyData } = useQuery('all-policies', async () => {
     try {
@@ -40,7 +41,7 @@ export default function Dashboard() {
   const { data: orientationData } = useQuery('orientation', async () => {
     const res = await api.get('/orientation');
     return res.data;
-  });
+  }, { refetchOnWindowFocus: true });
 
   const { data: achievementsData } = useQuery('achievements', async () => {
     try {
@@ -165,10 +166,10 @@ export default function Dashboard() {
           <div>
             <p className="text-sm text-gray-400">Orientation</p>
             <p className="text-2xl font-bold text-white mt-1">
-              {orientationData?.completed ? '✓' : '✗'}
+              {orientationData == null ? '…' : orientationData.completed ? '✓' : '✗'}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {orientationData?.completed ? 'Completed' : 'Not completed'}
+              {orientationData == null ? 'Loading…' : orientationData.completed ? 'Completed' : 'Not completed'}
             </p>
           </div>
         </div>
@@ -225,12 +226,12 @@ export default function Dashboard() {
       {/* Suggestion Box - Horizontal */}
       <SuggestionBox />
 
-      {/* Alerts */}
-      {(trainingData?.trainings?.length > 0 || policyData?.policies?.length > 0 || !orientationData?.completed) && (
+      {/* Alerts - only show orientation required when we have loaded data and completed is false (not while loading) */}
+      {(trainingData?.trainings?.length > 0 || policyData?.policies?.length > 0 || (orientationData != null && !orientationData.completed)) && (
         <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4">
           <h3 className="font-bold text-yellow-300 mb-2">⚠️ Action Required</h3>
           <ul className="list-disc list-inside text-sm text-yellow-200 space-y-1">
-            {!orientationData?.completed && (
+            {orientationData != null && !orientationData.completed && (
               <li>
                 <Link to="/orientation" className="underline">
                   Complete your orientation

@@ -135,7 +135,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
       },
     });
 
-    const confirmedStepIds = new Set(stepConfirmations.map(sc => sc.stepId));
+    const confirmedStepIds = Array.from(new Set(stepConfirmations.map(sc => sc.stepId)));
 
     // Get completion status
     const completion = await prisma.orientationCompletion.findUnique({
