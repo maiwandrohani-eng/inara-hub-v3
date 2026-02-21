@@ -1,5 +1,5 @@
 import express from 'express';
-import { PrismaClient, UserRole, Department } from '@prisma/client';
+import { PrismaClient, AccessLevel, UserRole, Department } from '@prisma/client';
 import { authenticate, AuthRequest, authorize } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
 import path from 'path';
@@ -1630,7 +1630,7 @@ router.post('/surveys', async (req: AuthRequest, res) => {
         passingScore: surveyData.passingScore ?? null,
         maxAttempts: surveyData.maxAttempts ?? null,
         isMandatory: surveyData.isMandatory ?? false,
-        assignedTo,
+        assignedTo: assignedTo as AccessLevel,
         assignedRoles: filterEnum(surveyData.assignedRoles, VALID_USER_ROLES),
         assignedDepartments: filterEnum(surveyData.assignedDepartments, VALID_DEPARTMENTS),
         assignedCountries: Array.isArray(surveyData.assignedCountries) ? surveyData.assignedCountries : [],
