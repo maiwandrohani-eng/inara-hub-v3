@@ -86,19 +86,6 @@ export default function WorkTab() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* INARA Form Builder - static card */}
-        <div className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6 hover:border-primary-500 transition-all">
-          <h3 className="text-lg font-semibold text-white mb-2">INARA Form Builder</h3>
-          <p className="text-sm text-gray-400 mb-4">Create and manage forms for data collection</p>
-          <a
-            href="https://forms.inara.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 text-center transition-colors"
-          >
-            Access System
-          </a>
-        </div>
         {data?.systems?.map((system: any) => (
           <div
             key={system.id}

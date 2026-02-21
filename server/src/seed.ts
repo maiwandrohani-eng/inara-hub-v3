@@ -58,26 +58,27 @@ async function main() {
   });
   console.log('✅ Created staff user:', staff.email);
 
-  // Create 8 work systems
+  // Create 9 work systems
   const workSystems = [
-    { name: 'Human Resource Management', url: 'https://hr.inara.org', order: 1 },
-    { name: 'Asset Management', url: 'https://assets.inara.org', order: 2 },
-    { name: 'Procurement Management', url: 'https://procurement.inara.org', order: 3 },
-    { name: 'Financial Management', url: 'https://finance.inara.org', order: 4 },
-    { name: 'Project Management', url: 'https://projects.inara.org', order: 5 },
-    { name: 'Case Management', url: 'https://cases.inara.org', order: 6 },
-    { name: 'Planning and Reporting', url: 'https://planning.inara.org', order: 7 },
-    { name: 'The INARA Network', url: 'https://network.inara.org', order: 8 },
+    { name: 'Human Resource Management', url: 'https://hr.inara.org', description: 'HR systems and people management', order: 1 },
+    { name: 'Asset Management', url: 'https://assets.inara.org', description: 'Track and manage organizational assets', order: 2 },
+    { name: 'Procurement Management', url: 'https://procurement.inara.org', description: 'Procurement and sourcing', order: 3 },
+    { name: 'Financial Management', url: 'https://finance.inara.org', description: 'Financial systems and reporting', order: 4 },
+    { name: 'Project Management', url: 'https://projects.inara.org', description: 'Project planning and delivery', order: 5 },
+    { name: 'Case Management', url: 'https://cases.inara.org', description: 'Case tracking and management', order: 6 },
+    { name: 'Planning and Reporting', url: 'https://planning.inara.org', description: 'Strategic planning and reports', order: 7 },
+    { name: 'The INARA Network', url: 'https://network.inara.org', description: 'INARA internal network', order: 8 },
+    { name: 'INARA Form Builder', url: 'https://forms.inara.org', description: 'Create and manage forms for data collection', order: 9 },
   ];
 
   for (const system of workSystems) {
     await prisma.workSystem.upsert({
       where: { name: system.name },
-      update: {},
+      update: { url: system.url, description: system.description, order: system.order },
       create: system,
     });
   }
-  console.log('✅ Created 8 work systems');
+  console.log('✅ Created 9 work systems');
 
   // Create sample orientation
   const existingOrientation = await prisma.orientation.findFirst({
