@@ -85,27 +85,73 @@ export default function WorkTab() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {data?.systems?.map((system: any) => (
-          <div
-            key={system.id}
-            className="bg-gray-800 rounded-lg shadow border border-gray-700 p-6 hover:border-primary-500 transition-all"
-          >
-            <h3 className="text-lg font-semibold text-white mb-2">
-              {system.name}
-            </h3>
-            {system.description && (
-              <p className="text-sm text-gray-400 mb-4">{system.description}</p>
-            )}
-            <button
-              onClick={() => handleAccess(system.id)}
-              disabled={accessing === system.id}
-              className="w-full bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {data?.systems?.map((system: any, index: number) => {
+          const accents = [
+            'from-primary-500 to-primary-600',
+            'from-inara-cyan to-blue-600',
+            'from-inara-teal to-emerald-600',
+            'from-inara-magenta to-pink-600',
+            'from-inara-yellow to-amber-500',
+            'from-emerald-500 to-teal-600',
+            'from-violet-500 to-purple-600',
+            'from-orange-500 to-amber-500',
+          ];
+          const accent = accents[index % accents.length];
+          return (
+            <div
+              key={system.id}
+              className="group relative bg-gray-800/90 rounded-xl border border-gray-700/80 overflow-hidden hover:border-gray-600 hover:shadow-lg hover:shadow-primary-500/10 transition-all duration-300 hover:-translate-y-0.5"
             >
-              {accessing === system.id ? 'Checking access...' : 'Access System'}
-            </button>
-          </div>
-        ))}
+              {/* Accent bar */}
+              <div className={`h-1.5 bg-gradient-to-r ${accent}`} />
+              <div className="p-6">
+                {/* Icon + Title row */}
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br ${accent} flex items-center justify-center text-white text-lg font-bold shadow-lg`}>
+                    {system.icon ? (
+                      <span>{system.icon}</span>
+                    ) : (
+                      <span>{system.name.charAt(0)}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base font-semibold text-white leading-tight group-hover:text-primary-300 transition-colors">
+                      {system.name}
+                    </h3>
+                  </div>
+                </div>
+                {system.description && (
+                  <p className="text-sm text-gray-500 mb-5 line-clamp-2 leading-relaxed">
+                    {system.description}
+                  </p>
+                )}
+                <button
+                  onClick={() => handleAccess(system.id)}
+                  disabled={accessing === system.id}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-gray-700 hover:bg-primary-500/90 text-gray-200 hover:text-white border border-gray-600 hover:border-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm"
+                >
+                  {accessing === system.id ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Checking...
+                    </>
+                  ) : (
+                    <>
+                      Access System
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {(!data?.systems || data.systems.length === 0) && (
