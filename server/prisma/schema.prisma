@@ -984,4 +984,6 @@ enum AccessLevel {
   COUNTRY
   DEPARTMENT
   ROLE
+  USERS
+  PUBLIC
 }

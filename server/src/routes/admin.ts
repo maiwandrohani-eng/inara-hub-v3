@@ -1,7 +1,6 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole, Department } from '@prisma/client';
 import { authenticate, AuthRequest, authorize } from '../middleware/auth.js';
-import { UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import fs from 'fs';
@@ -1584,6 +1583,16 @@ router.get('/surveys', async (req: AuthRequest, res) => {
   }
 });
 
+// AccessLevel enum values supported by DB (GLOBAL, COUNTRY, DEPARTMENT, ROLE)
+// USERS and PUBLIC map to GLOBAL until schema migration adds them
+const DB_ACCESS_LEVEL_VALUES = new Set(['GLOBAL', 'COUNTRY', 'DEPARTMENT', 'ROLE']);
+
+const VALID_USER_ROLES = new Set(Object.values(UserRole));
+const VALID_DEPARTMENTS = new Set(Object.values(Department));
+
+const filterEnum = <T>(arr: unknown, valid: Set<T>): T[] =>
+  Array.isArray(arr) ? arr.filter((v): v is T => typeof v === 'string' && valid.has(v as T)) : [];
+
 router.post('/surveys', async (req: AuthRequest, res) => {
   try {
     const { category, tags, ...surveyData } = req.body;
@@ -1597,17 +1606,42 @@ router.post('/surveys', async (req: AuthRequest, res) => {
     // Ensure isActive is set (default to true if not provided)
     const isActive = surveyData.isActive !== undefined ? surveyData.isActive : true;
     
-    // Ensure assignedTo has a default value
-    const assignedTo = surveyData.assignedTo || 'GLOBAL';
+    // Ensure assignedTo is valid - USERS and PUBLIC map to GLOBAL until schema supports them
+    const requested = String(surveyData.assignedTo || 'GLOBAL').toUpperCase();
+    const assignedTo = DB_ACCESS_LEVEL_VALUES.has(requested) ? requested : 'GLOBAL';
+    
+    // Parse dates - handle ISO strings from JSON
+    const parseDate = (val: any) => {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    };
     
     const survey = await prisma.survey.create({
       data: {
-        ...surveyData,
-        isActive,
+        title: surveyData.title,
+        description: surveyData.description ?? null,
+        type: surveyData.type || 'survey',
+        questions: surveyData.questions ?? [],
+        isAnonymous: surveyData.isAnonymous ?? false,
+        hasTimeLimit: surveyData.hasTimeLimit ?? false,
+        timeLimitMinutes: surveyData.timeLimitMinutes ?? null,
+        passingScore: surveyData.passingScore ?? null,
+        maxAttempts: surveyData.maxAttempts ?? null,
+        isMandatory: surveyData.isMandatory ?? false,
         assignedTo,
+        assignedRoles: filterEnum(surveyData.assignedRoles, VALID_USER_ROLES),
+        assignedDepartments: filterEnum(surveyData.assignedDepartments, VALID_DEPARTMENTS),
+        assignedCountries: Array.isArray(surveyData.assignedCountries) ? surveyData.assignedCountries : [],
+        assignedUserIds: Array.isArray(surveyData.assignedUserIds) ? surveyData.assignedUserIds : [],
+        startDate: parseDate(surveyData.startDate),
+        endDate: parseDate(surveyData.endDate),
+        dueDate: parseDate(surveyData.dueDate),
         category: formattedCategory,
         tags: formattedTags,
-        createdBy: req.userId,
+        isActive,
+        createdBy: req.userId ?? null,
       },
     });
 
@@ -1621,7 +1655,13 @@ router.post('/surveys', async (req: AuthRequest, res) => {
     res.status(201).json({ survey });
   } catch (error: any) {
     console.error('❌ Error creating survey:', error);
-    res.status(500).json({ message: error.message });
+    const message = error?.message || 'Failed to create survey';
+    const code = error?.code;
+    res.status(500).json({ 
+      message, 
+      code,
+      ...(process.env.NODE_ENV === 'development' && { stack: error?.stack }),
+    });
   }
 });
 
