@@ -86,6 +86,38 @@ export default function WorkTab() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* INARA Form Builder - show as static card if not yet in DB (run seed or add via Admin to manage) */}
+        {!data?.systems?.some((s: any) => s.name === 'INARA Form Builder') && (
+          <div className="group relative bg-gray-800/90 rounded-xl border border-gray-700/80 overflow-hidden hover:border-gray-600 hover:shadow-lg hover:shadow-primary-500/10 transition-all duration-300 hover:-translate-y-0.5">
+            <div className="h-1.5 bg-gradient-to-r from-inara-magenta to-pink-600" />
+            <div className="p-6">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-inara-magenta to-pink-600 flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                  F
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base font-semibold text-white leading-tight group-hover:text-primary-300 transition-colors">
+                    INARA Form Builder
+                  </h3>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 mb-5 line-clamp-2 leading-relaxed">
+                Create and manage forms for data collection
+              </p>
+              <a
+                href="https://forms.inara.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-gray-700 hover:bg-primary-500/90 text-gray-200 hover:text-white border border-gray-600 hover:border-primary-500 transition-all duration-200 font-medium text-sm"
+              >
+                Access System
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        )}
         {data?.systems?.map((system: any, index: number) => {
           const accents = [
             'from-primary-500 to-primary-600',
